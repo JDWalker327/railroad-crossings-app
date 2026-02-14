@@ -4,7 +4,7 @@ const { createClient } = window.supabase
 const SUPABASE_URL = 'YOUR_SUPABASE_URL'  // Replace with your URL
 const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY'  // Replace with your public key
 
-const supabase = createClient(https://hbesqtcjkcjmzowhgowe.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZXNxdGNqa2NqbXpvd2hnb3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNzkxNDksImV4cCI6MjA4MzY1NTE0OX0.lDMaKPazIegKhUMxszA3ArnypeIDDF4YmxR95SXxrII)
+const supabase = createClient('https://hbesqtcjkcjmzowhgowe.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZXNxdGNqa2NqbXpvd2hnb3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNzkxNDksImV4cCI6MjA4MzY1NTE0OX0.lDMaKPazIegKhUMxszA3ArnypeIDDF4YmxR95SXxrII')
 
 // Login function
 const loginBtn = document.getElementById('login-btn')
