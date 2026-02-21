@@ -58,12 +58,13 @@ async function loadSubdivisions() {
   data.forEach(row => {
     if (row.subdivision) {
       const opt = document.createElement("option");
-      opt.value = row.subdivision;
-      opt.textContent = row.subdivision;
+      opt.value = row.project_id;        // <-- use project_id as the value
+      opt.textContent = row.subdivision; // <-- display the subdivision name
       projectSelector.appendChild(opt);
     }
   });
 }
+
 
 // -----------------------------
 // LOAD TABLE DATA
