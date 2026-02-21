@@ -1,7 +1,7 @@
 // Initialize Supabase
 const supabaseClient = supabase.createClient(
   "https://hbesqtcjkcjmzowhgowe.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZXNxdGNqa2NqbXpvd2hnb3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNzkxNDksImV4cCI6MjA4MzY1NTE0OX0.lDMaKPazIegKhUMxszA3ArnypeIDDF4YmxR95SXxrII"
+  "YOUR_REAL_ANON_KEY_HERE"
 );
 
 // DOM elements
@@ -53,10 +53,8 @@ async function loadSubdivisions() {
     return;
   }
 
-  // Clear old options except "All Subdivisions"
   projectSelector.innerHTML = `<option value="all">All Subdivisions</option>`;
 
-  // Add each subdivision
   data.forEach(row => {
     if (row.subdivision) {
       const opt = document.createElement("option");
@@ -73,7 +71,6 @@ async function loadSubdivisions() {
 async function loadData() {
   let query = supabaseClient.from("projects").select("*");
 
-  // Filter if subdivision selected
   if (projectSelector.value !== "all") {
     query = query.eq("subdivision", projectSelector.value);
   }
@@ -135,4 +132,5 @@ function renderTable(rows) {
 // DROPDOWN CHANGE HANDLER
 // -----------------------------
 projectSelector.addEventListener("change", loadData);
+
 
