@@ -1,56 +1,87 @@
 body {
-  font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
   margin: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
 }
 
-#app {
-  background: white;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  text-align: center;
-}
-
-h2 {
-  color: #333;
-  margin-bottom: 30px;
-}
-
+/* LOGIN */
 #login-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
-input {
-  padding: 12px;
-  font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+.login-box {
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  width: 280px;
 }
 
-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+.login-box input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
 }
 
-button {
-  padding: 12px;
-  background-color: #667eea;
+#login-btn {
+  margin-top: 14px;
+  width: 100%;
+  padding: 10px;
+  background: #2c3e50;
   color: white;
   border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  border-radius: 4px;
 }
 
-button:hover {
-  background-color: #764ba2;
+/* DASHBOARD */
+#dashboard {
+  padding: 20px;
 }
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#project-selector {
+  padding: 6px;
+}
+
+/* TABLE */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.data-table th {
+  background: #2c3e50;
+  color: white;
+  padding: 8px;
+}
+
+.data-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
+
+.data-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+/* HIGHLIGHTING */
+.completed-row {
+  background-color: yellow !important;
+}
+
+.asphalted-row {
+  background-color: lightgreen !important;
+}
+
+
+
