@@ -34,17 +34,15 @@ loginBtn.addEventListener("click", async () => {
     return;
   }
 
-  // SUCCESS → show dashboard
   loginContainer.style.display = "none";
   dashboard.style.display = "block";
 
-  // Load dropdown + table
   loadSubdivisions();
   loadData();
 });
 
 // -----------------------------------------------------
-// LOAD SUBDIVISIONS (from Projects table)
+// LOAD SUBDIVISIONS
 // -----------------------------------------------------
 async function loadSubdivisions() {
   const { data, error } = await supabaseClient
@@ -61,24 +59,23 @@ async function loadSubdivisions() {
 
   data.forEach(row => {
     const opt = document.createElement("option");
-    opt.value = row.project_id;        // store project_id
-    opt.textContent = row.subdivision; // display subdivision name
+    opt.value = row.project_id;
+    opt.textContent = row.subdivision;
     projectSelector.appendChild(opt);
   });
 }
 
 // -----------------------------------------------------
-// LOAD TABLE DATA (from parent Crossings table)
+// LOAD DATA FROM PARENT TABLE "Crossings"
 // -----------------------------------------------------
 async function loadData() {
   let query = supabaseClient.from("Crossings").select("*");
 
-  // Filter by project_id if a subdivision is selected
   if (projectSelector.value !== "all") {
     query = query.eq("project_id", projectSelector.value);
   }
 
-  const { data, error } = await query.order("mile_post", { ascending: true });
+  const { data, error } = await query.order("mile-post", { ascending: true });
 
   if (error) {
     console.error("Data load error:", error);
@@ -89,7 +86,7 @@ async function loadData() {
 }
 
 // -----------------------------------------------------
-// RENDER TABLE
+// RENDER TABLE — MATCHES YOUR REAL COLUMN NAMES
 // -----------------------------------------------------
 function renderTable(rows) {
   if (!rows || rows.length === 0) {
@@ -101,13 +98,20 @@ function renderTable(rows) {
     <table>
       <thead>
         <tr>
-          <th>Subdivision</th>
-          <th>Mile Post</th>
+          <th>Project ID</th>
           <th>DOT #</th>
-          <th>City</th>
-          <th>State</th>
-          <th>Surface</th>
-          <th>Active</th>
+          <th>Mile Post</th>
+          <th>Crossing #</th>
+          <th>Track</th>
+          <th>Type</th>
+          <th>Sequence</th>
+          <th>Completed</th>
+          <th>Asphalted</th>
+          <th>Planned Footage</th>
+          <th>Actual Footage</th>
+          <th>Completed By</th>
+          <th>Date Completed</th>
+          <th>Helped</th>
         </tr>
       </thead>
       <tbody>
@@ -116,13 +120,20 @@ function renderTable(rows) {
   rows.forEach(row => {
     html += `
       <tr>
-        <td>${row.subdivision}</td>
-        <td>${row.mile_post}</td>
-        <td>${row.dot_number}</td>
-        <td>${row.city}</td>
-        <td>${row.state}</td>
-        <td>${row.surface}</td>
-        <td>${row.active}</td>
+        <td>${row.project_id}</td>
+        <td>${row["dot-number"]}</td>
+        <td>${row["mile-post"]}</td>
+        <td>${row.crossing_number}</td>
+        <td>${row.track}</td>
+        <td>${row.type}</td>
+        <td>${row.sequence}</td>
+        <td>${row.completed}</td>
+        <td>${row.asphalted}</td>
+        <td>${row.planned_footage}</td>
+        <td>${row.actual_footage}</td>
+        <td>${row.completed_by}</td>
+        <td>${row.date_copleted}</td>
+        <td>${row.helped}</td>
       </tr>
     `;
   });
