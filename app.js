@@ -44,7 +44,7 @@ async function loadSubdivisions() {
     .select("project_id, subdivision")
     .order("subdivision", { ascending: true });
 
-  console.log("Projects query:", data, error);
+  console.log("projects query:", data, error);
 
   if (error) {
     console.error("Subdivision load error:", error);
