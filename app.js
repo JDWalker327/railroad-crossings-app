@@ -1,10 +1,14 @@
+// -----------------------------------------------------
 // Initialize Supabase
+// -----------------------------------------------------
 const supabaseClient = supabase.createClient(
   "https://hbesqtcjkcjmzowhgowe.supabase.co",
   "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
 );
 
-// DOM elements
+// -----------------------------------------------------
+// DOM ELEMENTS
+// -----------------------------------------------------
 const loginContainer = document.getElementById("login-container");
 const dashboard = document.getElementById("dashboard");
 const loginBtn = document.getElementById("login-btn");
@@ -13,9 +17,9 @@ const passwordInput = document.getElementById("password");
 const projectSelector = document.getElementById("project-selector");
 const dataSection = document.getElementById("data-section");
 
-// -----------------------------
+// -----------------------------------------------------
 // LOGIN HANDLER
-// -----------------------------
+// -----------------------------------------------------
 loginBtn.addEventListener("click", async () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
@@ -39,9 +43,9 @@ loginBtn.addEventListener("click", async () => {
   loadData();
 });
 
-// -----------------------------
-// LOAD SUBDIVISIONS
-// -----------------------------
+// -----------------------------------------------------
+// LOAD SUBDIVISIONS (from Projects table)
+// -----------------------------------------------------
 async function loadSubdivisions() {
   const { data, error } = await supabaseClient
     .from("projects")
@@ -56,24 +60,22 @@ async function loadSubdivisions() {
   projectSelector.innerHTML = `<option value="all">All Subdivisions</option>`;
 
   data.forEach(row => {
-    if (row.subdivision) {
-      const opt = document.createElement("option");
-      opt.value = row.project_id;        // <-- use project_id as the value
-      opt.textContent = row.subdivision; // <-- display the subdivision name
-      projectSelector.appendChild(opt);
-    }
+    const opt = document.createElement("option");
+    opt.value = row.project_id;        // store project_id
+    opt.textContent = row.subdivision; // display subdivision name
+    projectSelector.appendChild(opt);
   });
 }
 
-
-// -----------------------------
-// LOAD TABLE DATA
-// -----------------------------
+// -----------------------------------------------------
+// LOAD TABLE DATA (from parent Crossings table)
+// -----------------------------------------------------
 async function loadData() {
-  let query = supabaseClient.from("projects").select("*");
+  let query = supabaseClient.from("Crossings").select("*");
 
+  // Filter by project_id if a subdivision is selected
   if (projectSelector.value !== "all") {
-    query = query.eq("subdivision", projectSelector.value);
+    query = query.eq("project_id", projectSelector.value);
   }
 
   const { data, error } = await query.order("mile_post", { ascending: true });
@@ -86,9 +88,9 @@ async function loadData() {
   renderTable(data);
 }
 
-// -----------------------------
+// -----------------------------------------------------
 // RENDER TABLE
-// -----------------------------
+// -----------------------------------------------------
 function renderTable(rows) {
   if (!rows || rows.length === 0) {
     dataSection.innerHTML = "<p>No data found.</p>";
@@ -129,9 +131,9 @@ function renderTable(rows) {
   dataSection.innerHTML = html;
 }
 
-// -----------------------------
+// -----------------------------------------------------
 // DROPDOWN CHANGE HANDLER
-// -----------------------------
+// -----------------------------------------------------
 projectSelector.addEventListener("change", loadData);
 
 
