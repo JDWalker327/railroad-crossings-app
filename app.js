@@ -1,26 +1,28 @@
-const { createClient } = window.supabase;
+// Initialize Supabase
+const supabaseClient = supabase.createClient(
+  "https://hbesqtcjkcjmzowhgowe.supabase.co",
+  "YOUR_ANON_KEY_HERE"
+);
 
-// Supabase init
-const SUPABASE_URL = "https://hbesqtcjkcjmzowhgowe.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZXNxdGNqa2NqbXpvd2hnb3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNzkxNDksImV4cCI6MjA4MzY1NTE0OX0.lDMaKPazIegKhUMxszA3ArnypeIDDF4YmxR95SXxrII";
-
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Login elements
+// DOM elements
+const loginContainer = document.getElementById("login-container");
+const dashboard = document.getElementById("dashboard");
 const loginBtn = document.getElementById("login-btn");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const projectSelector = document.getElementById("project-selector");
+const dataSection = document.getElementById("data-section");
 
+// -----------------------------
 // LOGIN HANDLER
+// -----------------------------
 loginBtn.addEventListener("click", async () => {
-  const email = emailInput.value;
-  const password = passwordInput.value;
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
 
-  const { error } = await supabaseClient.auth.signInWithPassword({
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
-    password,
+    password
   });
 
   if (error) {
@@ -28,104 +30,109 @@ loginBtn.addEventListener("click", async () => {
     return;
   }
 
-  alert("Login successful!");
+  // SUCCESS → show dashboard
+  loginContainer.style.display = "none";
+  dashboard.style.display = "block";
 
-  document.getElementById("login-container").style.display = "none";
-  document.getElementById("dashboard").style.display = "block";
-
-  await loadSubdivisions();
-  loadCrossings();
+  // Load dropdown + table
+  loadSubdivisions();
+  loadData();
 });
 
-// LOAD SUBDIVISIONS FROM PROJECTS TABLE
+// -----------------------------
+// LOAD SUBDIVISIONS
+// -----------------------------
 async function loadSubdivisions() {
   const { data, error } = await supabaseClient
-    .from("projects")   // ← CORRECT TABLE NAME
+    .from("projects")
     .select("project_id, subdivision")
     .order("subdivision", { ascending: true });
-
-  console.log("projects query:", data, error);
 
   if (error) {
     console.error("Subdivision load error:", error);
     return;
   }
 
-  if (!data || data.length === 0) {
-    console.warn("No subdivisions returned. Check table name + RLS.");
-    return;
-  }
+  // Clear old options except "All Subdivisions"
+  projectSelector.innerHTML = `<option value="all">All Subdivisions</option>`;
 
-  data.forEach((row) => {
-    const opt = document.createElement("option");
-    opt.value = row.project_id;
-    opt.textContent = row.subdivision;
-    projectSelector.appendChild(opt);
-  });
-
-  projectSelector.addEventListener("change", () => {
-    loadCrossings(projectSelector.value);
+  // Add each subdivision
+  data.forEach(row => {
+    if (row.subdivision) {
+      const opt = document.createElement("option");
+      opt.value = row.subdivision;
+      opt.textContent = row.subdivision;
+      projectSelector.appendChild(opt);
+    }
   });
 }
 
-// LOAD CROSSINGS WITH FILTERING + SORTING + COLORING
-async function loadCrossings(projectId = "all") {
-  let query = supabaseClient.from("Crossings").select("*");
+// -----------------------------
+// LOAD TABLE DATA
+// -----------------------------
+async function loadData() {
+  let query = supabaseClient.from("projects").select("*");
 
-  if (projectId !== "all") {
-    query = query.eq("project_id", projectId);
+  // Filter if subdivision selected
+  if (projectSelector.value !== "all") {
+    query = query.eq("subdivision", projectSelector.value);
   }
 
-  const { data, error } = await query;
-
-  const container = document.getElementById("data-section");
-  container.innerHTML = "";
+  const { data, error } = await query.order("mile_post", { ascending: true });
 
   if (error) {
-    console.error(error);
-    container.innerHTML = "Error loading data.";
+    console.error("Data load error:", error);
     return;
   }
 
-  if (!data || data.length === 0) {
-    container.innerHTML = "No data found.";
-    return;
-  }
-
-  // SORT BY MILE POST ASCENDING
-  data.sort((a, b) => (a.mile_post || 0) - (b.mile_post || 0));
-
-  // BUILD TABLE
-  const table = document.createElement("table");
-  table.className = "data-table";
-
-  const headerRow = document.createElement("tr");
-
-  Object.keys(data[0]).forEach((key) => {
-    if (key === "id") return; // REMOVE ID COLUMN
-    const th = document.createElement("th");
-    th.textContent = key;
-    headerRow.appendChild(th);
-  });
-
-  table.appendChild(headerRow);
-
-  data.forEach((row) => {
-    const tr = document.createElement("tr");
-
-    // COLOR ROWS
-    if (row.completed === true) tr.classList.add("completed-row");
-    if (row.asphalted === true) tr.classList.add("asphalted-row");
-
-    Object.entries(row).forEach(([key, value]) => {
-      if (key === "id") return; // REMOVE ID COLUMN
-      const td = document.createElement("td");
-      td.textContent = value === null ? "" : value;
-      tr.appendChild(td);
-    });
-
-    table.appendChild(tr);
-  });
-
-  container.appendChild(table);
+  renderTable(data);
 }
+
+// -----------------------------
+// RENDER TABLE
+// -----------------------------
+function renderTable(rows) {
+  if (!rows || rows.length === 0) {
+    dataSection.innerHTML = "<p>No data found.</p>";
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Subdivision</th>
+          <th>Mile Post</th>
+          <th>DOT #</th>
+          <th>City</th>
+          <th>State</th>
+          <th>Surface</th>
+          <th>Active</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  rows.forEach(row => {
+    html += `
+      <tr>
+        <td>${row.subdivision}</td>
+        <td>${row.mile_post}</td>
+        <td>${row.dot_number}</td>
+        <td>${row.city}</td>
+        <td>${row.state}</td>
+        <td>${row.surface}</td>
+        <td>${row.active}</td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table>";
+  dataSection.innerHTML = html;
+}
+
+// -----------------------------
+// DROPDOWN CHANGE HANDLER
+// -----------------------------
+projectSelector.addEventListener("change", loadData);
+
