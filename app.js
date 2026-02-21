@@ -84,10 +84,6 @@ async function loadData() {
 
   renderTable(data);
 }
-
-// -----------------------------------------------------
-// RENDER TABLE — MATCHES YOUR REAL COLUMN NAMES
-// -----------------------------------------------------
 function renderTable(rows) {
   if (!rows || rows.length === 0) {
     dataSection.innerHTML = "<p>No data found.</p>";
@@ -95,7 +91,7 @@ function renderTable(rows) {
   }
 
   let html = `
-    <table>
+    <table class="crossings-table">
       <thead>
         <tr>
           <th>Project ID</th>
@@ -104,7 +100,6 @@ function renderTable(rows) {
           <th>Crossing #</th>
           <th>Track</th>
           <th>Type</th>
-          <th>Sequence</th>
           <th>Completed</th>
           <th>Asphalted</th>
           <th>Planned Footage</th>
@@ -118,15 +113,19 @@ function renderTable(rows) {
   `;
 
   rows.forEach(row => {
+    // Determine row color
+    let rowClass = "";
+    if (row.asphalted === true) rowClass = "asphalted-row";
+    else if (row.completed === true) rowClass = "completed-row";
+
     html += `
-      <tr>
+      <tr class="${rowClass}">
         <td>${row.project_id}</td>
         <td>${row["dot-number"]}</td>
         <td>${row["mile-post"]}</td>
         <td>${row.crossing_number}</td>
         <td>${row.track}</td>
         <td>${row.type}</td>
-        <td>${row.sequence}</td>
         <td>${row.completed}</td>
         <td>${row.asphalted}</td>
         <td>${row.planned_footage}</td>
@@ -141,6 +140,11 @@ function renderTable(rows) {
   html += "</tbody></table>";
   dataSection.innerHTML = html;
 }
+
+// -----------------------------------------------------
+// RENDER TABLE — MATCHES YOUR REAL COLUMN NAMES
+// -----------------------------------------------------
+
 
 // -----------------------------------------------------
 // DROPDOWN CHANGE HANDLER
