@@ -131,7 +131,7 @@ function renderTable(rows) {
         <td>${row.planned_footage}</td>
         <td>${row.actual_footage}</td>
         <td>${row.completed_by}</td>
-        <td>${row.date_copleted}</td>
+        <td>${row.date_completed}</td>
         <td>${row.helped}</td>
       </tr>
     `;
