@@ -66,8 +66,8 @@ async function loadCrossings() {
   // Build dropdown
   projects.forEach((p) => {
     const opt = document.createElement("option");
-    opt.value = p.project_id;        // numeric ID
-    opt.textContent = p.subdivision; // readable name
+    opt.value = p.project_id;
+    opt.textContent = p.subdivision;
     subdivisionSelect.appendChild(opt);
   });
 
@@ -117,8 +117,12 @@ function renderTable(rows) {
     if (row.asphalted === true) tr.classList.add("asphalted-row");
 
     tr.innerHTML = `
-      <td class="dot-link" data-dot="${row["dot-number"]}">
-        ${row["dot-number"] || ""}
+      <td>
+        <a href="#" class="dot-link"
+           data-lat="${row.latitude}"
+           data-lon="${row.longitude}">
+           ${row["dot-number"] || ""}
+        </a>
       </td>
       <td>${row["mile-post"] || ""}</td>
       <td>${row.crossing_number || ""}</td>
@@ -136,12 +140,13 @@ function renderTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 
-  // DOT number → Google Maps using lat/lon
-  document.querySelectorAll(".dot-link").forEach((cell) => {
-    cell.addEventListener("click", () => {
-      const tr = cell.closest("tr");
-      const lat = tr.dataset.lat;
-      const lon = tr.dataset.lon;
+  // DOT number → Google Maps using lat/lon (mobile-safe)
+  document.querySelectorAll(".dot-link").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      const lat = link.dataset.lat;
+      const lon = link.dataset.lon;
 
       if (lat && lon) {
         window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
