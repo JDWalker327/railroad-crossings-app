@@ -1,7 +1,7 @@
 // LOGIN HANDLER
-document.getElementById("loginButton").addEventListener("click", async () => {
-    const email = document.getElementById("emailInput").value;
-    const password = document.getElementById("passwordInput").value;
+document.getElementById("login-btn").addEventListener("click", async () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
