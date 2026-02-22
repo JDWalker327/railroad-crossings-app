@@ -105,6 +105,13 @@ async function loadCrossings() {
 function renderTable(rows) {
   crossingsTableBody.innerHTML = "";
 
+  // Sort by mile-post ascending
+  rows.sort((a, b) => {
+    const m1 = parseFloat(a["mile-post"]) || 0;
+    const m2 = parseFloat(b["mile-post"]) || 0;
+    return m1 - m2;
+  });
+
   rows.forEach((row) => {
     const tr = document.createElement("tr");
 
