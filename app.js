@@ -1,122 +1,121 @@
-// LOGIN HANDLER
-document.getElementById("login-btn").addEventListener("click", async () => {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+// ---- Supabase client (v1 global) ----
+const SUPABASE_URL = "https://hbesqtcjkcjmzowhgowe.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y";
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-    });
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    if (error) {
-        alert("Login failed: " + error.message);
-        return;
-    }
+// ---- DOM elements ----
+const loginContainer = document.getElementById("loginContainer");
+const dashboardContainer = document.getElementById("dashboardContainer");
 
-    document.getElementById("loginContainer").style.display = "none";
-    document.getElementById("dashboardContainer").style.display = "block";
+const emailInput = document.getElementById("emailInput");
+const passwordInput = document.getElementById("passwordInput");
+const loginButton = document.getElementById("loginButton");
+const loginError = document.getElementById("loginError");
 
-    loadSubdivisions();
+const subdivisionSelect = document.getElementById("subdivisionSelect");
+const crossingsTableBody = document.getElementById("crossingsTableBody");
+
+// ---- Login handler ----
+loginButton.addEventListener("click", async () => {
+  loginError.style.display = "none";
+  loginError.textContent = "";
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    loginError.textContent = "Please enter email and password.";
+    loginError.style.display = "block";
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    loginError.textContent = error.message || "Login failed.";
+    loginError.style.display = "block";
+    return;
+  }
+
+  // Login success
+  loginContainer.style.display = "none";
+  dashboardContainer.style.display = "block";
+
+  loadCrossings();
 });
 
-// LOAD SUBDIVISIONS
-async function loadSubdivisions() {
-    const { data, error } = await supabase
-        .from("Subdivisions")
-        .select("*")
-        .order("name", { ascending: true });
+// ---- Load crossings from Supabase ----
+async function loadCrossings() {
+  crossingsTableBody.innerHTML = "";
+  subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
 
-    if (error) {
-        console.error("Error loading subdivisions:", error);
-        return;
-    }
+  // IMPORTANT: your table name is EXACTLY "Crossings"
+  const { data, error } = await supabaseClient
+    .from("Crossings")
+    .select("*");
 
-    const dropdown = document.getElementById("subdivisionSelect");
-    dropdown.innerHTML = "";
+  if (error) {
+    console.error("Error loading Crossings:", error);
+    return;
+  }
 
-    data.forEach((sub) => {
-        const option = document.createElement("option");
-        option.value = sub.id;
-        option.textContent = sub.name;
-        dropdown.appendChild(option);
-    });
+  if (!data || data.length === 0) {
+    crossingsTableBody.innerHTML =
+      "<tr><td colspan='12'>No crossings found.</td></tr>";
+    return;
+  }
 
-    if (data.length > 0) {
-        dropdown.value = data[0].id;
-        loadData(data[0].id);
-    }
+  // Build subdivision list
+  const subdivisions = new Set();
+  data.forEach((row) => {
+    if (row.subdivision_name) subdivisions.add(row.subdivision_name);
+  });
+
+  subdivisions.forEach((sub) => {
+    const opt = document.createElement("option");
+    opt.value = sub;
+    opt.textContent = sub;
+    subdivisionSelect.appendChild(opt);
+  });
+
+  // Render table
+  renderTable(data);
+
+  subdivisionSelect.onchange = () => {
+    const selected = subdivisionSelect.value;
+    const filtered =
+      selected === "all"
+        ? data
+        : data.filter((row) => row.subdivision_name === selected);
+    renderTable(filtered);
+  };
 }
 
-// LOAD CROSSINGS
-async function loadData(subdivisionId) {
-    const { data, error } = await supabase
-        .from("Crossings")
-        .select("*")
-        .eq("subdivision_id", subdivisionId)
-        .order("milepost", { ascending: true });
+function renderTable(rows) {
+  crossingsTableBody.innerHTML = "";
 
-    if (error) {
-        console.error("Error loading crossings:", error);
-        return;
-    }
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
 
-    renderTable(data);
+    tr.innerHTML = `
+      <td>${row.dot || ""}</td>
+      <td>${row.milepost || ""}</td>
+      <td>${row.crossing_number || ""}</td>
+      <td>${row.track_type || ""}</td>
+      <td>${row.crossing_type || ""}</td>
+      <td>${row.completed ? "Yes" : "No"}</td>
+      <td>${row.asphalted ? "Yes" : "No"}</td>
+      <td>${row.planned_footage || ""}</td>
+      <td>${row.actual_footage || ""}</td>
+      <td>${row.completed_by || ""}</td>
+      <td>${row.date_completed || ""}</td>
+      <td>${row.helped || ""}</td>
+    `;
+
+    crossingsTableBody.appendChild(tr);
+  });
 }
-
-// RENDER TABLE
-function renderTable(crossings) {
-    const tableBody = document.getElementById("crossingsTableBody");
-    tableBody.innerHTML = "";
-
-    crossings.forEach((row) => {
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
-            <td class="dot-link" data-lat="${row.latitude}" data-lon="${row.longitude}">
-                ${row.dot_number}
-            </td>
-            <td>${row.milepost ?? ""}</td>
-            <td>${row.crossing_number ?? ""}</td>
-            <td>${row.track_type ?? ""}</td>
-            <td>${row.crossing_type ?? ""}</td>
-            <td>${row.completed ? "Yes" : "No"}</td>
-            <td>${row.asphalted ? "Yes" : "No"}</td>
-            <td>${row.planned_footage ?? ""}</td>
-            <td>${row.actual_footage ?? ""}</td>
-            <td>${row.completed_by ?? ""}</td>
-            <td>${row.date_completed ?? ""}</td>
-            <td>${row.helped ?? ""}</td>
-        `;
-
-        tableBody.appendChild(tr);
-    });
-
-    attachDotClickHandlers();
-}
-
-// CLICK HANDLER FOR GOOGLE MAPS
-function attachDotClickHandlers() {
-    document.querySelectorAll(".dot-link").forEach((cell) => {
-        cell.style.cursor = "pointer";
-        cell.style.color = "#0077cc";
-        cell.style.textDecoration = "underline";
-
-        cell.addEventListener("click", () => {
-            const lat = cell.getAttribute("data-lat");
-            const lon = cell.getAttribute("data-lon");
-
-            if (!lat || !lon) {
-                alert("No coordinates available for this crossing.");
-                return;
-            }
-
-            const url = `https://www.google.com/maps?q=${lat},${lon}`;
-            window.open(url, "_blank");
-        });
-    });
-}
-
-// SUBDIVISION CHANGE LISTENER
-document.getElementById("subdivisionSelect").addEventListener("change", (e) => {
-    loadData(e.target.value);
-});
