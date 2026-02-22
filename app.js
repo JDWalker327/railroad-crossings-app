@@ -124,7 +124,7 @@ function renderTable(rows) {
       <td>${row.completed ? "Yes" : "No"}</td>
       <td>${row.asphalted ? "Yes" : "No"}</td>
       <td>${row.planned_footage || ""}</td>
-      <td>${row.actual_footage || ""}</td>
+      <td>${row.road_name || ""}</td>
       <td>${row.completed_by || ""}</td>
       <td>${row.date_completed || ""}</td>
       <td>${row.helped || ""}</td>
