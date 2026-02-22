@@ -44,16 +44,28 @@ loginBtn.addEventListener("click", async () => {
 // -----------------------------------------------------
 // LOAD SUBDIVISIONS
 // -----------------------------------------------------
-async function loadSubdivisions() {
-  const { data, error } = await supabaseClient
-    .from("projects")
-    .select("project_id, subdivision")
-    .order("subdivision", { ascending: true });
+// Make DOT numbers clickable → open Google Maps
+function attachDotClickHandlers() {
+    document.querySelectorAll(".dot-link").forEach((cell) => {
+        cell.style.cursor = "pointer";
+        cell.style.color = "#0077cc";
+        cell.style.textDecoration = "underline";
 
-  if (error) {
-    console.error("Subdivision load error:", error);
-    return;
-  }
+        cell.addEventListener("click", () => {
+            const lat = cell.getAttribute("data-lat");
+            const lon = cell.getAttribute("data-lon");
+
+            if (!lat || !lon) {
+                alert("No coordinates available for this crossing.");
+                return;
+            }
+
+            const url = `https://www.google.com/maps?q=${lat},${lon}`;
+            window.open(url, "_blank");
+        });
+    });
+}
+
 
   projectSelector.innerHTML = `<option value="all">All Subdivisions</option>`;
 
