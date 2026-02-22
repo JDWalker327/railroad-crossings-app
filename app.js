@@ -48,7 +48,7 @@ loginButton.addEventListener("click", async () => {
   loadCrossings();
 });
 
-// ---- Load crossings from Supabase ----
+// ---- Load crossings + subdivisions ----
 async function loadCrossings() {
   crossingsTableBody.innerHTML = "";
   subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
@@ -66,7 +66,7 @@ async function loadCrossings() {
   // Build dropdown
   projects.forEach((p) => {
     const opt = document.createElement("option");
-    opt.value = p.project_id;     // numeric ID
+    opt.value = p.project_id;        // numeric ID
     opt.textContent = p.subdivision; // readable name
     subdivisionSelect.appendChild(opt);
   });
@@ -101,13 +101,14 @@ async function loadCrossings() {
   };
 }
 
-
 // ---- Render table rows ----
 function renderTable(rows) {
   crossingsTableBody.innerHTML = "";
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
+
+    // Attach lat/lon for Google Maps click
     tr.dataset.lat = row.latitude;
     tr.dataset.lon = row.longitude;
 
@@ -115,42 +116,4 @@ function renderTable(rows) {
     if (row.completed === true) tr.classList.add("completed-row");
     if (row.asphalted === true) tr.classList.add("asphalted-row");
 
-    tr.innerHTML = `
-      <td class="dot-link" data-dot="${row["dot-number"]}">
-        ${row["dot-number"] || ""}
-      </td>
-      <td>${row["mile-post"] || ""}</td>
-      <td>${row.crossing_number || ""}</td>
-      <td>${row.track || ""}</td>
-      <td>${row.type || ""}</td>
-      <td>${row.completed ? "Yes" : "No"}</td>
-      <td>${row.asphalted ? "Yes" : "No"}</td>
-      <td>${row.planned_footage || ""}</td>
-      <td>${row.road_name || ""}</td>
-      <td>${row.completed_by || ""}</td>
-      <td>${row.date_completed || ""}</td>
-      <td>${row.helped || ""}</td>
-    `;
-
-    crossingsTableBody.appendChild(tr);
-  });
-
-  // Make DOT number clickable → Google Maps using lat/lon
-document.querySelectorAll(".dot-link").forEach((cell) => {
-  cell.addEventListener("click", () => {
-    const dot = cell.dataset.dot;
-
-    // Get the row element
-    const tr = cell.closest("tr");
-
-    // Extract lat/lon from the row's dataset
-    const lat = tr.dataset.lat;
-    const lon = tr.dataset.lon;
-
-    if (lat && lon) {
-      window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
-    } else {
-      alert("No coordinates available for this crossing.");
-    }
-  });
-});
+    tr.inner
