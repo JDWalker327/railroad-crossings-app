@@ -8,7 +8,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
 
-const emailInput = document.getElementById("emailInput");
+const usernameInput = document.getElementById("usernameInput");
 const passwordInput = document.getElementById("passwordInput");
 const loginButton = document.getElementById("loginButton");
 const loginError = document.getElementById("loginError");
@@ -16,19 +16,22 @@ const loginError = document.getElementById("loginError");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
 
-// ---- Login handler (Supabase v1 syntax) ----
+// ---- Login handler (username → fake email) ----
 loginButton.addEventListener("click", async () => {
   loginError.style.display = "none";
   loginError.textContent = "";
 
-  const email = emailInput.value.trim();
+  const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
 
-  if (!email || !password) {
-    loginError.textContent = "Please enter email and password.";
+  if (!username || !password) {
+    loginError.textContent = "Please enter username and password.";
     loginError.style.display = "block";
     return;
   }
+
+  // Convert username → fake email
+  const email = `${username}@rail.local`;
 
   const { user, error } = await supabaseClient.auth.signIn({
     email,
@@ -36,12 +39,11 @@ loginButton.addEventListener("click", async () => {
   });
 
   if (error) {
-    loginError.textContent = error.message || "Login failed.";
+    loginError.textContent = "Invalid username or password.";
     loginError.style.display = "block";
     return;
   }
 
-  // Login success
   loginContainer.style.display = "none";
   dashboardContainer.style.display = "block";
 
@@ -53,7 +55,7 @@ async function loadCrossings() {
   crossingsTableBody.innerHTML = "";
   subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
 
-  // 1. Load subdivisions from Projects table
+  // Load subdivisions
   const { data: projects, error: projError } = await supabaseClient
     .from("projects")
     .select("*");
@@ -63,7 +65,6 @@ async function loadCrossings() {
     return;
   }
 
-  // Build dropdown
   projects.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.project_id;
@@ -71,7 +72,7 @@ async function loadCrossings() {
     subdivisionSelect.appendChild(opt);
   });
 
-  // 2. Load all crossings
+  // Load crossings
   const { data: crossings, error: crossError } = await supabaseClient
     .from("Crossings")
     .select("*");
@@ -81,10 +82,8 @@ async function loadCrossings() {
     return;
   }
 
-  // Render all crossings initially
   renderTable(crossings);
 
-  // 3. Filter when dropdown changes
   subdivisionSelect.onchange = () => {
     const selected = subdivisionSelect.value;
 
@@ -105,7 +104,7 @@ async function loadCrossings() {
 function renderTable(rows) {
   crossingsTableBody.innerHTML = "";
 
-  // Sort by mile-post ascending
+  // Sort by milepost ascending
   rows.sort((a, b) => {
     const m1 = parseFloat(a["mile-post"]) || 0;
     const m2 = parseFloat(b["mile-post"]) || 0;
@@ -115,11 +114,9 @@ function renderTable(rows) {
   rows.forEach((row) => {
     const tr = document.createElement("tr");
 
-    // Attach lat/lon for Google Maps click
     tr.dataset.lat = row.latitude;
     tr.dataset.lon = row.longitude;
 
-    // Apply row colors
     if (row.completed === true) tr.classList.add("completed-row");
     if (row.asphalted === true) tr.classList.add("asphalted-row");
 
@@ -147,18 +144,14 @@ function renderTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 
-  // DOT number → Google Maps using lat/lon (mobile-safe)
+  // Mobile‑safe DOT → Google Maps
   document.querySelectorAll(".dot-link").forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
-
       const lat = link.dataset.lat;
       const lon = link.dataset.lon;
-
       if (lat && lon) {
         window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
-      } else {
-        alert("No coordinates available for this crossing.");
       }
     });
   });
