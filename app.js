@@ -30,10 +30,8 @@ loginButton.addEventListener("click", async () => {
     return;
   }
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { data, error } = await supabaseClient.auth.signIn({ email, password })
+;
 
   if (error) {
     loginError.textContent = error.message || "Login failed.";
