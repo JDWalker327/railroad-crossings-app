@@ -108,6 +108,8 @@ function renderTable(rows) {
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
+    tr.dataset.lat = row.latitude;
+    tr.dataset.lon = row.longitude;
 
     // Apply row colors
     if (row.completed === true) tr.classList.add("completed-row");
