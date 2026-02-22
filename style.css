@@ -1,3 +1,4 @@
+/* GLOBAL */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -5,7 +6,7 @@ body {
 }
 
 /* LOGIN */
-#login-container {
+#loginContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18,16 +19,18 @@ body {
   padding: 20px;
   border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  width: 280px;
+  width: 300px;
 }
 
 .login-box input {
   width: 100%;
   padding: 8px;
   margin-top: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
-#login-btn {
+#loginButton {
   margin-top: 14px;
   width: 100%;
   padding: 10px;
@@ -35,10 +38,15 @@ body {
   color: white;
   border: none;
   border-radius: 4px;
+  cursor: pointer;
+}
+
+#loginButton:hover {
+  background: #1a242f;
 }
 
 /* DASHBOARD */
-#dashboard {
+#dashboardContainer {
   padding: 20px;
 }
 
@@ -46,64 +54,31 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-#project-selector {
-  padding: 6px;
+  margin-bottom: 20px;
 }
 
 /* TABLE */
-.data-table {
+#crossingsTable {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.data-table th {
-  background: #2c3e50;
-  color: white;
-  padding: 8px;
-}
-
-.data-table td {
-  border: 1px solid #ccc;
-  padding: 6px;
-}
-
-.data-table tr:nth-child(even) {
-  background: #f9f9f9;
-}
-
-/* HIGHLIGHTING */
-.completed-row {
-  background-color: yellow !important;
-}
-
-.asphalted-row {
-  background-color: lightgreen !important;
-}
-/* Spreadsheet-style table */
-.crossings-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  margin-top: 10px;
   font-size: 15px;
 }
 
-.crossings-table th,
-.crossings-table td {
+#crossingsTable th,
+#crossingsTable td {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
 }
 
-.crossings-table th {
+#crossingsTable th {
   background: #f2f2f2;
   font-weight: bold;
 }
 
 /* Hover highlight */
-.crossings-table tr:hover {
+#crossingsTable tr:hover {
   background-color: #f9f9f9;
 }
 
@@ -117,5 +92,13 @@ body {
   background-color: #c8f7c5 !important;
 }
 
+/* DOT clickable link */
+.dot-link {
+  color: #0066cc;
+  cursor: pointer;
+  text-decoration: underline;
+}
 
-
+.dot-link:hover {
+  color: #004999;
+}
