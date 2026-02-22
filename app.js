@@ -53,46 +53,54 @@ async function loadCrossings() {
   crossingsTableBody.innerHTML = "";
   subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
 
-  const { data, error } = await supabaseClient
-    .from("Crossings")
+  // 1. Load subdivisions from Projects table
+  const { data: projects, error: projError } = await supabaseClient
+    .from("projects")
     .select("*");
 
-  if (error) {
-    console.error("Error loading Crossings:", error);
+  if (projError) {
+    console.error("Error loading projects:", projError);
     return;
   }
 
-  if (!data || data.length === 0) {
-    crossingsTableBody.innerHTML =
-      "<tr><td colspan='12'>No crossings found.</td></tr>";
-    return;
-  }
-
-  // Build subdivision list (road_name is your closest grouping field)
-  const subdivisions = new Set();
-  data.forEach((row) => {
-    if (row.road_name) subdivisions.add(row.road_name);
-  });
-
-  subdivisions.forEach((sub) => {
+  // Build dropdown
+  projects.forEach((p) => {
     const opt = document.createElement("option");
-    opt.value = sub;
-    opt.textContent = sub;
+    opt.value = p.project_id;     // numeric ID
+    opt.textContent = p.subdivision; // readable name
     subdivisionSelect.appendChild(opt);
   });
 
-  // Render table
-  renderTable(data);
+  // 2. Load all crossings
+  const { data: crossings, error: crossError } = await supabaseClient
+    .from("Crossings")
+    .select("*");
 
+  if (crossError) {
+    console.error("Error loading Crossings:", crossError);
+    return;
+  }
+
+  // Render all crossings initially
+  renderTable(crossings);
+
+  // 3. Filter when dropdown changes
   subdivisionSelect.onchange = () => {
     const selected = subdivisionSelect.value;
-    const filtered =
-      selected === "all"
-        ? data
-        : data.filter((row) => row.road_name === selected);
+
+    if (selected === "all") {
+      renderTable(crossings);
+      return;
+    }
+
+    const filtered = crossings.filter(
+      (row) => String(row.project_id) === String(selected)
+    );
+
     renderTable(filtered);
   };
 }
+
 
 // ---- Render table rows ----
 function renderTable(rows) {
