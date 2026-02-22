@@ -133,16 +133,22 @@ function renderTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 
-  // Make DOT number clickable → Google Maps
-  document.querySelectorAll(".dot-link").forEach((cell) => {
-    cell.addEventListener("click", () => {
-      const dot = cell.dataset.dot;
-      if (dot) {
-        window.open(
-          `https://www.google.com/maps/search/${dot} railroad crossing`,
-          "_blank"
-        );
-      }
-    });
+  // Make DOT number clickable → Google Maps using lat/lon
+document.querySelectorAll(".dot-link").forEach((cell) => {
+  cell.addEventListener("click", () => {
+    const dot = cell.dataset.dot;
+
+    // Get the row element
+    const tr = cell.closest("tr");
+
+    // Extract lat/lon from the row's dataset
+    const lat = tr.dataset.lat;
+    const lon = tr.dataset.lon;
+
+    if (lat && lon) {
+      window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
+    } else {
+      alert("No coordinates available for this crossing.");
+    }
   });
-}
+});
