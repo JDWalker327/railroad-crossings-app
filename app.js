@@ -122,13 +122,15 @@ function renderTable(rows) {
       <tr class="${rowClass}">
         <td>${row.project_id}</td>
         <td>
+  <td>
   <a 
-    href="https://www.google.com/maps/search/?api=1&query=DOT+${row['dot-number']}" 
+    href="https://www.fra.dot.gov/railcrossinglocator?search=${row['dot-number']}" 
     target="_blank"
   >
     ${row["dot-number"]}
   </a>
 </td>
+
 
         <td>${row["mile-post"]}</td>
         <td>${row.crossing_number}</td>
