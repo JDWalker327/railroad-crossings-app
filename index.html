@@ -1,43 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Railroad Crossings Viewer</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Railroad Crossings Viewer</title>
+    <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <div id="login-container">
-    <h1>Railroad Crossings Viewer</h1>
-    <div class="login-box">
-      <label>Email</label>
-      <input type="email" id="email" placeholder="you@example.com" />
-
-      <label>Password</label>
-      <input type="password" id="password" placeholder="Password" />
-
-      <button id="login-btn">Log In</button>
+    <div id="loginContainer">
+        <h2>Login</h2>
+        <input id="emailInput" type="email" placeholder="Email" />
+        <input id="passwordInput" type="password" placeholder="Password" />
+        <button id="loginButton">Log In</button>
     </div>
-  </div>
 
-  <div id="dashboard" style="display:none;">
-    <header class="top-bar">
-      <h2>Railroad Crossings Dashboard</h2>
+    <div id="dashboardContainer" style="display: none;">
+        <h2>Railroad Crossings Dashboard</h2>
 
-      <div class="table-select-wrapper">
-        <label for="project-selector">Subdivision:</label>
-        <select id="project-selector">
-          <option value="all">All Subdivisions</option>
-        </select>
-      </div>
-    </header>
+        <label for="subdivisionSelect">Subdivision:</label>
+        <select id="subdivisionSelect"></select>
 
-    <main>
-      <div id="data-section"></div>
-    </main>
-  </div>
+        <table id="crossingsTable">
+            <thead>
+                <tr>
+                    <th>DOT #</th>
+                    <th>Milepost</th>
+                    <th>Crossing #</th>
+                    <th>Track Type</th>
+                    <th>Crossing Type</th>
+                    <th>Completed</th>
+                    <th>Asphalted</th>
+                    <th>Planned Footage</th>
+                    <th>Actual Footage</th>
+                    <th>Completed By</th>
+                    <th>Date Completed</th>
+                    <th>Helped</th>
+                </tr>
+            </thead>
+            <tbody id="crossingsTableBody"></tbody>
+        </table>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=2"></script>
+    <!-- Load Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+    <!-- Initialize Supabase -->
+    <script>
+        const supabase = supabase.createClient(
+            "https://hbesqtcjkcjmzowhgowe.supabase.co",
+            "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
+        );
+    </script>
+
+    <!-- Load App Logic -->
+    <script src="app.js"></script>
 </body>
 </html>
-
