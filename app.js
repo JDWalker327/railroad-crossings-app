@@ -116,4 +116,38 @@ function renderTable(rows) {
     if (row.completed === true) tr.classList.add("completed-row");
     if (row.asphalted === true) tr.classList.add("asphalted-row");
 
-    tr.inner
+    tr.innerHTML = `
+      <td class="dot-link" data-dot="${row["dot-number"]}">
+        ${row["dot-number"] || ""}
+      </td>
+      <td>${row["mile-post"] || ""}</td>
+      <td>${row.crossing_number || ""}</td>
+      <td>${row.track || ""}</td>
+      <td>${row.type || ""}</td>
+      <td>${row.completed ? "Yes" : "No"}</td>
+      <td>${row.asphalted ? "Yes" : "No"}</td>
+      <td>${row.planned_footage || ""}</td>
+      <td>${row.road_name || ""}</td>
+      <td>${row.completed_by || ""}</td>
+      <td>${row.date_completed || ""}</td>
+      <td>${row.helped || ""}</td>
+    `;
+
+    crossingsTableBody.appendChild(tr);
+  });
+
+  // DOT number → Google Maps using lat/lon
+  document.querySelectorAll(".dot-link").forEach((cell) => {
+    cell.addEventListener("click", () => {
+      const tr = cell.closest("tr");
+      const lat = tr.dataset.lat;
+      const lon = tr.dataset.lon;
+
+      if (lat && lon) {
+        window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
+      } else {
+        alert("No coordinates available for this crossing.");
+      }
+    });
+  });
+}
