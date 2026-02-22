@@ -121,7 +121,15 @@ function renderTable(rows) {
     html += `
       <tr class="${rowClass}">
         <td>${row.project_id}</td>
-        <td>${row["dot-number"]}</td>
+        <td>
+  <a 
+    href="https://www.google.com/maps/search/?api=1&query=DOT+${row['dot-number']}" 
+    target="_blank"
+  >
+    ${row["dot-number"]}
+  </a>
+</td>
+
         <td>${row["mile-post"]}</td>
         <td>${row.crossing_number}</td>
         <td>${row.track}</td>
