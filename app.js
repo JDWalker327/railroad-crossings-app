@@ -2,7 +2,14 @@
 const SUPABASE_URL = "https://hbesqtcjkcjmzowhgowe.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y";
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
 
 // ---- DOM elements ----
 const loginContainer = document.getElementById("loginContainer");
@@ -15,6 +22,22 @@ const loginError = document.getElementById("loginError");
 
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (session) {
+    // Already logged in
+    loginContainer.style.display = "none";
+    dashboardContainer.style.display = "block";
+    loadCrossings();
+  } else {
+    // Not logged in
+    loginContainer.style.display = "block";
+    dashboardContainer.style.display = "none";
+  }
+});
+
 
 // ---- Login handler (username → fake email) ----
 loginButton.addEventListener("click", async () => {
