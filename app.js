@@ -60,27 +60,13 @@ async function loadCrossings() {
     subdivisionSelect.appendChild(opt);
   });
 
-  // Load ALL crossings — try a single unified table first, then fall back
-  // to per-subdivision partition tables (Crossings_p_<subdivision>).
-  let allCrossings = [];
-
-  const { data: singleRows, error: singleErr } = await supabaseClient
-    .from("crossings")
+  // Load ALL crossings from the main Crossings table (partitions mirror into it)
+  const { data: allCrossings = [], error: crossErr } = await supabaseClient
+    .from("Crossings")
     .select("*");
 
-  if (!singleErr && singleRows) {
-    allCrossings = singleRows;
-  } else {
-    for (const p of projects) {
-      const tableName = "Crossings_p_" + p.subdivision;
-      const { data: rows, error: crossErr } = await supabaseClient
-        .from(tableName)
-        .select("*");
-
-      if (!crossErr && rows) {
-        allCrossings = allCrossings.concat(rows);
-      }
-    }
+  if (crossErr) {
+    console.error("Error loading crossings:", crossErr);
   }
 
   renderTable(allCrossings);
