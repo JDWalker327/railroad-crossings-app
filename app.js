@@ -10,24 +10,17 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 
-
 // ---- DOM elements ----
 const dashboardContainer = document.getElementById("dashboardContainer");
-
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
-
-  const { data: { session } } = await supabaseClient.auth.getSession();
-
-  loadCrossings();
-});
 
 // ---- Load crossings + subdivisions ----
 async function loadCrossings() {
   crossingsTableBody.innerHTML = "";
   subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
 
-  // Load subdivisions
+  // Load subdivisions from "projects" table
   const { data: projects, error: projError } = await supabaseClient
     .from("projects")
     .select("*");
@@ -44,28 +37,32 @@ async function loadCrossings() {
     subdivisionSelect.appendChild(opt);
   });
 
-  // Load crossings
-  const { data: crossings, error: crossError } = await supabaseClient
-   .from("Crossings_p_" + selectedSubdivision)
- 
-    .select("*");
+  // Default: load ALL crossings from ALL partitions
+  let allCrossings = [];
 
-  if (crossError) {
-    console.error("Error loading Crossings:", crossError);
-    return;
+  for (const p of projects) {
+    const tableName = "Crossings_p_" + p.subdivision.toLowerCase().replace(/ /g, "_");
+
+    const { data: rows, error: crossErr } = await supabaseClient
+      .from(tableName)
+      .select("*");
+
+    if (!crossErr && rows) {
+      allCrossings = allCrossings.concat(rows);
+    }
   }
 
-  renderTable(crossings);
+  renderTable(allCrossings);
 
   subdivisionSelect.onchange = () => {
     const selected = subdivisionSelect.value;
 
     if (selected === "all") {
-      renderTable(crossings);
+      renderTable(allCrossings);
       return;
     }
 
-    const filtered = crossings.filter(
+    const filtered = allCrossings.filter(
       (row) => String(row.project_id) === String(selected)
     );
 
@@ -86,7 +83,6 @@ function renderTable(rows) {
 
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-
     tr.dataset.lat = row.latitude;
     tr.dataset.lon = row.longitude;
 
@@ -95,10 +91,8 @@ function renderTable(rows) {
 
     tr.innerHTML = `
       <td>
-        <a href="#" class="dot-link"
-           data-lat="${row.latitude}"
-           data-lon="${row.longitude}">
-           ${row["dot-number"] || ""}
+        <a href="#" class="dot-link" data-lat="${row.latitude}" data-lon="${row.longitude}">
+          ${row["dot-number"] || ""}
         </a>
       </td>
       <td>${row["mile-post"] || ""}</td>
@@ -117,7 +111,7 @@ function renderTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 
-  // Mobile‑safe DOT → Google Maps
+  // DOT → Google Maps
   document.querySelectorAll(".dot-link").forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
@@ -129,10 +123,7 @@ function renderTable(rows) {
     });
   });
 }
-document.addEventListener("DOMContentLoaded", () => {
-    dashboardContainer.style.display = "block";
-    loadCrossings();
-});
+
 // ---- Auto-load dashboard on page open ----
 document.addEventListener("DOMContentLoaded", () => {
   dashboardContainer.style.display = "block";
