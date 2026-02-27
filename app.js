@@ -58,24 +58,34 @@ async function loadCrossings() {
     });
   }
 
-  // Load ALL crossings — try "Crossings" (capital C) first, then lowercase fallback
+  // Load ALL crossings — try "crossings" (lowercase) first, then capital-C fallback
   let allCrossings = [];
-  const { data: crossingsData, error: crossErr } = await supabaseClient
-    .from("Crossings")
+  let crossingsLoadError = null;
+
+  const { data: crossingsLower, error: crossErrLower } = await supabaseClient
+    .from("crossings")
     .select("*");
 
-  if (!crossErr && crossingsData !== null) {
-    allCrossings = crossingsData;
+  if (!crossErrLower && crossingsLower !== null) {
+    allCrossings = crossingsLower;
   } else {
-    console.error("Error loading Crossings:", crossErr);
-    const { data: crossingsLower, error: crossErrLower } = await supabaseClient
-      .from("crossings")
+    const { data: crossingsData, error: crossErr } = await supabaseClient
+      .from("Crossings")
       .select("*");
-    if (!crossErrLower && crossingsLower !== null) {
-      allCrossings = crossingsLower;
+
+    if (!crossErr && crossingsData !== null) {
+      allCrossings = crossingsData;
     } else {
-      console.error("Error loading crossings (lowercase):", crossErrLower);
+      crossingsLoadError = crossErr || crossErrLower;
+      console.error("Error loading crossings:", crossingsLoadError);
     }
+  }
+
+  if (crossingsLoadError) {
+    crossingsTableBody.innerHTML = `<tr><td colspan="12" style="color:red;padding:1rem;">
+      Failed to load crossings data: ${crossingsLoadError.message || JSON.stringify(crossingsLoadError)}
+    </td></tr>`;
+    return;
   }
 
   renderTable(allCrossings);
