@@ -9,6 +9,12 @@ const subdivisionSelect = document.getElementById("subdivisionSelect");
 function renderTable(rows) {
   crossingsTableBody.innerHTML = "";
 
+  rows.sort((a, b) => {
+    const m1 = parseFloat(a["mile-post"]) || 0;
+    const m2 = parseFloat(b["mile-post"]) || 0;
+    return m1 - m2;
+  });
+
   rows.forEach((row) => {
     const tr = document.createElement("tr");
 
@@ -18,16 +24,23 @@ function renderTable(rows) {
       tr.classList.add("completed-row");
     }
 
+    const lat = row.latitude ?? "";
+    const lon = row.longitude ?? "";
+    const dotNum = row["dot-number"] ?? "";
+    const dotCell = lat && lon
+      ? `<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" class="dot-link">${dotNum}</a>`
+      : dotNum;
+
     tr.innerHTML = `
-      <td class="dot-link">${row.dot_number ?? ""}</td>
-      <td>${row.milepost ?? ""}</td>
+      <td>${dotCell}</td>
+      <td>${row["mile-post"] ?? ""}</td>
       <td>${row.crossing_number ?? ""}</td>
-      <td>${row.track_type ?? ""}</td>
-      <td>${row.crossing_type ?? ""}</td>
+      <td>${row.track ?? ""}</td>
+      <td>${row.type ?? ""}</td>
       <td>${row.completed ? "Yes" : "No"}</td>
       <td>${row.asphalted ? "Yes" : "No"}</td>
       <td>${row.planned_footage ?? ""}</td>
-      <td>${row.street_name ?? ""}</td>
+      <td>${row.road_name ?? ""}</td>
       <td>${row.completed_by ?? ""}</td>
       <td>${row.date_completed ?? ""}</td>
       <td>${row.helped ?? ""}</td>
@@ -58,23 +71,23 @@ async function loadCrossings() {
     });
   }
 
-  // Load ALL crossings — try "crossings" (lowercase) first, then capital-C fallback
+  // Load ALL crossings — try "Crossings" (capital C) first, then lowercase fallback
   let allCrossings = [];
   let crossingsLoadError = null;
 
-  const { data: crossingsLower, error: crossErrLower } = await supabaseClient
-    .from("crossings")
+  const { data: crossingsData, error: crossErr } = await supabaseClient
+    .from("Crossings")
     .select("*");
 
-  if (!crossErrLower && crossingsLower !== null) {
-    allCrossings = crossingsLower;
+  if (!crossErr && crossingsData !== null) {
+    allCrossings = crossingsData;
   } else {
-    const { data: crossingsData, error: crossErr } = await supabaseClient
-      .from("Crossings")
+    const { data: crossingsLower, error: crossErrLower } = await supabaseClient
+      .from("crossings")
       .select("*");
 
-    if (!crossErr && crossingsData !== null) {
-      allCrossings = crossingsData;
+    if (!crossErrLower && crossingsLower !== null) {
+      allCrossings = crossingsLower;
     } else {
       crossingsLoadError = crossErr || crossErrLower;
       console.error("Error loading crossings:", crossingsLoadError);
