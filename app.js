@@ -5,8 +5,11 @@ console.log("force redeploy 4");
 // ---------------------------------------------------------
 const supabaseClient = supabase.createClient(
   "https://hbesqtcjkcjmzowhgowe.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." // your anon key
+  "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
 );
+
+console.log("force redeploy 5");
+
 
 // ---------------------------------------------------------
 // 2. DOM Elements
