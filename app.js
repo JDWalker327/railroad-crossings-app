@@ -12,63 +12,12 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 
 // ---- DOM elements ----
-const loginContainer = document.getElementById("loginContainer");
 const dashboardContainer = document.getElementById("dashboardContainer");
-
-const usernameInput = document.getElementById("usernameInput");
-const passwordInput = document.getElementById("passwordInput");
-const loginButton = document.getElementById("loginButton");
-const loginError = document.getElementById("loginError");
 
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
 
-document.addEventListener("DOMContentLoaded", async () => {
   const { data: { session } } = await supabaseClient.auth.getSession();
-
-  if (session) {
-    // Already logged in
-    loginContainer.style.display = "none";
-    dashboardContainer.style.display = "block";
-    loadCrossings();
-  } else {
-    // Not logged in
-    loginContainer.style.display = "block";
-    dashboardContainer.style.display = "none";
-  }
-});
-
-
-// ---- Login handler (username → fake email) ----
-loginButton.addEventListener("click", async () => {
-  loginError.style.display = "none";
-  loginError.textContent = "";
-
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value.trim();
-
-  if (!username || !password) {
-    loginError.textContent = "Please enter username and password.";
-    loginError.style.display = "block";
-    return;
-  }
-
-  // Convert username → fake email
-  const email = `${username}@rail.local`;
-
-  const { user, error } = await supabaseClient.auth.signIn({
-    email,
-    password,
-  });
-
-  if (error) {
-    loginError.textContent = "Invalid username or password.";
-    loginError.style.display = "block";
-    return;
-  }
-
-  loginContainer.style.display = "none";
-  dashboardContainer.style.display = "block";
 
   loadCrossings();
 });
@@ -97,7 +46,8 @@ async function loadCrossings() {
 
   // Load crossings
   const { data: crossings, error: crossError } = await supabaseClient
-    .from("Crossings")
+   .from("Crossings_p_" + selectedSubdivision)
+ 
     .select("*");
 
   if (crossError) {
