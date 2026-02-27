@@ -49,24 +49,34 @@ async function loadCrossings() {
 
   if (projError) {
     console.error("Error loading projects:", projError);
-    return;
+  } else {
+    // Populate dropdown
+    projects.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.project_id;
+      opt.textContent = p.subdivision;
+      subdivisionSelect.appendChild(opt);
+    });
   }
 
-  // Populate dropdown
-  projects.forEach((p) => {
-    const opt = document.createElement("option");
-    opt.value = p.project_id;
-    opt.textContent = p.subdivision;
-    subdivisionSelect.appendChild(opt);
-  });
-
-  // Load ALL crossings from the main Crossings table (partitions mirror into it)
-  const { data: allCrossings = [], error: crossErr } = await supabaseClient
+  // Load ALL crossings — try "Crossings" (capital C) first, then lowercase fallback
+  let allCrossings = [];
+  const { data: crossingsData, error: crossErr } = await supabaseClient
     .from("Crossings")
     .select("*");
 
-  if (crossErr) {
-    console.error("Error loading crossings:", crossErr);
+  if (!crossErr && crossingsData !== null) {
+    allCrossings = crossingsData;
+  } else {
+    console.error("Error loading Crossings:", crossErr);
+    const { data: crossingsLower, error: crossErrLower } = await supabaseClient
+      .from("crossings")
+      .select("*");
+    if (!crossErrLower && crossingsLower !== null) {
+      allCrossings = crossingsLower;
+    } else {
+      console.error("Error loading crossings (lowercase):", crossErrLower);
+    }
   }
 
   renderTable(allCrossings);
