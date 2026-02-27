@@ -37,7 +37,6 @@ function renderTable(rows) {
   });
 }
 
-console.log("force redeploy 4");
 async function loadCrossings() {
   crossingsTableBody.innerHTML = "";
   subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
