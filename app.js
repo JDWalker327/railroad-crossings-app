@@ -1,3 +1,42 @@
+const supabaseClient = supabase.createClient(
+  "https://hbesqtcjkcjmzowhgowe.supabase.co",
+  "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
+);
+
+const crossingsTableBody = document.getElementById("crossingsTableBody");
+const subdivisionSelect = document.getElementById("subdivisionSelect");
+
+function renderTable(rows) {
+  crossingsTableBody.innerHTML = "";
+
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    if (row.asphalted) {
+      tr.classList.add("asphalted-row");
+    } else if (row.completed) {
+      tr.classList.add("completed-row");
+    }
+
+    tr.innerHTML = `
+      <td class="dot-link">${row.dot_number ?? ""}</td>
+      <td>${row.milepost ?? ""}</td>
+      <td>${row.crossing_number ?? ""}</td>
+      <td>${row.track_type ?? ""}</td>
+      <td>${row.crossing_type ?? ""}</td>
+      <td>${row.completed ? "Yes" : "No"}</td>
+      <td>${row.asphalted ? "Yes" : "No"}</td>
+      <td>${row.planned_footage ?? ""}</td>
+      <td>${row.street_name ?? ""}</td>
+      <td>${row.completed_by ?? ""}</td>
+      <td>${row.date_completed ?? ""}</td>
+      <td>${row.helped ?? ""}</td>
+    `;
+
+    crossingsTableBody.appendChild(tr);
+  });
+}
+
 console.log("force redeploy 4");
 async function loadCrossings() {
   crossingsTableBody.innerHTML = "";
@@ -52,3 +91,5 @@ async function loadCrossings() {
     renderTable(filtered);
   };
 }
+
+loadCrossings();
