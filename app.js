@@ -129,3 +129,12 @@ function renderTable(rows) {
     });
   });
 }
+document.addEventListener("DOMContentLoaded", () => {
+    dashboardContainer.style.display = "block";
+    loadCrossings();
+});
+// ---- Auto-load dashboard on page open ----
+document.addEventListener("DOMContentLoaded", () => {
+  dashboardContainer.style.display = "block";
+  loadCrossings();
+});
