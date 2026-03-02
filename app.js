@@ -34,7 +34,7 @@ let selectedLookup = null; // { state, subdivision_key, display_label, crossing_
 let lookupCrossingsCache = [];
 
 // ---------------------------------------------------------
-// 4. Projects Mode (existing logic, kept)
+// 4. Projects Mode
 // ---------------------------------------------------------
 async function loadProjectsMode() {
   crossingsTableBody.innerHTML = "";
@@ -65,14 +65,18 @@ async function loadProjectsMode() {
 
   for (const p of projectsCache) {
     const tableName = "crossings_p_" + p.subdivision;
+
     const { data: rows, error: crossErr } = await supabaseClient
       .from(tableName)
       .select("*");
 
-    if (!crossErr && rows) {
-      allCrossings = allCrossings.concat(rows);
-    } else if (crossErr) {
+    if (crossErr) {
       console.warn("Error loading", tableName, crossErr.message);
+      continue;
+    }
+
+    if (rows && rows.length) {
+      allCrossings = allCrossings.concat(rows);
     }
   }
 
@@ -115,11 +119,14 @@ async function searchLookupSubdivisions() {
 
   if (q.length < 2) return;
 
-  const { data, error } = await supabaseClient.rpc("search_up_subdivision_directory", {
-    q,
-    st: st.length ? st : null,
-    lim: 20,
-  });
+  const { data, error } = await supabaseClient.rpc(
+    "search_up_subdivision_directory",
+    {
+      q,
+      st: st.length ? st : null,
+      lim: 20,
+    }
+  );
 
   if (error) {
     lookupResults.innerHTML = `<div style="color:crimson;">${error.message}</div>`;
@@ -161,10 +168,13 @@ async function searchLookupSubdivisions() {
 async function loadLookupCrossings() {
   if (!selectedLookup) return;
 
-  const { data, error } = await supabaseClient.rpc("get_up_crossings_for_subdivision", {
-    st: selectedLookup.state,
-    sub_key: selectedLookup.subdivision_key,
-  });
+  const { data, error } = await supabaseClient.rpc(
+    "get_up_crossings_for_subdivision",
+    {
+      st: selectedLookup.state,
+      sub_key: selectedLookup.subdivision_key,
+    }
+  );
 
   if (error) {
     console.error(error);
@@ -192,7 +202,6 @@ function applyLookupMilepostFilterAndRender() {
   renderTable(filtered);
 }
 
-// Wire up lookup search inputs
 function setupLookupHandlers() {
   subdivisionSearch.oninput = () => {
     clearTimeout(lookupSearchTimer);
@@ -212,39 +221,44 @@ function setupLookupHandlers() {
 // ---------------------------------------------------------
 // 6. Render Table
 // ---------------------------------------------------------
+function getMilepostValue(row) {
+  const raw = row.milepost ?? row["mile-post"] ?? row.mile_post ?? "";
+  if (raw == null) return null;
+
+  const cleaned = String(raw).trim().replace(/[^\d.-]/g, "");
+  if (!cleaned) return null;
+
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
 function renderTable(rows) {
   crossingsTableBody.innerHTML = "";
 
-  rows.forEach((row) => {
+  // Sort by milepost ascending (null/blank mileposts go to the bottom)
+  const sorted = [...rows].sort((a, b) => {
+    const ma = getMilepostValue(a);
+    const mb = getMilepostValue(b);
+
+    if (ma == null && mb == null) return 0;
+    if (ma == null) return 1;
+    if (mb == null) return -1;
+
+    return ma - mb;
+  });
+
+  sorted.forEach((row) => {
     // Support BOTH:
     // - Projects tables (hyphenated keys)
     // - UP lookup (form71_up_dedup / RPC) keys
-    const dot =
-      row.dot_number ??
-      row["dot-number"] ??
-      row.crossing_id ??
-      "";
+    const dot = row.dot_number ?? row["dot-number"] ?? row.crossing_id ?? "";
 
     const milepost =
-      row.milepost ??
-      row["mile-post"] ??
-      row.mile_post ??
-      "";
+      row.milepost ?? row["mile-post"] ?? row.mile_post ?? "";
 
-    const trackType =
-      row.track_type ??
-      row.track ??
-      "";
-
-    const crossingType =
-      row.crossing_type ??
-      row.type ??
-      "";
-
-    const streetName =
-      row.street_name ??
-      row.road_name ??
-      "";
+    const trackType = row.track_type ?? row.track ?? "";
+    const crossingType = row.crossing_type ?? row.type ?? "";
+    const streetName = row.street_name ?? row.road_name ?? "";
 
     // Option A: DOT links to Google Maps only when lat/lon exist
     const lat = row.latitude;
