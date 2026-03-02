@@ -11,14 +11,38 @@
 </head>
 
 <body>
- <div id="dashboardContainer">
+  <div id="dashboardContainer">
     <header class="top-bar">
       <h2>Railroad Crossings Dashboard</h2>
-        <div class="table-select-wrapper">
+
+      <div class="table-select-wrapper">
+        <label for="modeSelect">Mode:</label>
+        <select id="modeSelect">
+          <option value="projects" selected>Projects</option>
+          <option value="lookup">Lookup (Any UP)</option>
+        </select>
+      </div>
+
+      <!-- Projects mode (existing dropdown) -->
+      <div class="table-select-wrapper" id="projectsControls">
         <label for="subdivisionSelect">Subdivision:</label>
         <select id="subdivisionSelect">
           <option value="all">All Subdivisions</option>
         </select>
+      </div>
+
+      <!-- Lookup mode (typeahead + filters) -->
+      <div class="table-select-wrapper" id="lookupControls" style="display:none; gap:8px; align-items:center;">
+        <label for="subdivisionSearch">Subdivision:</label>
+        <input id="subdivisionSearch" type="text" placeholder="Type e.g. Palestine" />
+
+        <label for="stateFilter">State:</label>
+        <input id="stateFilter" type="text" placeholder="TEXAS" style="width:90px;" />
+
+        <label for="milepostFilter">Milepost:</label>
+        <input id="milepostFilter" type="text" placeholder="0708.45" style="width:110px;" />
+
+        <div id="lookupResults" style="max-height:160px; overflow:auto; min-width:320px;"></div>
       </div>
     </header>
 
@@ -45,8 +69,7 @@
     </main>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.js"></script>
-<script src="app.js?v=2"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
