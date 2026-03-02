@@ -17,9 +17,9 @@ const projectsControls = document.getElementById("projectsControls");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 
 const lookupControls = document.getElementById("lookupControls");
+const dotSearch = document.getElementById("dotSearch");
+const dotSearchBtn = document.getElementById("dotSearchBtn");
 const subdivisionSearch = document.getElementById("subdivisionSearch");
-const stateFilter = document.getElementById("stateFilter");
-const milepostFilter = document.getElementById("milepostFilter");
 const lookupResults = document.getElementById("lookupResults");
 
 const crossingsTableHead = document.getElementById("crossingsTableHead");
@@ -101,8 +101,7 @@ async function loadProjectsMode() {
     subdivisionSelect.appendChild(opt);
   });
 
-  // Load ALL crossings from ALL partitions
-  // NOTE: this can be slow long term, but we’ll leave it for now.
+  // Load ALL crossings from ALL partitions (can be slow)
   let allCrossings = [];
 
   for (const p of projectsCache) {
@@ -142,7 +141,7 @@ async function loadProjectsMode() {
 }
 
 // ---------------------------------------------------------
-// 6. Lookup Mode
+// 6. Lookup Mode (Subdivision OR DOT search)
 // ---------------------------------------------------------
 let lookupSearchTimer = null;
 
@@ -155,9 +154,9 @@ function clearLookupUI() {
 
 async function searchLookupSubdivisions() {
   const q = (subdivisionSearch.value || "").trim();
-  const st = (stateFilter.value || "").trim().toUpperCase();
 
   lookupResults.innerHTML = "";
+  selectedLookup = null;
 
   if (q.length < 2) return;
 
@@ -165,7 +164,7 @@ async function searchLookupSubdivisions() {
     "search_up_subdivision_directory",
     {
       q,
-      st: st.length ? st : null,
+      st: null, // removed state filter: useless without subdivision
       lim: 20,
     }
   );
@@ -181,7 +180,6 @@ async function searchLookupSubdivisions() {
     return;
   }
 
-  // Render clickable results
   const container = document.createElement("div");
   rows.forEach((r) => {
     const btn = document.createElement("button");
@@ -198,7 +196,7 @@ async function searchLookupSubdivisions() {
     btn.onclick = async () => {
       selectedLookup = r;
       lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${r.display_label}</strong>…</div>`;
-      await loadLookupCrossings();
+      await loadLookupCrossingsForSubdivision();
     };
 
     container.appendChild(btn);
@@ -207,7 +205,7 @@ async function searchLookupSubdivisions() {
   lookupResults.appendChild(container);
 }
 
-async function loadLookupCrossings() {
+async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
   const { data, error } = await supabaseClient.rpc(
@@ -225,38 +223,58 @@ async function loadLookupCrossings() {
   }
 
   lookupCrossingsCache = data || [];
-  applyLookupMilepostFilterAndRender();
+  renderLookupTable(lookupCrossingsCache);
 }
 
-function applyLookupMilepostFilterAndRender() {
-  const mp = (milepostFilter.value || "").trim();
+async function lookupByDot() {
+  const dot = (dotSearch.value || "").trim().toUpperCase();
 
-  if (!mp) {
-    renderLookupTable(lookupCrossingsCache);
+  lookupResults.innerHTML = "";
+  crossingsTableBody.innerHTML = "";
+  selectedLookup = null;
+  lookupCrossingsCache = [];
+
+  if (!dot) return;
+
+  lookupResults.innerHTML = `<div style="opacity:0.8;">Searching DOT <strong>${dot}</strong>…</div>`;
+
+  // Pull fields matching stg_form71_up column list
+  const { data, error } = await supabaseClient
+    .from("form71_up_dedup")
+    .select(
+      "crossing_id,state,city,road_name,railroad_subdivision,mile_post,crossing_surface_length_ft,latitude,longitude"
+    )
+    .eq("crossing_id", dot)
+    .limit(10);
+
+  if (error) {
+    lookupResults.innerHTML = `<div style="color:crimson;">${error.message}</div>`;
+    renderLookupTable([]);
     return;
   }
 
-  // simple contains filter
-  const filtered = lookupCrossingsCache.filter((r) =>
-    String(r.mile_post || "").includes(mp)
-  );
+  const rows = data || [];
+  if (!rows.length) {
+    lookupResults.innerHTML = `<div style="opacity:0.7;">No match for DOT <strong>${dot}</strong></div>`;
+    renderLookupTable([]);
+    return;
+  }
 
-  renderLookupTable(filtered);
+  lookupResults.innerHTML = `<div style="opacity:0.8;">Found ${rows.length} result(s) for DOT <strong>${dot}</strong></div>`;
+  renderLookupTable(rows);
 }
 
 function setupLookupHandlers() {
+  // DOT search
+  dotSearchBtn.onclick = lookupByDot;
+  dotSearch.onkeydown = (e) => {
+    if (e.key === "Enter") lookupByDot();
+  };
+
+  // Subdivision typeahead
   subdivisionSearch.oninput = () => {
     clearTimeout(lookupSearchTimer);
     lookupSearchTimer = setTimeout(searchLookupSubdivisions, 250);
-  };
-
-  stateFilter.oninput = () => {
-    clearTimeout(lookupSearchTimer);
-    lookupSearchTimer = setTimeout(searchLookupSubdivisions, 250);
-  };
-
-  milepostFilter.oninput = () => {
-    applyLookupMilepostFilterAndRender();
   };
 }
 
@@ -280,7 +298,6 @@ function getMilepostValue(row) {
 function renderProjectsTable(rows) {
   crossingsTableBody.innerHTML = "";
 
-  // Sort by milepost ascending
   const sorted = [...rows].sort((a, b) => {
     const ma = getMilepostValue(a);
     const mb = getMilepostValue(b);
@@ -329,9 +346,9 @@ function renderProjectsTable(rows) {
 function renderLookupTable(rows) {
   crossingsTableBody.innerHTML = "";
 
-  // Sort by mile_post ascending (numeric if possible)
+  // Sort by mile_post ascending
   const sorted = [...rows].sort((a, b) => {
-    const ma = getMilepostValue(a); // uses mile_post for lookup
+    const ma = getMilepostValue(a);
     const mb = getMilepostValue(b);
 
     if (ma == null && mb == null) return 0;
@@ -383,7 +400,6 @@ function renderLookupTable(rows) {
 async function init() {
   setupLookupHandlers();
 
-  // initial header
   renderProjectsHeader();
 
   modeSelect.onchange = async () => {
@@ -400,13 +416,11 @@ async function init() {
       renderLookupHeader();
       projectsControls.style.display = "none";
       lookupControls.style.display = "flex";
-      // do not auto-load crossings; user searches
       crossingsTableBody.innerHTML = "";
       lookupResults.innerHTML = "";
     }
   };
 
-  // default mode
   await loadProjectsMode();
 }
 
