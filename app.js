@@ -212,7 +212,7 @@ async function loadLookupCrossingsForSubdivision() {
     "get_up_crossings_for_subdivision",
     {
       st: selectedLookup.state,
-      sub_key: selectedLookup.subdivision_key,
+      subdivision: selectedLookup.display_label,
     }
   );
 
