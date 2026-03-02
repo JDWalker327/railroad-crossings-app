@@ -22,11 +22,14 @@ const stateFilter = document.getElementById("stateFilter");
 const milepostFilter = document.getElementById("milepostFilter");
 const lookupResults = document.getElementById("lookupResults");
 
+const crossingsTableHead = document.getElementById("crossingsTableHead");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
 
 // ---------------------------------------------------------
 // 3. State
 // ---------------------------------------------------------
+let currentMode = "projects";
+
 let projectsCache = [];
 let allProjectCrossingsCache = [];
 
@@ -34,7 +37,46 @@ let selectedLookup = null; // { state, subdivision_key, display_label, crossing_
 let lookupCrossingsCache = [];
 
 // ---------------------------------------------------------
-// 4. Projects Mode
+// 4. Headers (Projects vs Lookup)
+// ---------------------------------------------------------
+function renderProjectsHeader() {
+  crossingsTableHead.innerHTML = `
+    <tr>
+      <th>DOT #</th>
+      <th>Milepost</th>
+      <th>Crossing #</th>
+      <th>Track Type</th>
+      <th>Crossing Type</th>
+      <th>Completed</th>
+      <th>Asphalted</th>
+      <th>Planned Footage</th>
+      <th>Street Name</th>
+      <th>Completed By</th>
+      <th>Date Completed</th>
+      <th>Helped</th>
+    </tr>
+  `;
+}
+
+function renderLookupHeader() {
+  // Matches stg_form71_up column list
+  crossingsTableHead.innerHTML = `
+    <tr>
+      <th>crossing_id</th>
+      <th>state</th>
+      <th>city</th>
+      <th>road_name</th>
+      <th>railroad_subdivision</th>
+      <th>mile_post</th>
+      <th>crossing_surface_length_ft</th>
+      <th>latitude</th>
+      <th>longitude</th>
+    </tr>
+  `;
+}
+
+// ---------------------------------------------------------
+// 5. Projects Mode
 // ---------------------------------------------------------
 async function loadProjectsMode() {
   crossingsTableBody.innerHTML = "";
@@ -81,13 +123,13 @@ async function loadProjectsMode() {
   }
 
   allProjectCrossingsCache = allCrossings;
-  renderTable(allProjectCrossingsCache);
+  renderProjectsTable(allProjectCrossingsCache);
 
   subdivisionSelect.onchange = () => {
     const selected = subdivisionSelect.value;
 
     if (selected === "all") {
-      renderTable(allProjectCrossingsCache);
+      renderProjectsTable(allProjectCrossingsCache);
       return;
     }
 
@@ -95,12 +137,12 @@ async function loadProjectsMode() {
       (row) => String(row.project_id) === String(selected)
     );
 
-    renderTable(filtered);
+    renderProjectsTable(filtered);
   };
 }
 
 // ---------------------------------------------------------
-// 5. Lookup Mode
+// 6. Lookup Mode
 // ---------------------------------------------------------
 let lookupSearchTimer = null;
 
@@ -190,16 +232,16 @@ function applyLookupMilepostFilterAndRender() {
   const mp = (milepostFilter.value || "").trim();
 
   if (!mp) {
-    renderTable(lookupCrossingsCache);
+    renderLookupTable(lookupCrossingsCache);
     return;
   }
 
-  // simple contains filter; we can upgrade to numeric/range later
+  // simple contains filter
   const filtered = lookupCrossingsCache.filter((r) =>
     String(r.mile_post || "").includes(mp)
   );
 
-  renderTable(filtered);
+  renderLookupTable(filtered);
 }
 
 function setupLookupHandlers() {
@@ -219,7 +261,7 @@ function setupLookupHandlers() {
 }
 
 // ---------------------------------------------------------
-// 6. Render Table
+// 7. Sorting helpers
 // ---------------------------------------------------------
 function getMilepostValue(row) {
   const raw = row.milepost ?? row["mile-post"] ?? row.mile_post ?? "";
@@ -232,10 +274,13 @@ function getMilepostValue(row) {
   return Number.isFinite(n) ? n : null;
 }
 
-function renderTable(rows) {
+// ---------------------------------------------------------
+// 8. Renderers
+// ---------------------------------------------------------
+function renderProjectsTable(rows) {
   crossingsTableBody.innerHTML = "";
 
-  // Sort by milepost ascending (null/blank mileposts go to the bottom)
+  // Sort by milepost ascending
   const sorted = [...rows].sort((a, b) => {
     const ma = getMilepostValue(a);
     const mb = getMilepostValue(b);
@@ -248,14 +293,8 @@ function renderTable(rows) {
   });
 
   sorted.forEach((row) => {
-    // Support BOTH:
-    // - Projects tables (hyphenated keys)
-    // - UP lookup (form71_up_dedup / RPC) keys
     const dot = row.dot_number ?? row["dot-number"] ?? row.crossing_id ?? "";
-
-    const milepost =
-      row.milepost ?? row["mile-post"] ?? row.mile_post ?? "";
-
+    const milepost = row.milepost ?? row["mile-post"] ?? row.mile_post ?? "";
     const trackType = row.track_type ?? row.track ?? "";
     const crossingType = row.crossing_type ?? row.type ?? "";
     const streetName = row.street_name ?? row.road_name ?? "";
@@ -269,7 +308,6 @@ function renderTable(rows) {
         : `${dot}`;
 
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
       <td>${dotHtml}</td>
       <td>${milepost}</td>
@@ -284,30 +322,87 @@ function renderTable(rows) {
       <td>${row.date_completed || ""}</td>
       <td>${row.helped || ""}</td>
     `;
+    crossingsTableBody.appendChild(tr);
+  });
+}
 
+function renderLookupTable(rows) {
+  crossingsTableBody.innerHTML = "";
+
+  // Sort by mile_post ascending (numeric if possible)
+  const sorted = [...rows].sort((a, b) => {
+    const ma = getMilepostValue(a); // uses mile_post for lookup
+    const mb = getMilepostValue(b);
+
+    if (ma == null && mb == null) return 0;
+    if (ma == null) return 1;
+    if (mb == null) return -1;
+
+    return ma - mb;
+  });
+
+  sorted.forEach((row) => {
+    const crossingId = row.crossing_id ?? "";
+    const st = row.state ?? "";
+    const city = row.city ?? "";
+    const roadName = row.road_name ?? "";
+    const sub = row.railroad_subdivision ?? "";
+    const mp = row.mile_post ?? "";
+    const len = row.crossing_surface_length_ft ?? "";
+    const lat = row.latitude ?? "";
+    const lon = row.longitude ?? "";
+
+    // Option A: crossing_id links to Google Maps only when lat/lon exist
+    const crossingIdHtml =
+      row.latitude != null &&
+      row.longitude != null &&
+      String(row.latitude).length &&
+      String(row.longitude).length
+        ? `<a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" rel="noopener noreferrer">${crossingId}</a>`
+        : `${crossingId}`;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${crossingIdHtml}</td>
+      <td>${st}</td>
+      <td>${city}</td>
+      <td>${roadName}</td>
+      <td>${sub}</td>
+      <td>${mp}</td>
+      <td>${len}</td>
+      <td>${lat}</td>
+      <td>${lon}</td>
+    `;
     crossingsTableBody.appendChild(tr);
   });
 }
 
 // ---------------------------------------------------------
-// 7. Init / Mode switching
+// 9. Init / Mode switching
 // ---------------------------------------------------------
 async function init() {
   setupLookupHandlers();
 
+  // initial header
+  renderProjectsHeader();
+
   modeSelect.onchange = async () => {
     const mode = modeSelect.value;
+    currentMode = mode;
 
     if (mode === "projects") {
+      renderProjectsHeader();
       lookupControls.style.display = "none";
       projectsControls.style.display = "flex";
       clearLookupUI();
       await loadProjectsMode();
     } else {
+      renderLookupHeader();
       projectsControls.style.display = "none";
       lookupControls.style.display = "flex";
       // do not auto-load crossings; user searches
       crossingsTableBody.innerHTML = "";
+      lookupResults.innerHTML = "";
     }
   };
 
