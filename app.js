@@ -216,18 +216,56 @@ function renderTable(rows) {
   crossingsTableBody.innerHTML = "";
 
   rows.forEach((row) => {
+    // Support BOTH:
+    // - Projects tables (hyphenated keys)
+    // - UP lookup (form71_up_dedup / RPC) keys
+    const dot =
+      row.dot_number ??
+      row["dot-number"] ??
+      row.crossing_id ??
+      "";
+
+    const milepost =
+      row.milepost ??
+      row["mile-post"] ??
+      row.mile_post ??
+      "";
+
+    const trackType =
+      row.track_type ??
+      row.track ??
+      "";
+
+    const crossingType =
+      row.crossing_type ??
+      row.type ??
+      "";
+
+    const streetName =
+      row.street_name ??
+      row.road_name ??
+      "";
+
+    // Option A: DOT links to Google Maps only when lat/lon exist
+    const lat = row.latitude;
+    const lon = row.longitude;
+    const dotHtml =
+      lat != null && lon != null && String(lat).length && String(lon).length
+        ? `<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener noreferrer">${dot}</a>`
+        : `${dot}`;
+
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>${row.dot_number || row.crossing_id || ""}</td>
-      <td>${row.milepost || row.mile_post || ""}</td>
+      <td>${dotHtml}</td>
+      <td>${milepost}</td>
       <td>${row.crossing_number || ""}</td>
-      <td>${row.track_type || ""}</td>
-      <td>${row.crossing_type || ""}</td>
+      <td>${trackType}</td>
+      <td>${crossingType}</td>
       <td>${row.completed ? "Yes" : "No"}</td>
       <td>${row.asphalted ? "Yes" : "No"}</td>
       <td>${row.planned_footage || ""}</td>
-      <td>${row.street_name || row.road_name || ""}</td>
+      <td>${streetName}</td>
       <td>${row.completed_by || ""}</td>
       <td>${row.date_completed || ""}</td>
       <td>${row.helped || ""}</td>
