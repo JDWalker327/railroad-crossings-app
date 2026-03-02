@@ -1,6 +1,4 @@
-<!-- force redeploy 4 -->
-
-
+<!-- force redeploy 5 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Railroad Crossings Viewer</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Optional: stop favicon.ico 404 noise -->
+  <link rel="icon" href="data:," />
 </head>
 
 <body>
@@ -48,21 +49,8 @@
 
     <main>
       <table id="crossingsTable">
-        <thead>
-          <tr>
-            <th>DOT #</th>
-            <th>Milepost</th>
-            <th>Crossing #</th>
-            <th>Track Type</th>
-            <th>Crossing Type</th>
-            <th>Completed</th>
-            <th>Asphalted</th>
-            <th>Planned Footage</th>
-            <th>Street Name</th>
-            <th>Completed By</th>
-            <th>Date Completed</th>
-            <th>Helped</th>
-          </tr>
+        <thead id="crossingsTableHead">
+          <!-- filled by app.js depending on mode -->
         </thead>
         <tbody id="crossingsTableBody"></tbody>
       </table>
@@ -70,6 +58,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.js"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
