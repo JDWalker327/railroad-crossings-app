@@ -35,6 +35,49 @@ npx serve .
 
 ---
 
+## Deploying to Production
+
+"Production" for this app is the GitHub Pages site served from the `main` branch. There is no separate staging environment — merging a pull request into `main` **is** the production deploy.
+
+### Pre-merge checklist
+
+Before promoting, confirm:
+
+- [ ] You have previewed the changes locally (`python3 -m http.server 8080`) or in the PR's branch URL and the app behaves as expected
+- [ ] The live Supabase data still loads correctly (Projects and Lookup modes both return rows)
+- [ ] No JavaScript console errors appear in the browser DevTools (F12 → Console)
+- [ ] The table is readable on both a desktop browser and a mobile screen width
+
+### Step-by-step promotion
+
+1. **Open the pull request** on GitHub  
+   `https://github.com/JDWalker327/railroad-crossings-app/pulls`
+
+2. **Mark it Ready for Review**  
+   If the PR is still in *Draft* status, click **"Ready for review"** near the bottom of the PR page. This is required before it can be merged.
+
+3. **Merge into `main`**  
+   Click **"Merge pull request"** → **"Confirm merge"**.  
+   There is no automated test gate — merging is immediate.
+
+4. **Wait for GitHub Pages to redeploy** (~1–2 minutes)  
+   You can watch the deploy status at:  
+   `https://github.com/JDWalker327/railroad-crossings-app/deployments`  
+   The status changes from *In progress* → *Active* when it's live.
+
+5. **Verify the live site**  
+   Open `https://jdwalker327.github.io/railroad-crossings-app/` and do a hard-refresh (**Ctrl + Shift + R** / **Cmd + Shift + R**) to bypass any browser cache.
+
+### Rolling back
+
+GitHub Pages always serves the latest commit on `main`. To roll back:
+
+1. Revert the merge commit on GitHub (`https://github.com/JDWalker327/railroad-crossings-app/commits/main` → find the merge commit → **"Revert"**)
+2. Merge the auto-generated revert PR
+3. GitHub Pages redeploys automatically within ~1–2 minutes
+
+---
+
 ## Screenshots
 
 | Desktop (1280 px) | Mobile (375 px) |
