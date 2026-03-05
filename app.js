@@ -1,6 +1,19 @@
 console.log("app start");
 
 // ---------------------------------------------------------
+// 0. HTML-escaping helper (prevents XSS via innerHTML)
+// ---------------------------------------------------------
+function escHtml(val) {
+  if (val == null) return "";
+  return String(val)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// ---------------------------------------------------------
 // 1. Initialize Supabase Client
 // ---------------------------------------------------------
 const supabaseClient = supabase.createClient(
@@ -170,7 +183,7 @@ async function searchLookupSubdivisions() {
   );
 
   if (error) {
-    lookupResults.innerHTML = `<div style="color:crimson;">${error.message}</div>`;
+    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
     return;
   }
 
@@ -191,11 +204,11 @@ async function searchLookupSubdivisions() {
     btn.style.marginBottom = "6px";
     btn.style.cursor = "pointer";
 
-    btn.innerHTML = `<strong>${r.display_label}</strong> — ${r.state}<div style="opacity:0.7;font-size:12px;">${r.crossing_count} crossings</div>`;
+    btn.innerHTML = `<strong>${escHtml(r.display_label)}</strong> — ${escHtml(r.state)}<div style="opacity:0.7;font-size:12px;">${escHtml(r.crossing_count)} crossings</div>`;
 
     btn.onclick = async () => {
       selectedLookup = r;
-      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${r.display_label}</strong>…</div>`;
+      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(r.display_label)}</strong>…</div>`;
       await loadLookupCrossingsForSubdivision();
     };
 
@@ -218,11 +231,12 @@ async function loadLookupCrossingsForSubdivision() {
 
   if (error) {
     console.error(error);
-    lookupResults.innerHTML = `<div style="color:crimson;">${error.message}</div>`;
+    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
     return;
   }
 
   lookupCrossingsCache = data || [];
+  lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.display_label)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
   renderLookupTable(lookupCrossingsCache);
 }
 
@@ -236,7 +250,7 @@ async function lookupByDot() {
 
   if (!dot) return;
 
-  lookupResults.innerHTML = `<div style="opacity:0.8;">Searching DOT <strong>${dot}</strong>…</div>`;
+  lookupResults.innerHTML = `<div style="opacity:0.8;">Searching DOT <strong>${escHtml(dot)}</strong>…</div>`;
 
   // Pull fields matching stg_form71_up column list
   const { data, error } = await supabaseClient
@@ -248,19 +262,19 @@ async function lookupByDot() {
     .limit(10);
 
   if (error) {
-    lookupResults.innerHTML = `<div style="color:crimson;">${error.message}</div>`;
+    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
     renderLookupTable([]);
     return;
   }
 
   const rows = data || [];
   if (!rows.length) {
-    lookupResults.innerHTML = `<div style="opacity:0.7;">No match for DOT <strong>${dot}</strong></div>`;
+    lookupResults.innerHTML = `<div style="opacity:0.7;">No match for DOT <strong>${escHtml(dot)}</strong></div>`;
     renderLookupTable([]);
     return;
   }
 
-  lookupResults.innerHTML = `<div style="opacity:0.8;">Found ${rows.length} result(s) for DOT <strong>${dot}</strong></div>`;
+  lookupResults.innerHTML = `<div style="opacity:0.8;">Found ${rows.length} result(s) for DOT <strong>${escHtml(dot)}</strong></div>`;
   renderLookupTable(rows);
 }
 
@@ -283,7 +297,6 @@ function setupLookupHandlers() {
 // ---------------------------------------------------------
 function getMilepostValue(row) {
   const raw = row.milepost ?? row["mile-post"] ?? row.mile_post ?? "";
-  if (raw == null) return null;
 
   const cleaned = String(raw).trim().replace(/[^\d.-]/g, "");
   if (!cleaned) return null;
@@ -316,29 +329,34 @@ function renderProjectsTable(rows) {
     const crossingType = row.crossing_type ?? row.type ?? "";
     const streetName = row.street_name ?? row.road_name ?? "";
 
-    // Option A: DOT links to Google Maps only when lat/lon exist
+    // DOT links to Google Maps only when lat/lon exist
     const lat = row.latitude;
     const lon = row.longitude;
     const dotHtml =
       lat != null && lon != null && String(lat).length && String(lon).length
-        ? `<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener noreferrer">${dot}</a>`
-        : `${dot}`;
+        ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}" target="_blank" rel="noopener noreferrer">${escHtml(dot)}</a>`
+        : escHtml(dot);
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${dotHtml}</td>
-      <td>${milepost}</td>
-      <td>${row.crossing_number || ""}</td>
-      <td>${trackType}</td>
-      <td>${crossingType}</td>
+      <td>${escHtml(milepost)}</td>
+      <td>${escHtml(row.crossing_number)}</td>
+      <td>${escHtml(trackType)}</td>
+      <td>${escHtml(crossingType)}</td>
       <td>${row.completed ? "Yes" : "No"}</td>
       <td>${row.asphalted ? "Yes" : "No"}</td>
-      <td>${row.planned_footage || ""}</td>
-      <td>${streetName}</td>
-      <td>${row.completed_by || ""}</td>
-      <td>${row.date_completed || ""}</td>
-      <td>${row.helped || ""}</td>
+      <td>${escHtml(row.planned_footage)}</td>
+      <td>${escHtml(streetName)}</td>
+      <td>${escHtml(row.completed_by)}</td>
+      <td>${escHtml(row.date_completed)}</td>
+      <td>${escHtml(row.helped)}</td>
     `;
+
+    // Apply highlight classes defined in style.css
+    if (row.asphalted) tr.classList.add("asphalted-row");
+    if (row.completed) tr.classList.add("completed-row");
+
     crossingsTableBody.appendChild(tr);
   });
 }
@@ -369,26 +387,26 @@ function renderLookupTable(rows) {
     const lat = row.latitude ?? "";
     const lon = row.longitude ?? "";
 
-    // Option A: crossing_id links to Google Maps only when lat/lon exist
+    // crossing_id links to Google Maps only when lat/lon exist
     const crossingIdHtml =
       row.latitude != null &&
       row.longitude != null &&
       String(row.latitude).length &&
       String(row.longitude).length
-        ? `<a href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" target="_blank" rel="noopener noreferrer">${crossingId}</a>`
-        : `${crossingId}`;
+        ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(row.latitude)},${encodeURIComponent(row.longitude)}" target="_blank" rel="noopener noreferrer">${escHtml(crossingId)}</a>`
+        : escHtml(crossingId);
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${crossingIdHtml}</td>
-      <td>${st}</td>
-      <td>${city}</td>
-      <td>${roadName}</td>
-      <td>${sub}</td>
-      <td>${mp}</td>
-      <td>${len}</td>
-      <td>${lat}</td>
-      <td>${lon}</td>
+      <td>${escHtml(st)}</td>
+      <td>${escHtml(city)}</td>
+      <td>${escHtml(roadName)}</td>
+      <td>${escHtml(sub)}</td>
+      <td>${escHtml(mp)}</td>
+      <td>${escHtml(len)}</td>
+      <td>${escHtml(lat)}</td>
+      <td>${escHtml(lon)}</td>
     `;
     crossingsTableBody.appendChild(tr);
   });
