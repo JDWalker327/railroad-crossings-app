@@ -31,25 +31,27 @@
       </div>
 
       <!-- Lookup mode (DOT search + optional subdivision search) -->
-      <div class="table-select-wrapper" id="lookupControls" style="display:none; gap:8px; align-items:center;">
+      <div class="table-select-wrapper" id="lookupControls" style="display:none;">
         <label for="dotSearch">DOT:</label>
-        <input id="dotSearch" type="text" placeholder="188789K" style="width:120px;" />
+        <input id="dotSearch" type="text" placeholder="188789K" />
         <button id="dotSearchBtn" type="button">Find</button>
 
-        <span style="opacity:0.7; padding-left:10px;">or</span>
+        <span style="opacity:0.7;">or</span>
 
         <label for="subdivisionSearch">Subdivision:</label>
         <input id="subdivisionSearch" type="text" placeholder="Type e.g. Palestine" />
 
-        <div id="lookupResults" style="max-height:160px; overflow:auto; min-width:320px;"></div>
+        <div id="lookupResults" style="max-height:160px; overflow:auto; width:100%;"></div>
       </div>
     </header>
 
     <main>
-      <table id="crossingsTable">
-        <thead id="crossingsTableHead"></thead>
-        <tbody id="crossingsTableBody"></tbody>
-      </table>
+      <div class="table-wrapper">
+        <table id="crossingsTable">
+          <thead id="crossingsTableHead"></thead>
+          <tbody id="crossingsTableBody"></tbody>
+        </table>
+      </div>
     </main>
   </div>
 
