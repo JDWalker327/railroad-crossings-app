@@ -120,7 +120,7 @@ async function loadProjectsMode() {
   let allCrossings = [];
 
   for (const p of projectsCache) {
-    const tableName = "crossings_p_" + p.subdivision;
+    const tableName = "Crossings_p_" + p.subdivision;
 
     const { data: rows, error: crossErr } = await supabaseClient
       .from(tableName)
