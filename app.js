@@ -91,6 +91,8 @@ function renderLookupHeader() {
 // ---------------------------------------------------------
 // 5. Projects Mode
 // ---------------------------------------------------------
+const NAVASOTA_SUBDIVISION = "navasota";
+
 async function loadProjectsMode() {
   crossingsTableBody.innerHTML = "";
   subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
@@ -130,7 +132,11 @@ async function loadProjectsMode() {
     }
 
     if (rows && rows.length) {
-      allCrossings = allCrossings.concat(rows);
+      const filtered =
+        p.subdivision === NAVASOTA_SUBDIVISION
+          ? rows.filter((r) => r.crossing_type === "private")
+          : rows;
+      allCrossings = allCrossings.concat(filtered);
     }
   }
 
