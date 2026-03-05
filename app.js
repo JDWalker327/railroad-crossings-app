@@ -133,8 +133,8 @@ async function loadProjectsMode() {
 
     if (rows && rows.length) {
       const filtered =
-        p.subdivision === NAVASOTA_SUBDIVISION
-          ? rows.filter((r) => r.crossing_type === "private")
+        p.subdivision.toLowerCase() === NAVASOTA_SUBDIVISION
+          ? rows.filter((r) => (r.crossing_type || "").toLowerCase() === "private")
           : rows;
       allCrossings = allCrossings.concat(filtered);
     }
