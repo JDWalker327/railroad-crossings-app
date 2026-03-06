@@ -1,56 +1,9 @@
-/* Complete CSS with proper table styling and responsive design */
-
-/* General Table Styles */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1em;
-}
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: left;
-}
-
-th {
-    background-color: #f2f2f2;
-}
-
-/* Completed Rows */
-.completed {
+.completed-row {
     background-color: #fff8b3;
 }
 
-/* Asphalted Rows */
-.asphalted {
+.asphalted-row {
     background-color: #c8f7c5;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    table, thead, tbody, th, td, tr {
-        display: block;
-    }
-
-    thead tr {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-    }
-
-    tr {
-        margin-bottom: 1em;
-    }
-
-    td {
-        text-align: right;
-        padding-left: 50%;
-    }
-
-    td:before {
-        content: attr(data-label);
-        float: left;
-        text-align: left;
-    }
-}
+/* Other CSS styling goes here */
