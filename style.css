@@ -1,6 +1,36 @@
-.watermark {
-  font-size: 12rem;
-  opacity: 0.25;
+/*
+ * Railroad Crossings App - Stylesheet
+ * Author: JDWalker327
+ * Date: 2023-01-01
+ */
+
+body { 
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
 }
 
-/* Additional styles can be restored here */
+body::before {
+    content: "\2605"; /* Star character */
+    font-size: 8rem;
+    opacity: 0.12;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+p {
+    line-height: 1.6;
+}
