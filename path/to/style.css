@@ -1,0 +1,4 @@
+.body::before {
+  font-size: 14rem;
+  /* other styles */
+}
