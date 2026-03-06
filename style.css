@@ -1,20 +1,14 @@
-#loginButton:hover {
-    /* existing styles */
-}
+/**
+ * Your CSS code here from commit 9c0a54d9ce44370b9120ca335182750f62ea9d6e
+ */
 
-/* WATERMARK */
-body::before {
-    content: 'Rail 1';
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-45deg);
-    font-size: 8rem;
-    font-weight: bold;
-    color: #2c3e50;
-    opacity: 0.12;
-    pointer-events: none;
-    z-index: 9999;
-    white-space: nowrap;
-    user-select: none;
-}
+ /* Watermark section from commit 5d33ef9bea247ae688f0f9aa186965f74ab22807 */
+ .watermark {
+     position: fixed;
+     bottom: 10px;
+     right: 10px;
+     opacity: 0.5;
+     font-size: 20px;
+     color: #000;
+     z-index: 9999;
+ }
