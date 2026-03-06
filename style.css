@@ -1,6 +1,19 @@
-.completed-row {
-  background-color: #fff8b3 !important;
+.table {
+    border-collapse: collapse;
+    width: 100%;
 }
+
+.table th, .table td {
+    border: 1px solid black;
+    padding: 8px;
+}
+
+.completed-row {
+    background-color: #4CAF50; /* Green */
+    color: white;
+}
+
 .asphalted-row {
-  background-color: #c8f7c5 !important;
+    background-color: #808080; /* Grey */
+    color: white;
 }
