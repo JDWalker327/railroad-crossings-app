@@ -1,36 +1,5 @@
-.watermark {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    opacity: 0.5;
-    font-size: 12px;
-    color: #999;
-}
-
-.login {
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 5px;
-}
-
-.dashboard {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table th, .table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-@media (max-width: 600px) {
-    .dashboard {
-        flex-direction: column;
-    }
+.railroad-crossings-app {
+  /* original styles */
+  background-color: #fff;
+  color: #333;
 }
