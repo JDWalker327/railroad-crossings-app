@@ -1,17 +1,64 @@
+<!-- force redeploy 7 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Railroad Crossings App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Railroad Crossings Dashboard - Rail 1</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:," />
 </head>
+
 <body>
-    <h1>Welcome to the Railroad Crossings App</h1>
-    <div id="rail1-watermark" style="position: fixed; bottom: 10px; right: 10px; opacity: 0.5; z-index: 1000;">
-        Rail 1
-    </div>
-    <footer style="text-align:center; margin-top:20px;">
-        <p>&copy; 2026 Rail 1. All rights reserved.</p>
-    </footer>
+  <div id="dashboardContainer">
+    <header class="top-bar">
+      <div class="header-title">
+        <h2>Railroad Crossings Dashboard</h2>
+        <p class="rail1-badge">Powered by Rail 1</p>
+      </div>
+
+      <div class="table-select-wrapper">
+        <label for="modeSelect">Mode:</label>
+        <select id="modeSelect">
+          <option value="projects" selected>Projects</option>
+          <option value="lookup">Lookup (Any UP)</option>
+        </select>
+      </div>
+
+      <!-- Projects mode -->
+      <div class="table-select-wrapper" id="projectsControls">
+        <label for="subdivisionSelect">Subdivision:</label>
+        <select id="subdivisionSelect">
+          <option value="all">All Subdivisions</option>
+        </select>
+      </div>
+
+      <!-- Lookup mode (DOT search + optional subdivision search) -->
+      <div class="table-select-wrapper" id="lookupControls" style="display:none;">
+        <label for="dotSearch">DOT:</label>
+        <input id="dotSearch" type="text" placeholder="188789K" />
+        <button id="dotSearchBtn" type="button">Find</button>
+
+        <span style="opacity:0.7;">or</span>
+
+        <label for="subdivisionSearch">Subdivision:</label>
+        <input id="subdivisionSearch" type="text" placeholder="Type e.g. Palestine" />
+      </div>
+    </header>
+
+    <div id="lookupResults"></div>
+
+    <table>
+      <thead id="crossingsTableHead"></thead>
+      <tbody id="crossingsTableBody"></tbody>
+    </table>
+  </div>
+
+  <footer class="rail1-footer">
+    <p>&copy; 2026 Rail 1. All rights reserved.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 </body>
 </html>
