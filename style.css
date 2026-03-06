@@ -1,6 +1,19 @@
-#rail1-watermark {
-    position: fixed;
-    transform: rotate(-45deg);
-    z-index: -1;
-    opacity: 0.2;
+.rail-1 {
+    /* Existing Rail 1 branding styles */
+    background-color: #f0f0f0; /* Example background color */
+    color: #333; /* Example text color */
+}
+
+/* Footer Styles */
+footer {
+    position: fixed; /* Keep footer visible at the bottom */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #282c34; /* Footer background color */
+    padding: 1rem; /* Padding for footer content */
+    border-top: 2px solid #61dafb; /* Top border color */
+    text-align: center; /* Center align footer text */
+    font-size: 14px; /* Font size for footer text */
+    color: #ffffff; /* Footer text color */
 }
