@@ -1,1 +1,206 @@
-.your_css_content_here.
+/* GLOBAL */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+}
+
+/* BOX SIZING */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* LOGIN */
+#loginContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 16px;
+}
+
+.login-box {
+    background: white;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 300px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-height: 44px;
+    font-size: 1rem;
+}
+
+#loginButton {
+    margin-top: 14px;
+    width: 100%;
+    padding: 10px;
+    min-height: 44px;
+    background: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+#loginButton:hover {
+    background: #1a242f;
+}
+
+/* DASHBOARD */
+#dashboardContainer {
+    padding: 20px;
+}
+
+/* TOP BAR */
+.top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.top-bar h2 {
+    margin: 0;
+}
+
+/* CONTROL WRAPPER */
+.table-select-wrapper {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* TABLE WRAPPER – enables horizontal scroll on small screens */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* TABLE */
+#crossingsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 15px;
+}
+
+#crossingsTable th,
+#crossingsTable td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#crossingsTable th {
+    background: #f2f2f2;
+    font-weight: bold;
+}
+
+/* Hover highlight */
+#crossingsTable tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Completed = yellow */
+.completed-row {
+    background-color: #fff8b3 !important;
+}
+
+/* Asphalted = green */
+.asphalted-row {
+    background-color: #c8f7c5 !important;
+}
+
+/* DOT clickable link */
+.dot-link {
+    color: #0066cc;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.dot-link:hover {
+    color: #004999;
+}
+
+/* ===== RESPONSIVE – tablets and below (≤768px) ===== */
+@media (max-width: 768px) {
+    #dashboardContainer {
+        padding: 12px;
+    }
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .top-bar h2 {
+        font-size: 1.2rem;
+    }
+    .table-select-wrapper {
+        width: 100%;
+    }
+    .table-select-wrapper select,
+    .table-select-wrapper input[type="text"],
+    .table-select-wrapper button {
+        min-height: 44px;
+        font-size: 1rem;
+        padding: 6px 10px;
+    }
+    .table-select-wrapper select {
+        flex: 1;
+        min-width: 140px;
+    }
+    #dotSearch {
+        flex: 1;
+        min-width: 100px;
+        width: auto !important;
+    }
+    #subdivisionSearch {
+        flex: 1;
+        min-width: 140px;
+    }
+    #lookupResults {
+        min-width: 0 !important;
+        width: 100%;
+    }
+    #crossingsTable {
+        font-size: 13px;
+    }
+    #crossingsTable th,
+    #crossingsTable td {
+        padding: 10px 6px;
+    }
+}
+
+/* ===== RESPONSIVE – small phones (≤480px) ===== */
+@media (max-width: 480px) {
+    #dashboardContainer {
+        padding: 8px;
+    }
+    .top-bar h2 {
+        font-size: 1.1rem;
+    }
+    #crossingsTable {
+        font-size: 12px;
+    }
+    #crossingsTable th,
+    #crossingsTable td {
+        padding: 8px 4px;
+    }
+}
