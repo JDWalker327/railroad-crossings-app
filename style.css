@@ -1,13 +1,5 @@
-#crossingsTable tr, 
-#crossingsTable th, 
-#crossingsTable td {
-    border: 1px solid black;
-}
-
-.completed-row {
-    background-color: yellow;
-}
-
-.asphalted-row {
-    background-color: green;
-}
+#crossingsTable tr, #crossingsTable th, #crossingsTable td { border: 1px solid black; }
+.completed-row { background-color: yellow; }
+.asphalted-row { background-color: green; }
+select { font-size: 48px !important; padding: 20px !important; min-height: 100px !important; min-width: 300px !important; }
+label { font-size: 40px !important; padding: 10px !important; }
