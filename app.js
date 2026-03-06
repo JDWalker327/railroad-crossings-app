@@ -134,7 +134,7 @@ async function loadProjectsMode() {
     if (rows && rows.length) {
       const filtered =
         p.subdivision === NAVASOTA_SUBDIVISION
-          ? rows.filter((r) => r.crossing_type === "private")
+          ? rows.filter((r) => r.type === "private")
           : rows;
       allCrossings = allCrossings.concat(filtered);
     }
