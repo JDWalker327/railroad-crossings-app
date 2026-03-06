@@ -1,61 +1,24 @@
-<!-- force redeploy 6 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Railroad Crossings Dashboard</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="data:," />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railroad Crossings App</title>
+    <style>
+        select, label, input {
+            font-size: 24px;
+        }
+    </style>
 </head>
-
 <body>
-  <div id="dashboardContainer">
-    <header class="top-bar">
-      <h2>Railroad Crossings Dashboard</h2>
-
-      <div class="table-select-wrapper">
-        <label for="modeSelect">Mode:</label>
-        <select id="modeSelect">
-          <option value="projects" selected>Projects</option>
-          <option value="lookup">Lookup (Any UP)</option>
-        </select>
-      </div>
-
-      <!-- Projects mode -->
-      <div class="table-select-wrapper" id="projectsControls">
-        <label for="subdivisionSelect">Subdivision:</label>
-        <select id="subdivisionSelect">
-          <option value="all">All Subdivisions</option>
-        </select>
-      </div>
-
-      <!-- Lookup mode (DOT search + optional subdivision search) -->
-      <div class="table-select-wrapper" id="lookupControls" style="display:none;">
-        <label for="dotSearch">DOT:</label>
-        <input id="dotSearch" type="text" placeholder="188789K" />
-        <button id="dotSearchBtn" type="button">Find</button>
-
-        <span style="opacity:0.7;">or</span>
-
-        <label for="subdivisionSearch">Subdivision:</label>
-        <input id="subdivisionSearch" type="text" placeholder="Type e.g. Palestine" />
-
-        <div id="lookupResults" style="max-height:160px; overflow:auto; width:100%;"></div>
-      </div>
-    </header>
-
-    <main>
-      <div class="table-wrapper">
-        <table id="crossingsTable">
-          <thead id="crossingsTableHead"></thead>
-          <tbody id="crossingsTableBody"></tbody>
-        </table>
-      </div>
-    </main>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.7/dist/umd/supabase.js"></script>
-  <script src="app.js?v=5"></script>
+    <h1>Railroad Crossings App</h1>
+    <label for="dropdown">Select an option:</label>
+    <select id="dropdown">
+        <option value="option1">Option 1</option>
+        <option value="option2">Option 2</option>
+    </select>
+    <br>
+    <label for="input">Enter your text:</label>
+    <input type="text" id="input" />
 </body>
 </html>
