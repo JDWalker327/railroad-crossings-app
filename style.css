@@ -53,9 +53,10 @@ th {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-45deg);
-  font-size: 140px;
+  transform-origin: center center;
+  font-size: 22vw; /* scales with screen width */
   font-weight: bold;
-  color: rgba(0, 0, 0, 0.06); /* very faint */
+  color: rgba(0, 0, 0, 0.15);
   pointer-events: none;
   user-select: none;
   z-index: 1;
