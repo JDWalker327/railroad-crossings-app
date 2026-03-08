@@ -34,15 +34,20 @@ th {
   background-color: #c8f7c5 !important;
 }
 
-
-/* Watermark */
+/* Small corner watermark */
 #rail1-watermark {
   position: fixed;
   bottom: 10px;
   right: 10px;
   opacity: 0.25;
   font-size: 14px;
-  /* Large diagonal background watermark */
+  pointer-events: none;
+  user-select: none;
+  z-index: 9999;
+  color: #333;
+}
+
+/* Large diagonal background watermark */
 #rail1-bg-watermark {
   position: fixed;
   top: 50%;
@@ -55,10 +60,4 @@ th {
   user-select: none;
   z-index: 1;
   white-space: nowrap;
-}
-
-  pointer-events: none;
-  user-select: none;
-  z-index: 9999;
-  color: #333;
 }
