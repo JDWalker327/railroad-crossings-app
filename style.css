@@ -50,10 +50,10 @@ th {
 /* Large diagonal background watermark */
 #rail1-bg-watermark {
   position: fixed;
-  top: 50%;
-  left: 10vw; /* anchor to left side of screen */
-  transform: translateY(-50%) rotate(-45deg);
-  font-size: 28vw;
+  top: 20vh;        /* distance from top of the SCREEN */
+  left: 10vw;       /* distance from left of the SCREEN */
+  transform: rotate(-45deg);
+  font-size: 28vw;  /* scales with screen width */
   font-weight: bold;
   color: rgba(0, 0, 0, 0.08); /* lighter again */
   pointer-events: none;
