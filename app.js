@@ -26,8 +26,6 @@ async function incrementVisitCount() {
   const { data, error } = await supabaseClient.rpc('increment_visits');
   if (error) console.log("Visit counter error:", error);
 }
-
-// Call it once when app loads
 incrementVisitCount();
 
 // ---------------------------------------------------------
@@ -46,14 +44,6 @@ const lookupResults = document.getElementById("lookupResults");
 const crossingsTableHead = document.getElementById("crossingsTableHead");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
 
-const lookupControls = document.getElementById("lookupControls");
-const dotSearch = document.getElementById("dotSearch");
-const dotSearchBtn = document.getElementById("dotSearchBtn");
-const subdivisionSearch = document.getElementById("subdivisionSearch");
-const lookupResults = document.getElementById("lookupResults");
-
-const crossingsTableHead = document.getElementById("crossingsTableHead");
-const crossingsTableBody = document.getElementById("crossingsTableBody");
 
 // ---------------------------------------------------------
 // 3. State
