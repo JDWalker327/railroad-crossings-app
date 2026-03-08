@@ -23,9 +23,12 @@ const supabaseClient = supabase.createClient(
 
 // Visit counter (runs once)
 async function incrementVisitCount() {
+  console.log("incrementVisitCount() is running");
   const { data, error } = await supabaseClient.rpc('increment_visits');
   if (error) console.log("Visit counter error:", error);
 }
+incrementVisitCount();
+
 // ---------------------------------------------------------
 // 2. DOM Elements
 // ---------------------------------------------------------
