@@ -30,13 +30,21 @@ async function incrementVisitCount() {
 // Call it once when app loads
 incrementVisitCount();
 
-
 // ---------------------------------------------------------
 // 2. DOM Elements
 // ---------------------------------------------------------
 const modeSelect = document.getElementById("modeSelect");
 const projectsControls = document.getElementById("projectsControls");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
+
+const lookupControls = document.getElementById("lookupControls");
+const dotSearch = document.getElementById("dotSearch");
+const dotSearchBtn = document.getElementById("dotSearchBtn");
+const subdivisionSearch = document.getElementById("subdivisionSearch");
+const lookupResults = document.getElementById("lookupResults");
+
+const crossingsTableHead = document.getElementById("crossingsTableHead");
+const crossingsTableBody = document.getElementById("crossingsTableBody");
 
 const lookupControls = document.getElementById("lookupControls");
 const dotSearch = document.getElementById("dotSearch");
