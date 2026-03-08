@@ -21,11 +21,20 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
 );
 
+// Visit counter (runs once)
+async function incrementVisitCount() {
+  const { data, error } = await supabaseClient.rpc('increment_visits');
+  if (error) console.log("Visit counter error:", error);
+}
+
+// Call it once when app loads
+incrementVisitCount();
+
+
 // ---------------------------------------------------------
 // 2. DOM Elements
 // ---------------------------------------------------------
 const modeSelect = document.getElementById("modeSelect");
-
 const projectsControls = document.getElementById("projectsControls");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 
