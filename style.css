@@ -24,14 +24,16 @@ th {
   color: white;
 }
 
-/* Row colors */
-.completed {
-  background-color: yellow;
+/* Completed = yellow */
+.completed-row {
+  background-color: #fff8b3 !important;
 }
 
-.asphalted {
-  background-color: lightgreen;
+/* Asphalted = green */
+.asphalted-row {
+  background-color: #c8f7c5 !important;
 }
+
 
 /* Watermark */
 #rail1-watermark {
