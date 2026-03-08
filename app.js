@@ -26,8 +26,6 @@ async function incrementVisitCount() {
   const { data, error } = await supabaseClient.rpc('increment_visits');
   if (error) console.log("Visit counter error:", error);
 }
-incrementVisitCount();
-
 // ---------------------------------------------------------
 // 2. DOM Elements
 // ---------------------------------------------------------
