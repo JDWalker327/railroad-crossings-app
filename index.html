@@ -10,20 +10,34 @@
 </head>
 
 <body>
-  <h1>Welcome to the Railroad Crossings App</h1>
+  <h1>Railroad Crossings App</h1>
 
   <!-- Watermark -->
   <div id="rail1-watermark">Powered by Rail 1</div>
 
-  <!-- Your app content renders here -->
+  <!-- Lookup Controls -->
+  <div id="controls">
+    <label for="crossingIdInput">Crossing ID:</label>
+    <input type="text" id="crossingIdInput" placeholder="Enter Crossing ID">
+
+    <label for="modeSelect">Mode:</label>
+    <select id="modeSelect">
+      <option value="lookup">Lookup</option>
+      <option value="list">List All</option>
+    </select>
+
+    <button id="lookupButton">Lookup</button>
+    <button id="refreshButton">Refresh</button>
+  </div>
+
+  <!-- Results Container -->
   <div id="app"></div>
 
   <!-- Load Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Load your JS -->
-<script src="app.js"></script>
-
+  <!-- Load your JS -->
+  <script src="app.js"></script>
 
   <footer style="text-align:center; margin-top:20px;">
     <p>&copy; 2026 Rail 1. All rights reserved.</p>
