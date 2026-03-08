@@ -20,7 +20,7 @@ th, td {
 }
 
 th {
-  background-color: #333;
+  background-color: #e0e0e0;
   color: white;
 }
 
@@ -50,7 +50,7 @@ th {
 /* Large diagonal background watermark */
 #rail1-bg-watermark {
   position: fixed;
-  top: 40vh;        /* distance from top of the SCREEN */
+  top: 20vh;        /* distance from top of the SCREEN */
   left: 10vw;       /* distance from left of the SCREEN */
   transform: rotate(-45deg);
   font-size: 28vw;  /* scales with screen width */
