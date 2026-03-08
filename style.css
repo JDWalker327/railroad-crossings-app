@@ -50,3 +50,24 @@ th {
 .asphalted-row {
   background-color: #c8f7c5 !important;
 }
+/* Clean, modern dropdowns */
+select {
+  width: 100%;
+  max-width: 350px;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  margin: 10px auto 20px auto;
+  display: block;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Improve dropdown arrow appearance */
+select:focus {
+  outline: none;
+  border-color: #888;
+  box-shadow: 0 0 4px rgba(0,0,0,0.15);
+}
