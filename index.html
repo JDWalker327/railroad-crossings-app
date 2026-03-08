@@ -14,25 +14,33 @@
   <!-- Watermark -->
   <div id="rail1-watermark">Powered by Rail 1</div>
 
-  <!-- Controls Section -->
-  <div id="controls">
+  <!-- Top-level mode selector: Projects vs Lookup -->
+  <div id="modeControls">
+    <label for="modeSelect">Mode:</label>
+    <select id="modeSelect">
+      <option value="projects">Projects</option>
+      <option value="lookup">Lookup</option>
+    </select>
+  </div>
 
-    <label for="subdivisionSelect">Subdivision:</label>
-    <select id="subdivisionSelect"></select>
-
+  <!-- Project / subdivision flow (for Projects mode) -->
+  <div id="projectFlow">
     <label for="projectSelect">Project:</label>
     <select id="projectSelect"></select>
 
-    <label for="modeSelect">Mode:</label>
-    <select id="modeSelect">
-      <option value="list">List All</option>
-      <option value="lookup">Lookup</option>
-    </select>
+    <label for="subdivisionSelect">Subdivision:</label>
+    <select id="subdivisionSelect"></select>
+  </div>
 
+  <!-- Lookup flow (for Lookup mode) -->
+  <div id="lookupFlow">
     <label for="crossingIdInput">Crossing ID:</label>
     <input type="text" id="crossingIdInput" placeholder="Enter Crossing ID">
-
     <button id="lookupButton">Lookup</button>
+  </div>
+
+  <!-- Common controls -->
+  <div id="commonControls">
     <button id="refreshButton">Refresh</button>
   </div>
 
@@ -60,10 +68,8 @@
     </table>
   </div>
 
-  <!-- Load Supabase -->
+  <!-- Supabase + app -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Load your JS -->
   <script src="app.js"></script>
 
   <footer style="text-align:center; margin-top:20px;">
