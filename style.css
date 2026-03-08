@@ -1,22 +1,39 @@
-.rail-1 {
-    /* Existing Rail 1 branding styles */
-    background-color: #f0f0f0; /* Example background color */
-    color: #333; /* Example text color */
+/* Basic page layout */
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #f5f5f5;
 }
 
-/* Footer Styles */
-footer {
-    position: fixed; /* Keep footer visible at the bottom */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: #282c34; /* Footer background color */
-    padding: 1rem; /* Padding for footer content */
-    border-top: 2px solid #61dafb; /* Top border color */
-    text-align: center; /* Center align footer text */
-    font-size: 14px; /* Font size for footer text */
-    color: #ffffff; /* Footer text color */
+/* Table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background: white;
 }
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+th {
+  background-color: #333;
+  color: white;
+}
+
+/* Row colors */
+.completed {
+  background-color: yellow;
+}
+
+.asphalted {
+  background-color: lightgreen;
+}
+
+/* Watermark */
 #rail1-watermark {
   position: fixed;
   bottom: 10px;
