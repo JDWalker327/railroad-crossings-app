@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Railroad Crossings App</title>
 
-  <!-- Load your CSS -->
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -15,25 +14,53 @@
   <!-- Watermark -->
   <div id="rail1-watermark">Powered by Rail 1</div>
 
-  <!-- Lookup Controls -->
+  <!-- Controls Section -->
   <div id="controls">
-    <label for="crossingIdInput">Crossing ID:</label>
-    <input type="text" id="crossingIdInput" placeholder="Enter Crossing ID">
+
+    <label for="subdivisionSelect">Subdivision:</label>
+    <select id="subdivisionSelect"></select>
+
+    <label for="projectSelect">Project:</label>
+    <select id="projectSelect"></select>
 
     <label for="modeSelect">Mode:</label>
     <select id="modeSelect">
-      <option value="lookup">Lookup</option>
       <option value="list">List All</option>
+      <option value="lookup">Lookup</option>
     </select>
+
+    <label for="crossingIdInput">Crossing ID:</label>
+    <input type="text" id="crossingIdInput" placeholder="Enter Crossing ID">
 
     <button id="lookupButton">Lookup</button>
     <button id="refreshButton">Refresh</button>
   </div>
 
-  <!-- Results Container -->
-  <div id="app"></div>
+  <!-- Status / Messages -->
+  <div id="status"></div>
 
-  <!-- Load Supabase client -->
+  <!-- Table Container -->
+  <div id="tableContainer">
+    <table id="crossingsTable">
+      <thead>
+        <tr>
+          <th>DOT #</th>
+          <th>Subdivision</th>
+          <th>Project</th>
+          <th>Milepost</th>
+          <th>Street</th>
+          <th>City</th>
+          <th>State</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="crossingsTableBody">
+        <!-- Rows inserted by app.js -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Load Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Load your JS -->
