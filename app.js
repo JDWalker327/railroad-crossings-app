@@ -21,11 +21,10 @@ const supabaseClient = supabase.createClient(
   "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
 );
 
-// Visit counter (runs once)
 async function incrementVisitCount() {
-  console.log("incrementVisitCount() is running");
+  console.log("Calling increment_visits...");
   const { data, error } = await supabaseClient.rpc('increment_visits');
-  if (error) console.log("Visit counter error:", error);
+  console.log("RPC result:", data, error);
 }
 incrementVisitCount();
 
