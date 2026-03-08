@@ -17,3 +17,14 @@ footer {
     font-size: 14px; /* Font size for footer text */
     color: #ffffff; /* Footer text color */
 }
+#rail1-watermark {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  opacity: 0.25;
+  font-size: 14px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 9999;
+  color: #333;
+}
