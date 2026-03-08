@@ -42,6 +42,21 @@ th {
   right: 10px;
   opacity: 0.25;
   font-size: 14px;
+  /* Large diagonal background watermark */
+#rail1-bg-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 140px;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.06); /* very faint */
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  white-space: nowrap;
+}
+
   pointer-events: none;
   user-select: none;
   z-index: 9999;
