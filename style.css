@@ -51,16 +51,3 @@ th {
 .asphalted-row {
   background-color: #c8f7c5 !important;
 }
-
-/* Small corner watermark (optional, can remove if not needed) */
-#rail1-watermark {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  opacity: 0.25;
-  font-size: 14px;
-  pointer-events: none;
-  user-select: none;
-  z-index: 9999;
-  color: #333;
-}
