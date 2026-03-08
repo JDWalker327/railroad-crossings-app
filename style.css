@@ -50,14 +50,12 @@ th {
 /* Large diagonal background watermark */
 #rail1-bg-watermark {
   position: fixed;
-  inset: 0;                 /* anchor to the visual viewport */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transform: rotate(-45deg);
-  font-size: 28vw;          /* scales with screen width */
+  top: 50%;
+  left: 10vw; /* anchor to left side of screen */
+  transform: translateY(-50%) rotate(-45deg);
+  font-size: 28vw;
   font-weight: bold;
-  color: rgba(0, 0, 0, 0.10); /* lighter again */
+  color: rgba(0, 0, 0, 0.08); /* lighter again */
   pointer-events: none;
   user-select: none;
   z-index: 1;
