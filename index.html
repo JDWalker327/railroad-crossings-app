@@ -12,13 +12,12 @@
   <h1>Railroad Crossings App</h1>
 
   <!-- Watermark -->
- <div id="rail1-watermark">Powered by Rail 1</div>
+  <div id="rail1-watermark">Powered by Rail 1</div>
 
   <!-- Mode selector: Projects vs Lookup -->
   <div id="modeControls">
     <label for="modeSelect">Mode:</label>
     <select id="modeSelect">
-      <!-- IMPORTANT: values must match currentMode and your logic -->
       <option value="projects" selected>Projects</option>
       <option value="lookup">Lookup</option>
     </select>
@@ -27,48 +26,35 @@
   <!-- Projects mode controls -->
   <div id="projectsControls">
     <label for="subdivisionSelect">Subdivision / Project:</label>
-    <select id="subdivisionSelect">
-      <!-- Filled by loadProjectsMode() -->
-    </select>
+    <select id="subdivisionSelect"></select>
   </div>
 
   <!-- Lookup mode controls -->
   <div id="lookupControls">
-    <!-- DOT lookup -->
     <div>
       <label for="dotSearch">DOT #:</label>
       <input type="text" id="dotSearch" placeholder="Enter DOT number">
       <button type="button" id="dotSearchBtn">Lookup DOT</button>
     </div>
 
-    <!-- Subdivision typeahead lookup -->
     <div style="margin-top:10px;">
       <label for="subdivisionSearch">Subdivision search:</label>
       <input type="text" id="subdivisionSearch" placeholder="Type subdivision name">
     </div>
 
-    <!-- Lookup results list (buttons, messages, etc.) -->
     <div id="lookupResults" style="margin-top:10px;"></div>
   </div>
 
-  <!-- Status / messages (optional, but handy if you want to use it later) -->
   <div id="status"></div>
 
-  <!-- Table container -->
   <div id="tableContainer" style="margin-top:20px;">
     <table id="crossingsTable" border="1" cellspacing="0" cellpadding="4">
-      <thead id="crossingsTableHead">
-        <!-- Filled by renderProjectsHeader() or renderLookupHeader() -->
-      </thead>
-      <tbody id="crossingsTableBody">
-        <!-- Filled by renderProjectsTable() or renderLookupTable() -->
-      </tbody>
+      <thead id="crossingsTableHead"></thead>
+      <tbody id="crossingsTableBody"></tbody>
     </table>
   </div>
 
-  <!-- Supabase client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Your app logic -->
   <script src="app.js"></script>
 
   <footer style="text-align:center; margin-top:20px;">
