@@ -12,7 +12,40 @@ function escHtml(val) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+// ---------------------------------------------------------
+// 0b. Map helpers
+// ---------------------------------------------------------
+function hasLatLon(lat, lon) {
+  return (
+    lat != null &&
+    lon != null &&
+    String(lat).trim().length > 0 &&
+    String(lon).trim().length > 0
+  );
+}
 
+function googleMapsUrl(lat, lon) {
+  return `https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
+}
+
+function mapIconSvg() {
+  return `
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" focusable="false">
+      <path fill="currentColor" d="M12 2c-3.86 0-7 3.14-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
+    </svg>
+  `;
+}
+
+function mapLinkHtml(lat, lon) {
+  if (!hasLatLon(lat, lon)) return "";
+  const url = googleMapsUrl(lat, lon);
+  return `
+    <a class="map-icon-link" href="${url}" target="_blank" rel="noopener noreferrer"
+       title="Open in Google Maps" aria-label="Open in Google Maps">
+      ${mapIconSvg()}
+    </a>
+  `;
+}
 // ---------------------------------------------------------
 // 1. Initialize Supabase Client
 // ---------------------------------------------------------
@@ -62,6 +95,7 @@ let lookupCrossingsCache = [];
 function renderProjectsHeader() {
   crossingsTableHead.innerHTML = `
     <tr>
+      <th>Map</th>
       <th>DOT #</th>
       <th>Milepost</th>
       <th>Crossing #</th>
@@ -82,6 +116,7 @@ function renderLookupHeader() {
   // Matches stg_form71_up column list
   crossingsTableHead.innerHTML = `
     <tr>
+      <th>Map</th>
       <th>crossing_id</th>
       <th>state</th>
       <th>city</th>
@@ -389,41 +424,32 @@ function renderLookupTable(rows) {
     return ma - mb;
   });
 
-  sorted.forEach((row) => {
-    const crossingId = row.crossing_id ?? "";
-    const st = row.state ?? "";
-    const city = row.city ?? "";
-    const roadName = row.road_name ?? "";
-    const sub = row.railroad_subdivision ?? "";
-    const mp = row.mile_post ?? "";
-    const len = row.crossing_surface_length_ft ?? "";
-    const lat = row.latitude ?? "";
-    const lon = row.longitude ?? "";
+ sorted.forEach((row) => {
+  const crossingId = row.crossing_id ?? "";
+  const st = row.state ?? "";
+  const city = row.city ?? "";
+  const roadName = row.road_name ?? "";
+  const sub = row.railroad_subdivision ?? "";
+  const mp = row.mile_post ?? "";
+  const len = row.crossing_surface_length_ft ?? "";
+  const lat = row.latitude ?? "";
+  const lon = row.longitude ?? "";
 
-    // crossing_id links to Google Maps only when lat/lon exist
-    const crossingIdHtml =
-      row.latitude != null &&
-      row.longitude != null &&
-      String(row.latitude).length &&
-      String(row.longitude).length
-        ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(row.latitude)},${encodeURIComponent(row.longitude)}" target="_blank" rel="noopener noreferrer">${escHtml(crossingId)}</a>`
-        : escHtml(crossingId);
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${crossingIdHtml}</td>
-      <td>${escHtml(st)}</td>
-      <td>${escHtml(city)}</td>
-      <td>${escHtml(roadName)}</td>
-      <td>${escHtml(sub)}</td>
-      <td>${escHtml(mp)}</td>
-      <td>${escHtml(len)}</td>
-      <td>${escHtml(lat)}</td>
-      <td>${escHtml(lon)}</td>
-    `;
-    crossingsTableBody.appendChild(tr);
-  });
-}
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${mapLinkHtml(lat, lon)}</td>
+    <td>${escHtml(crossingId)}</td>
+    <td>${escHtml(st)}</td>
+    <td>${escHtml(city)}</td>
+    <td>${escHtml(roadName)}</td>
+    <td>${escHtml(sub)}</td>
+    <td>${escHtml(mp)}</td>
+    <td>${escHtml(len)}</td>
+    <td>${escHtml(lat)}</td>
+    <td>${escHtml(lon)}</td>
+  `;
+  crossingsTableBody.appendChild(tr);
+});
 
 // ---------------------------------------------------------
 // 9. Init / Mode switching
