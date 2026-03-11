@@ -71,22 +71,40 @@ select:focus {
   border-color: #888;
   box-shadow: 0 0 4px rgba(0,0,0,0.15);
 }
-/* Map icon link (Google Maps) */
+/* Map icon link (Google Maps) - blue button */
 .map-icon-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  color: #333;
+
+  width: 32px;
+  height: 32px;
+
+  border-radius: 8px;
+  background-color: #1a73e8; /* Google blue */
+  border: 1px solid #1558b0;
+
+  color: #fff;              /* fallback */
   text-decoration: none;
+
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
 .map-icon-link:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: #1669d6;
+  border-color: #124a92;
 }
 
-.map-icon-link svg {
-  display: block;
+.map-icon-link:focus {
+  outline: 2px solid rgba(26, 115, 232, 0.35);
+  outline-offset: 2px;
+}
+
+.map-icon-link:active {
+  transform: translateY(1px);
+}
+
+/* Pin is red on the blue button */
+.map-icon-link svg path {
+  fill: #ea4335; /* Google red */
 }
