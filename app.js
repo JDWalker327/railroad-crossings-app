@@ -377,17 +377,14 @@ function renderProjectsTable(rows) {
     const crossingType = row.crossing_type ?? row.type ?? "";
     const streetName = row.street_name ?? row.road_name ?? "";
 
-    // DOT links to Google Maps only when lat/lon exist
+    // Map icon column (only shows when lat/lon exist)
     const lat = row.latitude;
     const lon = row.longitude;
-    const dotHtml =
-      lat != null && lon != null && String(lat).length && String(lon).length
-        ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}" target="_blank" rel="noopener noreferrer">${escHtml(dot)}</a>`
-        : escHtml(dot);
-
+  
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${dotHtml}</td>
+      <td>${mapLinkHtml(lat, lon)}</td>
+      <td>${escHtml(dot)}</td>
       <td>${escHtml(milepost)}</td>
       <td>${escHtml(row.crossing_number)}</td>
       <td>${escHtml(trackType)}</td>
@@ -400,7 +397,6 @@ function renderProjectsTable(rows) {
       <td>${escHtml(row.date_completed)}</td>
       <td>${escHtml(row.helped)}</td>
     `;
-
     // Apply highlight classes defined in style.css
     if (row.asphalted) tr.classList.add("asphalted-row");
     if (row.completed) tr.classList.add("completed-row");
@@ -450,7 +446,7 @@ function renderLookupTable(rows) {
   `;
   crossingsTableBody.appendChild(tr);
 });
-
+}
 // ---------------------------------------------------------
 // 9. Init / Mode switching
 // ---------------------------------------------------------
