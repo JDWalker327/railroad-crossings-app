@@ -137,7 +137,9 @@ const NAVASOTA_SUBDIVISION = "navasota";
 
 async function loadProjectsMode() {
   crossingsTableBody.innerHTML = "";
-  subdivisionSelect.innerHTML = '<option value="all">All Subdivisions</option>';
+
+  // Placeholder option (don’t show all rows by default)
+  subdivisionSelect.innerHTML = '<option value="" disabled selected>Subdivision</option>';
 
   const { data: projects, error: projError } = await supabaseClient
     .from("projects")
@@ -183,20 +185,15 @@ async function loadProjectsMode() {
   }
 
   allProjectCrossingsCache = allCrossings;
-  renderProjectsTable(allProjectCrossingsCache);
+
+  // IMPORTANT: don't render anything until user selects a subdivision
+  crossingsTableBody.innerHTML = "";
 
   subdivisionSelect.onchange = () => {
     const selected = subdivisionSelect.value;
-
-    if (selected === "all") {
-      renderProjectsTable(allProjectCrossingsCache);
-      return;
-    }
-
     const filtered = allProjectCrossingsCache.filter(
       (row) => String(row.project_id) === String(selected)
     );
-
     renderProjectsTable(filtered);
   };
 }
