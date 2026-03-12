@@ -369,3 +369,4 @@ function renderLookupTable(rows) {
 // 8. INITIAL LOAD
 // ---------------------------------------------------------
 loadProjects();
+window.supabase = supabase;
