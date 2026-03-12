@@ -300,6 +300,12 @@ function renderProjectsTable(rows) {
     if (row.asphalted === true) {
       tr.classList.add("asphalted-row");   // green overrides yellow
     }
+// Sort by mile-post ascending (numeric)
+rows.sort((a, b) => {
+  const mpA = parseFloat(a["mile-post"]);
+  const mpB = parseFloat(b["mile-post"]);
+  return mpA - mpB;
+});
 
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
