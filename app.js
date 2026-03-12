@@ -269,6 +269,7 @@ dotSearchBtn.addEventListener("click", async () => {
 // ---------------------------------------------------------
 // 7. TABLE RENDERING
 // ---------------------------------------------------------
+
 function renderProjectsTable(rows) {
   crossingsTableHead.innerHTML = `
     <tr>
@@ -290,22 +291,19 @@ function renderProjectsTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
+  // ⭐ SORT BY MILEPOST ASCENDING
+  rows.sort((a, b) => {
+    const mpA = parseFloat(a["mile-post"]);
+    const mpB = parseFloat(b["mile-post"]);
+    return mpA - mpB;
+  });
+
   rows.forEach(row => {
     const tr = document.createElement("tr");
 
-    // ⭐ APPLY COLORING HERE
-    if (row.completed === true) {
-      tr.classList.add("completed-row");   // yellow
-    }
-    if (row.asphalted === true) {
-      tr.classList.add("asphalted-row");   // green overrides yellow
-    }
-// Sort by mile-post ascending (numeric)
-rows.sort((a, b) => {
-  const mpA = parseFloat(a["mile-post"]);
-  const mpB = parseFloat(b["mile-post"]);
-  return mpA - mpB;
-});
+    // ⭐ APPLY COLORING
+    if (row.completed === true) tr.classList.add("completed-row");
+    if (row.asphalted === true) tr.classList.add("asphalted-row");
 
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
