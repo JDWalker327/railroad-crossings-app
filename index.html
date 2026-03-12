@@ -4,43 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Railroad Crossings App</title>
-
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <h1>Railroad Crossings App</h1>
-<div id="rail1-tagline">A Rail 1 Application</div>
+  <div id="rail1-tagline">A Rail 1 Application</div>
 
-  <!-- Mode selector: Projects vs Lookup -->
-  <div id="modeControls">
-    <label for="modeSelect">Mode:</label>
-    <select id="modeSelect">
-      <option value="projects" selected>Projects</option>
-      <option value="lookup">Lookup</option>
-    </select>
+  <!-- NEW TAB BAR -->
+  <div id="modeTabs" class="mode-tabs">
+    <div class="tab" data-mode="projects">Projects</div>
+    <div class="tab" data-mode="lookup">Lookup</div>
   </div>
 
-  <!-- Projects mode controls -->
-  <div id="projectsControls">
-    <label for="subdivisionSelect">Subdivision / Project:</label>
+  <!-- NEW MODE HEADER + DESCRIPTION -->
+  <h2 id="modeHeader" class="mode-header">Projects Mode</h2>
+  <p id="modeDescription" class="mode-description">
+    View and manage crossings for your active Rail 1 projects.
+  </p>
+
+  <!-- PROJECTS PANEL -->
+  <div id="projectsPanel" class="mode-panel">
+    <label>Subdivision / Project:</label>
     <select id="subdivisionSelect"></select>
   </div>
 
-  <!-- Lookup mode controls -->
-  <div id="lookupControls">
-    <div>
-      <label for="dotSearch">DOT #:</label>
-      <input type="text" id="dotSearch" placeholder="Enter DOT number">
-      <button type="button" id="dotSearchBtn">Lookup DOT</button>
-    </div>
+  <!-- LOOKUP PANEL -->
+  <div id="lookupPanel" class="mode-panel" style="display:none;">
+    <label>DOT #:</label>
+    <input id="dotSearch" type="text">
 
-    <div style="margin-top:10px;">
-      <label for="subdivisionSearch">Subdivision search:</label>
-      <input type="text" id="subdivisionSearch" placeholder="Type subdivision name">
-    </div>
+    <label style="margin-top:10px;">Subdivision search:</label>
+    <input id="subdivisionSearch" type="text">
 
-    <div id="lookupResults" style="margin-top:10px;"></div>
+    <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
   </div>
 
   <div id="status"></div>
