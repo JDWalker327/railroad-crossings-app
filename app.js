@@ -293,6 +293,14 @@ function renderProjectsTable(rows) {
   rows.forEach(row => {
     const tr = document.createElement("tr");
 
+    // ⭐ APPLY COLORING HERE
+    if (row.completed === true) {
+      tr.classList.add("completed-row");   // yellow
+    }
+    if (row.asphalted === true) {
+      tr.classList.add("asphalted-row");   // green overrides yellow
+    }
+
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
       <td>${escHtml(row["dot-number"])}</td>
@@ -312,6 +320,7 @@ function renderProjectsTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
+
 
 
 function renderLookupTable(rows) {
