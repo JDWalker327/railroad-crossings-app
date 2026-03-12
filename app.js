@@ -52,6 +52,7 @@ function mapLinkHtml(lat, lon) {
 // 1. Initialize Supabase Client
 // ---------------------------------------------------------
 const supabaseClient = supabase.createClient(
+  window.supabase = supabase;
   "https://hbesqtcjkcjmzowhgowe.supabase.co",
   "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
 );
