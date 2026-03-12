@@ -295,8 +295,8 @@ function renderProjectsTable(rows) {
 
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row.dot-number)}</td>
-      <td>${escHtml(row.mile-post)}</td>
+      <td>${escHtml(row["dot-number"])}</td>
+      <td>${escHtml(row["mile-post"])}</td>
       <td>${escHtml(row.crossing_number)}</td>
       <td>${escHtml(row.track)}</td>
       <td>${escHtml(row.type)}</td>
@@ -312,6 +312,7 @@ function renderProjectsTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
+
 
 function renderLookupTable(rows) {
   crossingsTableHead.innerHTML = `
