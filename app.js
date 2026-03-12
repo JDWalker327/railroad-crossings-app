@@ -295,15 +295,15 @@ function renderProjectsTable(rows) {
 
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row.dot_number)}</td>
-      <td>${escHtml(row.milepost)}</td>
+      <td>${escHtml(row.dot-number)}</td>
+      <td>${escHtml(row.mile-post)}</td>
       <td>${escHtml(row.crossing_number)}</td>
-      <td>${escHtml(row.track_type)}</td>
-      <td>${escHtml(row.crossing_type)}</td>
+      <td>${escHtml(row.track)}</td>
+      <td>${escHtml(row.type)}</td>
       <td>${escHtml(row.completed)}</td>
       <td>${escHtml(row.asphalted)}</td>
       <td>${escHtml(row.planned_footage)}</td>
-      <td>${escHtml(row.street_name)}</td>
+      <td>${escHtml(row.road_name)}</td>
       <td>${escHtml(row.completed_by)}</td>
       <td>${escHtml(row.date_completed)}</td>
       <td>${escHtml(row.helped)}</td>
