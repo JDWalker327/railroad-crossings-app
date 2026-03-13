@@ -160,19 +160,10 @@ subdivisionSelect.addEventListener("change", loadProjectCrossings);
 // ---------------------------------------------------------
 // 5. LOOKUP MODE (DOT or Subdivision search)
 // ---------------------------------------------------------
-
 let selectedLookup = null;
 let lookupCrossingsCache = [];
 let lookupSearchTimer = null;
 
-// DOM elements
-const subdivisionSearch = document.getElementById("subdivisionSearch");
-const lookupButton = document.getElementById("lookupButton");
-const lookupResults = document.getElementById("lookupResults");
-const dotSearch = document.getElementById("dotSearch");
-const crossingsTableBody = document.getElementById("crossingsTableBody");
-
-// Clear UI
 function clearLookupUI() {
   selectedLookup = null;
   lookupCrossingsCache = [];
@@ -180,9 +171,6 @@ function clearLookupUI() {
   crossingsTableBody.innerHTML = "";
 }
 
-// ------------------------------
-// Subdivision Search
-// ------------------------------
 async function searchLookupSubdivisions() {
   const q = (subdivisionSearch.value || "").trim();
 
@@ -222,20 +210,11 @@ async function searchLookupSubdivisions() {
     btn.style.marginBottom = "6px";
     btn.style.cursor = "pointer";
 
-    btn.innerHTML = `
-      <strong>${escHtml(r.display_label)}</strong> — ${escHtml(r.state)}
-      <div style="opacity:0.7;font-size:12px;">
-        ${escHtml(r.crossing_count)} crossings
-      </div>
-    `;
+    btn.innerHTML = `<strong>${escHtml(r.display_label)}</strong> — ${escHtml(r.state)}<div style="opacity:0.7;font-size:12px;">${escHtml(r.crossing_count)} crossings</div>`;
 
     btn.onclick = async () => {
       selectedLookup = r;
-      lookupResults.innerHTML = `
-        <div style="opacity:0.8;">
-          Loading crossings for <strong>${escHtml(r.display_label)}</strong>…
-        </div>
-      `;
+      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(r.display_label)}</strong>…</div>`;
       await loadLookupCrossingsForSubdivision();
     };
 
@@ -245,7 +224,6 @@ async function searchLookupSubdivisions() {
   lookupResults.appendChild(container);
 }
 
-// Load crossings for selected subdivision
 async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
@@ -264,60 +242,29 @@ async function loadLookupCrossingsForSubdivision() {
   }
 
   lookupCrossingsCache = data || [];
-  lookupResults.innerHTML = `
-    <div style="opacity:0.8;">
-      <strong>${escHtml(selectedLookup.display_label)}</strong> —
-      ${lookupCrossingsCache.length} crossing(s) found
-    </div>
-  `;
-
+  lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.display_label)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
   renderLookupTable(lookupCrossingsCache);
 }
 
-// ------------------------------
-// DOT Search
-// ------------------------------
-async function searchLookupDOT() {
-  const dot = (dotSearch.value || "").trim();
+// ---------------------------------------------------------
+// 6. DOT Lookup
+// ---------------------------------------------------------
+dotSearchBtn.addEventListener("click", async () => {
+  const dot = dotSearch.value.trim();
   if (!dot) return;
 
-  clearLookupUI();
-
   const { data, error } = await supabaseClient
-    .from("up_crossings")
+    .from("stg_form71_up")
     .select("*")
-    .eq("dot_number", dot)
-    .limit(1);
+    .eq("crossing_id", dot);
 
   if (error) {
-    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
+    console.error(error);
     return;
   }
 
-  if (!data || !data.length) {
-    lookupResults.innerHTML = `<div style="opacity:0.7;">No crossing found</div>`;
-    return;
-  }
-
-  lookupResults.innerHTML = `<div style="opacity:0.8;">1 crossing found</div>`;
-  renderLookupTable(data);
-}
-
-// ------------------------------
-// Event Listeners
-// ------------------------------
-subdivisionSearch.addEventListener("input", () => {
-  clearLookupUI();
-  clearTimeout(lookupSearchTimer);
-  lookupSearchTimer = setTimeout(searchLookupSubdivisions, 250);
+  renderLookupTable(data || []);
 });
-
-lookupButton.addEventListener("click", () => {
-  clearLookupUI();
-  searchLookupSubdivisions();
-});
-
-dotSearch.addEventListener("change", searchLookupDOT);
 
 // ---------------------------------------------------------
 // 7. TABLE RENDERING
@@ -422,4 +369,3 @@ function renderLookupTable(rows) {
 // 8. INITIAL LOAD
 // ---------------------------------------------------------
 loadProjects();
-window.supabase = supabase;
