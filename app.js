@@ -181,11 +181,7 @@ async function searchLookupSubdivisions() {
 
   const { data, error } = await supabaseClient.rpc(
     "search_crossings_stage_subdivisions",
-    {
-      q,
-      st: null,
-      lim: 20,
-    }
+    { q, lim: 20 }
   );
 
   if (error) {
@@ -210,11 +206,11 @@ async function searchLookupSubdivisions() {
     btn.style.marginBottom = "6px";
     btn.style.cursor = "pointer";
 
-    btn.innerHTML = `<strong>${escHtml(r.display_label)}</strong> — ${escHtml(r.state)}<div style="opacity:0.7;font-size:12px;">${escHtml(r.crossing_count)} crossings</div>`;
+    btn.innerHTML = `<strong>${escHtml(r.subdivision)}</strong> — ${escHtml(r.state)}`;
 
     btn.onclick = async () => {
       selectedLookup = r;
-      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(r.display_label)}</strong>…</div>`;
+      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(r.subdivision)}</strong>…</div>`;
       await loadLookupCrossingsForSubdivision();
     };
 
@@ -230,8 +226,7 @@ async function loadLookupCrossingsForSubdivision() {
   const { data, error } = await supabaseClient.rpc(
     "get_crossings_stage_for_subdivision",
     {
-      st: selectedLookup.state,
-      subdivision: selectedLookup.display_label,
+      subdivision: selectedLookup.subdivision
     }
   );
 
@@ -242,9 +237,10 @@ async function loadLookupCrossingsForSubdivision() {
   }
 
   lookupCrossingsCache = data || [];
-  lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.display_label)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
+  lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
   renderLookupTable(lookupCrossingsCache);
 }
+
 
 // ---------------------------------------------------------
 // 6. DOT Lookup
