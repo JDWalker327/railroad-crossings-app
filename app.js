@@ -230,12 +230,13 @@ async function searchLookupSubdivisions() {
 async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
-  const { data, error } = await supabaseClient.rpc(
+ const { data, error } = await supabaseClient.rpc(
   "get_crossings_stage_for_subdivision",
   {
-    subdivision: selectedLookup.subdivision
+    subdivision_input: selectedLookup.subdivision
   }
 );
+
 
 
 
