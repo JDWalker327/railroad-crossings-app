@@ -374,7 +374,7 @@ function renderLookupTable(rows) {
   });
 }
 document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("map-btn")) {
+  if (e.target.classList.contains("map-button")) {
     const lat = e.target.dataset.lat;
     const lon = e.target.dataset.lon;
 
