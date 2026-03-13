@@ -372,6 +372,16 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("map-btn")) {
+    const lat = e.target.dataset.lat;
+    const lon = e.target.dataset.lon;
+
+    if (lat && lon) {
+      window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
+    }
+  }
+});
 
 
 // ---------------------------------------------------------
