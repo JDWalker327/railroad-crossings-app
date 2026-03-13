@@ -333,15 +333,15 @@ function renderLookupTable(rows) {
   crossingsTableHead.innerHTML = `
     <tr>
       <th>Map</th>
-      <th>crossing_id</th>
-      <th>state</th>
-      <th>city</th>
-      <th>road_name</th>
-      <th>railroad_subdivision</th>
-      <th>mile_post</th>
-      <th>crossing_surface_length_ft</th>
-      <th>latitude</th>
-      <th>longitude</th>
+      <th>DOT #</th>
+      <th>State</th>
+      <th>City</th>
+      <th>Road Name</th>
+      <th>Subdivision</th>
+      <th>Milepost</th>
+      <th>Planned Footage</th>
+      <th>Latitude</th>
+      <th>Longitude</th>
     </tr>
   `;
 
@@ -351,20 +351,28 @@ function renderLookupTable(rows) {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-  <td>${escHtml(row["dot-number"] || "")}</td>
-  <td>${escHtml(row.subdivision || "")}</td>
-  <td>${escHtml(row["mile-post"] || "")}</td>
-  <td>${escHtml(row.road_name || "")}</td>
-  <td>${escHtml(row.type || "")}</td>
-  <td>${escHtml(row.city || "")}</td>
-  <td>${escHtml(row.state || "")}</td>
-  <td>${escHtml(row.planned_footage || "")}</td>
-`;
-
+      <td>
+        ${
+          row.latitude && row.longitude
+            ? `<button class="map-btn" data-lat="${row.latitude}" data-lon="${row.longitude}">Map</button>`
+            : ""
+        }
+      </td>
+      <td>${escHtml(row["dot-number"] || "")}</td>
+      <td>${escHtml(row.state || "")}</td>
+      <td>${escHtml(row.city || "")}</td>
+      <td>${escHtml(row.road_name || "")}</td>
+      <td>${escHtml(row.subdivision || "")}</td>
+      <td>${escHtml(row["mile-post"] || "")}</td>
+      <td>${escHtml(row.planned_footage || "")}</td>
+      <td>${escHtml(row.latitude || "")}</td>
+      <td>${escHtml(row.longitude || "")}</td>
+    `;
 
     crossingsTableBody.appendChild(tr);
   });
 }
+
 
 // ---------------------------------------------------------
 // 8. INITIAL LOAD
