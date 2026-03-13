@@ -164,6 +164,13 @@ let selectedLookup = null;
 let lookupCrossingsCache = [];
 let lookupSearchTimer = null;
 
+subdivisionSearch.addEventListener("input", () => {
+  clearTimeout(lookupSearchTimer);
+  lookupSearchTimer = setTimeout(() => {
+    searchLookupSubdivisions();
+  }, 300);
+});
+
 function clearLookupUI() {
   selectedLookup = null;
   lookupCrossingsCache = [];
@@ -240,7 +247,6 @@ async function loadLookupCrossingsForSubdivision() {
   lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
   renderLookupTable(lookupCrossingsCache);
 }
-
 
 // ---------------------------------------------------------
 // 6. DOT Lookup
