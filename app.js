@@ -351,17 +351,16 @@ function renderLookupTable(rows) {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row.crossing_id)}</td>
-      <td>${escHtml(row.state)}</td>
-      <td>${escHtml(row.city)}</td>
-      <td>${escHtml(row.road_name)}</td>
-      <td>${escHtml(row.railroad_subdivision)}</td>
-      <td>${escHtml(row.mile_post)}</td>
-      <td>${escHtml(row.crossing_surface_length_ft)}</td>
-      <td>${escHtml(row.latitude)}</td>
-      <td>${escHtml(row.longitude)}</td>
-    `;
+  <td>${escHtml(row["dot-number"] || "")}</td>
+  <td>${escHtml(row.subdivision || "")}</td>
+  <td>${escHtml(row["mile-post"] || "")}</td>
+  <td>${escHtml(row.road_name || "")}</td>
+  <td>${escHtml(row.type || "")}</td>
+  <td>${escHtml(row.city || "")}</td>
+  <td>${escHtml(row.state || "")}</td>
+  <td>${escHtml(row.planned_footage || "")}</td>
+`;
+
 
     crossingsTableBody.appendChild(tr);
   });
