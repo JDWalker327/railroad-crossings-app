@@ -352,12 +352,13 @@ function renderLookupTable(rows) {
 
     tr.innerHTML = `
       <td>
-        ${
-          row.latitude && row.longitude
-            ? `<button class="map-btn" data-lat="${row.latitude}" data-lon="${row.longitude}">Map</button>`
-            : ""
-        }
-      </td>
+  ${
+    row.latitude && row.longitude
+      ? `<button class="map-button" data-lat="${row.latitude}" data-lon="${row.longitude}">Map</button>`
+      : ""
+  }
+</td>
+
       <td>${escHtml(row["dot-number"] || "")}</td>
       <td>${escHtml(row.state || "")}</td>
       <td>${escHtml(row.city || "")}</td>
