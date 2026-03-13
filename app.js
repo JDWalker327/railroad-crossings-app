@@ -233,9 +233,10 @@ async function loadLookupCrossingsForSubdivision() {
   const { data, error } = await supabaseClient.rpc(
   "get_crossings_stage_for_subdivision",
   {
-    subdivision: selectedLookup.display_label
+    subdivision: selectedLookup.subdivision
   }
 );
+
 
 
 
