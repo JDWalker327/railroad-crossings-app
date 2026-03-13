@@ -180,7 +180,7 @@ async function searchLookupSubdivisions() {
   if (q.length < 2) return;
 
   const { data, error } = await supabaseClient.rpc(
-    "search_up_subdivision_directory",
+    "search_crossings_stage_subdivisions",
     {
       q,
       st: null,
@@ -228,7 +228,7 @@ async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
   const { data, error } = await supabaseClient.rpc(
-    "get_up_crossings_for_subdivision",
+    "get_crossings_stage_for_subdivision",
     {
       st: selectedLookup.state,
       subdivision: selectedLookup.display_label,
