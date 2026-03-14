@@ -331,18 +331,16 @@ function renderProjectsTable(rows) {
   });
 }
 
-
-
 function renderLookupTable(rows) {
   crossingsTableHead.innerHTML = `
     <tr>
       <th>Map</th>
       <th>DOT #</th>
-      <th>State</th>
+      <th>Milepost</th>
       <th>City</th>
       <th>Road Name</th>
+      <th>State</th>
       <th>Subdivision</th>
-      <th>Milepost</th>
       <th>Planned Footage</th>
       <th>Latitude</th>
       <th>Longitude</th>
@@ -351,7 +349,7 @@ function renderLookupTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
-  // ⭐ SORT BY MILEPOST ASCENDING (same logic as Projects Mode)
+  // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
     const mpA = parseFloat(a["mile-post"]) || 0;
     const mpB = parseFloat(b["mile-post"]) || 0;
@@ -381,11 +379,11 @@ function renderLookupTable(rows) {
       </td>
 
       <td>${escHtml(row["dot-number"] || "")}</td>
-      <td>${escHtml(row.state || "")}</td>
+      <td>${escHtml(row["mile-post"] || "")}</td>
       <td>${escHtml(row.city || "")}</td>
       <td>${escHtml(row.road_name || "")}</td>
+      <td>${escHtml(row.state || "")}</td>
       <td>${escHtml(row.subdivision || "")}</td>
-      <td>${escHtml(row["mile-post"] || "")}</td>
       <td>${escHtml(row.planned_footage || "")}</td>
       <td>${escHtml(row.latitude || "")}</td>
       <td>${escHtml(row.longitude || "")}</td>
@@ -394,6 +392,9 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
+
+
+
 
 
 
