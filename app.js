@@ -351,28 +351,34 @@ function renderLookupTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
+  // ⭐ SORT BY MILEPOST ASCENDING (same logic as Projects Mode)
+  rows.sort((a, b) => {
+    const mpA = parseFloat(a["mile-post"]) || 0;
+    const mpB = parseFloat(b["mile-post"]) || 0;
+    return mpA - mpB;
+  });
+
   rows.forEach(row => {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
       <td>
-  ${
-    row.latitude && row.longitude
-      ? `
-        <a 
-          class="map-icon-link" 
-          href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" 
-          target="_blank"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
-          </svg>
-        </a>
-      `
-      : ""
-  }
-</td>
-
+        ${
+          row.latitude && row.longitude
+            ? `
+              <a 
+                class="map-icon-link" 
+                href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" 
+                target="_blank"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
+                </svg>
+              </a>
+            `
+            : ""
+        }
+      </td>
 
       <td>${escHtml(row["dot-number"] || "")}</td>
       <td>${escHtml(row.state || "")}</td>
@@ -388,16 +394,7 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("map-button")) {
-    const lat = e.target.dataset.lat;
-    const lon = e.target.dataset.lon;
 
-    if (lat && lon) {
-      window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
-    }
-  }
-});
 
 
 // ---------------------------------------------------------
