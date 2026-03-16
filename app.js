@@ -312,6 +312,7 @@ function renderProjectsTable(rows) {
   currentProjectRows = rows;
   crossingsTableHead.innerHTML = `
     <tr>
+      <th>Edit</th>
       <th>Map</th>
       <th>DOT #</th>
       <th>Milepost</th>
@@ -346,7 +347,9 @@ function renderProjectsTable(rows) {
 
     // ⭐ Build cells manually so click handler stays attached
     const cells = [
-  `<button class="admin-edit-btn" data-dot="${row["dot-number"]}">Edit</button>`,
+  adminMode    
+    ? `<button class="admin-edit-btn" data-dot="${row["dot-number"]}">Edit</button>`
+    : "",  
   mapLinkHtml(row.latitude, row.longitude),
   escHtml(row["dot-number"]),
   escHtml(row["mile-post"]),
@@ -362,17 +365,10 @@ function renderProjectsTable(rows) {
   escHtml(row.helped)
 ];
 
-    cells.forEach(html => {
-      const td = document.createElement("td");
-      td.innerHTML = html;
-      tr.appendChild(td);
-    });
-
+  tr.innerHTML = cells.map(c => `<td>${c}</td>`).join("");
     crossingsTableBody.appendChild(tr);
   });
-}  // ← closes renderProjectsTable()
-
-
+}
 
 // ---------------------------------------------------------
 // Admin Modal Helpers
