@@ -134,6 +134,11 @@ select:focus {
   background-color: #0078d4;
   color: white;
 }
+
 #projectsPanel .map-icon-link {
+  pointer-events: none;
+}
+
+body.projects-mode .map-icon-link {
   pointer-events: none;
 }
