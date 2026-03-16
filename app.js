@@ -335,37 +335,44 @@ function renderProjectsTable(rows) {
     return mpA - mpB;
   });
 
-  rows.forEach(row => {
-    const tr = document.createElement("tr");
+rows.forEach(row => {
+  const tr = document.createElement("tr");
 
-    // ⭐ ADMIN ROW CLICK (only works when adminMode = true)
-tr.addEventListener("click", () => {
-  if (!adminMode) return; // public users can't open modal
-  openAdminModal(row);    // row = crossing data
-});
-
-    // ⭐ APPLY COLORING
-    if (row.completed === true) tr.classList.add("completed-row");
-    if (row.asphalted === true) tr.classList.add("asphalted-row");
-
-    tr.innerHTML = `
-      <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row["dot-number"])}</td>
-      <td>${escHtml(row["mile-post"])}</td>
-      <td>${escHtml(row.crossing_number)}</td>
-      <td>${escHtml(row.track)}</td>
-      <td>${escHtml(row.type)}</td>
-      <td>${escHtml(row.completed)}</td>
-      <td>${escHtml(row.asphalted)}</td>
-      <td>${escHtml(row.planned_footage)}</td>
-      <td>${escHtml(row.road_name)}</td>
-      <td>${escHtml(row.completed_by)}</td>
-      <td>${escHtml(row.date_completed)}</td>
-      <td>${escHtml(row.helped)}</td>
-    `;
-
-    crossingsTableBody.appendChild(tr);
+  // ⭐ ADMIN CLICK
+  tr.addEventListener("click", () => {
+    if (!adminMode) return;
+    openAdminModal(row);
   });
+
+  // ⭐ APPLY COLORING
+  if (row.completed === true) tr.classList.add("completed-row");
+  if (row.asphalted === true) tr.classList.add("asphalted-row");
+
+  // ⭐ Build cells manually so click handler stays attached
+  const cells = [
+    mapLinkHtml(row.latitude, row.longitude),
+    escHtml(row["dot-number"]),
+    escHtml(row["mile-post"]),
+    escHtml(row.crossing_number),
+    escHtml(row.track),
+    escHtml(row.type),
+    escHtml(row.completed),
+    escHtml(row.asphalted),
+    escHtml(row.planned_footage),
+    escHtml(row.road_name),
+    escHtml(row.completed_by),
+    escHtml(row.date_completed),
+    escHtml(row.helped)
+  ];
+
+  cells.forEach(html => {
+    const td = document.createElement("td");
+    td.innerHTML = html;
+    tr.appendChild(td);
+  });
+
+  crossingsTableBody.appendChild(tr);
+});
 }
 function fillOperatorDropdowns() {
   const completedBy = document.getElementById("modalCompletedBy");
