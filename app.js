@@ -63,6 +63,36 @@ async function incrementVisitCount() {
 }
 incrementVisitCount();
 
+let adminMode = false;
+
+document.addEventListener("keydown", (e) => {
+  if (e.shiftKey && e.key === "A") {
+    adminMode = !adminMode;
+    alert(adminMode ? "Admin Mode ENABLED" : "Admin Mode DISABLED");
+  }
+});
+
+// ---------------------------------------------------------
+// Load Operators for Admin Modal
+// ---------------------------------------------------------
+let operators = [];
+
+async function loadOperators() {
+  const { data, error } = await supabaseClient
+    .from("operators")
+    .select("*");
+
+  if (error) {
+    console.error("Error loading operators:", error);
+    return;
+  }
+
+  operators = data;
+}
+
+// Load operators immediately on startup
+loadOperators();
+
 // ---------------------------------------------------------
 // 2. DOM Elements (new UI)
 // ---------------------------------------------------------
@@ -307,6 +337,12 @@ function renderProjectsTable(rows) {
   rows.forEach(row => {
     const tr = document.createElement("tr");
 
+    // ⭐ ADMIN ROW CLICK (only works when adminMode = true)
+tr.addEventListener("click", () => {
+  if (!adminMode) return; // public users can't open modal
+  openAdminModal(row);    // row = crossing data
+});
+
     // ⭐ APPLY COLORING
     if (row.completed === true) tr.classList.add("completed-row");
     if (row.asphalted === true) tr.classList.add("asphalted-row");
@@ -329,6 +365,40 @@ function renderProjectsTable(rows) {
 
     crossingsTableBody.appendChild(tr);
   });
+}
+function fillOperatorDropdowns() {
+  const completedBy = document.getElementById("modalCompletedBy");
+  const helpedBy = document.getElementById("modalHelped");
+
+  completedBy.innerHTML = "";
+  helpedBy.innerHTML = "";
+
+  operators.forEach(op => {
+    const opt1 = document.createElement("option");
+    opt1.value = op.id;       // operator ID
+    opt1.textContent = op.name;
+
+    const opt2 = opt1.cloneNode(true);
+
+    completedBy.appendChild(opt1);
+    helpedBy.appendChild(opt2);
+  });
+}
+
+function openAdminModal(crossing) {
+  fillOperatorDropdowns();
+
+  document.getElementById("modalCompleted").value = crossing.completed ? "true" : "false";
+  document.getElementById("modalFootage").value = crossing.actual_footage || "";
+  document.getElementById("modalCompletedBy").value = crossing.completed_by || "";
+  document.getElementById("modalHelped").value = crossing.helped || "";
+  document.getElementById("modalDate").value =
+    crossing.date_completed || new Date().toISOString().split("T")[0];
+
+  // store DOT for saving
+  window.currentDot = crossing["dot-number"];
+
+  document.getElementById("adminModal").style.display = "block";
 }
 
 function renderLookupTable(rows) {
@@ -393,7 +463,31 @@ function renderLookupTable(rows) {
   });
 }
 
+document.getElementById("modalSaveBtn").addEventListener("click", async () => {
+  const updates = {
+    completed: document.getElementById("modalCompleted").value === "true",
+    actual_footage: document.getElementById("modalFootage").value,
+    completed_by: document.getElementById("modalCompletedBy").value,
+    helped: document.getElementById("modalHelped").value,
+    date_completed: document.getElementById("modalDate").value
+  };
 
+  const { error } = await supabaseClient
+    .from("crossings_master")
+    .update(updates)
+    .eq("dot-number", window.currentDot);
+
+  if (error) {
+    alert("Error updating crossing: " + error.message);
+  } else {
+    alert("Crossing updated!");
+    document.getElementById("adminModal").style.display = "none";
+  }
+});
+
+document.getElementById("modalCancelBtn").addEventListener("click", () => {
+  document.getElementById("adminModal").style.display = "none";
+});
 
 // ---------------------------------------------------------
 // 8. INITIAL LOAD
