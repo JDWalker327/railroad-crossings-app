@@ -111,7 +111,7 @@ tabs.forEach(tab => {
   });
 });
 
-setMode("projects");
+setMode("lookup");
 
 // ---------------------------------------------------------
 // 4. PROJECTS MODE (clean + modern)
