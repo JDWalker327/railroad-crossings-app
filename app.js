@@ -126,6 +126,8 @@ function setMode(mode) {
 
     projectsPanel.style.display = "block";
     lookupPanel.style.display = "none";
+
+    loadProjects();   // ⭐ Load subdivisions when Projects Mode is opened
   } else {
     header.textContent = "Lookup Mode";
     desc.textContent = "Search the full Union Pacific crossing database.";
@@ -134,7 +136,6 @@ function setMode(mode) {
     lookupPanel.style.display = "block";
   }
 }
-
 tabs.forEach(tab => {
   tab.addEventListener("click", () => {
     setMode(tab.dataset.mode);
@@ -488,8 +489,3 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
 document.getElementById("modalCancelBtn").addEventListener("click", () => {
   document.getElementById("adminModal").style.display = "none";
 });
-
-// ---------------------------------------------------------
-// 8. INITIAL LOAD
-// ---------------------------------------------------------
-loadProjects();
