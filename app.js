@@ -502,17 +502,36 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   }
 });
 
-document.addEventListener("click", (e) => {
-  if (!adminMode) return;
+document.addEventListener("DOMContentLoaded", () => {
+  const saveBtn = document.getElementById("modalSaveBtn");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      const updates = {
+        completed: document.getElementById("modalCompleted").value === "true",
+        actual_footage: document.getElementById("modalFootage").value,
+        completed_by: document.getElementById("modalCompletedBy").value,
+        helped: document.getElementById("modalHelped").value,
+        date_completed: document.getElementById("modalDate").value
+      };
 
-  if (e.target.classList.contains("admin-edit-btn")) {
-    console.log("EDIT BUTTON CLICKED!", e.target);
-    const dot = e.target.dataset.dot;
-    const row = currentProjectRows.find(r => r["dot-number"] === dot);
-    openAdminModal(row);
+      const { error } = await supabaseClient
+        .from("crossings_master")
+        .update(updates)
+        .eq("dot-number", window.currentDot);
+
+      if (error) {
+        alert("Error updating crossing: " + error.message);
+      } else {
+        alert("Crossing updated!");
+        document.getElementById("adminModal").style.display = "none";
+      }
+    });
   }
-});
 
-document.getElementById("modalCancelBtn").addEventListener("click", () => {
-  document.getElementById("adminModal").style.display = "none";
+  const cancelBtn = document.getElementById("modalCancelBtn");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      document.getElementById("adminModal").style.display = "none";
+    });
+  }
 });
