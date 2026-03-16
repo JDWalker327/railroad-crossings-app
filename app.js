@@ -476,8 +476,6 @@ function renderLookupTable(rows) {
   });
 }
 
-
-
 // ---------------------------------------------------------
 // Admin Modal Save + Cancel
 // ---------------------------------------------------------
@@ -512,8 +510,9 @@ document.addEventListener("click", (e) => {
     const dot = e.target.dataset.dot;
     const row = currentProjectRows.find(r => r["dot-number"] === dot);
     openAdminModal(row);
-   }
+  }
 });
+
 document.getElementById("modalCancelBtn").addEventListener("click", () => {
   document.getElementById("adminModal").style.display = "none";
 });
