@@ -1,4 +1,3 @@
-console.log("JS LOADED TOP");
 console.log("app start");
 let currentProjectRows = [];
 
@@ -509,12 +508,12 @@ document.addEventListener("click", (e) => {
   if (!adminMode) return;
 
   if (e.target.classList.contains("admin-edit-btn")) {
+    console.log("EDIT BUTTON CLICKED!", e.target); // TEMP DEBUG
     const dot = e.target.dataset.dot;
     const row = currentProjectRows.find(r => r["dot-number"] === dot);
     openAdminModal(row);
-  }
+   }
 });
-
 document.getElementById("modalCancelBtn").addEventListener("click", () => {
   document.getElementById("adminModal").style.display = "none";
 });
