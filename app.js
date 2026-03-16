@@ -506,7 +506,7 @@ document.addEventListener("click", (e) => {
   if (!adminMode) return;
 
   if (e.target.classList.contains("admin-edit-btn")) {
-    console.log("EDIT BUTTON CLICKED!", e.target); // TEMP DEBUG
+    console.log("EDIT BUTTON CLICKED!", e.target);
     const dot = e.target.dataset.dot;
     const row = currentProjectRows.find(r => r["dot-number"] === dot);
     openAdminModal(row);
