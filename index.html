@@ -58,5 +58,39 @@
   <footer style="text-align:center; margin-top:20px;">
     <p>&copy; 2026 Rail 1. All rights reserved.</p>
   </footer>
+  <!-- ADMIN UPDATE MODAL (Hidden by default) -->
+<div id="adminModal" class="modal" style="display:none;">
+  <div class="modal-content" style="
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    max-width:400px;
+    margin:auto;
+    box-shadow:0 0 10px rgba(0,0,0,0.3);
+  ">
+    <h3>Update Crossing</h3>
+
+    <label>Completed:</label>
+    <select id="modalCompleted">
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+
+    <label style="margin-top:10px;">Actual Footage:</label>
+    <input id="modalFootage" type="number">
+
+    <label style="margin-top:10px;">Completed By:</label>
+    <select id="modalCompletedBy"></select>
+
+    <label style="margin-top:10px;">Helped By:</label>
+    <select id="modalHelped"></select>
+
+    <label style="margin-top:10px;">Date Completed:</label>
+    <input id="modalDate" type="date">
+
+    <button id="modalSaveBtn" style="margin-top:15px;">Save</button>
+    <button id="modalCancelBtn" style="margin-top:5px;">Cancel</button>
+  </div>
+</div>
 </body>
 </html>
