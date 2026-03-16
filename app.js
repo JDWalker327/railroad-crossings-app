@@ -346,7 +346,7 @@ function renderProjectsTable(rows) {
 
     // ⭐ Build cells manually so click handler stays attached
     const cells = [
-  `<button class="admin-edit-btn">Edit</button>`,
+  `<button class="admin-edit-btn" data-dot="${row["dot-number"]}">Edit</button>`
   mapLinkHtml(row.latitude, row.longitude),
   escHtml(row["dot-number"]),
   escHtml(row["mile-post"]),
@@ -512,9 +512,8 @@ document.addEventListener("click", (e) => {
   if (!adminMode) return;
 
   if (e.target.classList.contains("admin-edit-btn")) {
-    const tr = e.target.closest("tr");
-    const index = Array.from(crossingsTableBody.children).indexOf(tr);
-    const row = currentProjectRows[index];
+    const dot = e.target.dataset.dot;
+    const row = currentProjectRows.find(r => r["dot-number"] === dot);
     openAdminModal(row);
   }
 });
