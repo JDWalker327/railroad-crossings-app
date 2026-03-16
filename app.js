@@ -392,6 +392,13 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
+// Show Lookup Mode by default on page load
+document.getElementById("lookupPanel").style.display = "block";
+document.getElementById("projectsPanel").style.display = "none";
+
+// Update tab highlight if you have tab buttons
+document.getElementById("lookupTab").classList.add("active");
+document.getElementById("projectsTab").classList.remove("active");
 
 
 
