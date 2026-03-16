@@ -1,4 +1,5 @@
 console.log("app start");
+let currentProjectRows = [];
 
 // ---------------------------------------------------------
 // 0. HTML-escaping helper (prevents XSS via innerHTML)
@@ -308,6 +309,7 @@ dotSearchBtn.addEventListener("click", async () => {
 // ---------------------------------------------------------
 
 function renderProjectsTable(rows) {
+  currentProjectRows = rows;
   crossingsTableHead.innerHTML = `
     <tr>
       <th>Map</th>
@@ -338,32 +340,27 @@ function renderProjectsTable(rows) {
   rows.forEach(row => {
     const tr = document.createElement("tr");
 
-    // ⭐ ADMIN CLICK
-    tr.addEventListener("click", () => {
-      if (!adminMode) return;
-      openAdminModal(row);
-    });
-
     // ⭐ APPLY COLORING
     if (row.completed === true) tr.classList.add("completed-row");
     if (row.asphalted === true) tr.classList.add("asphalted-row");
 
     // ⭐ Build cells manually so click handler stays attached
     const cells = [
-      mapLinkHtml(row.latitude, row.longitude),
-      escHtml(row["dot-number"]),
-      escHtml(row["mile-post"]),
-      escHtml(row.crossing_number),
-      escHtml(row.track),
-      escHtml(row.type),
-      escHtml(row.completed),
-      escHtml(row.asphalted),
-      escHtml(row.planned_footage),
-      escHtml(row.road_name),
-      escHtml(row.completed_by),
-      escHtml(row.date_completed),
-      escHtml(row.helped)
-    ];
+  `<button class="admin-edit-btn">Edit</button>`,
+  mapLinkHtml(row.latitude, row.longitude),
+  escHtml(row["dot-number"]),
+  escHtml(row["mile-post"]),
+  escHtml(row.crossing_number),
+  escHtml(row.track),
+  escHtml(row.type),
+  escHtml(row.completed),
+  escHtml(row.asphalted),
+  escHtml(row.planned_footage),
+  escHtml(row.road_name),
+  escHtml(row.completed_by),
+  escHtml(row.date_completed),
+  escHtml(row.helped)
+];
 
     cells.forEach(html => {
       const td = document.createElement("td");
@@ -508,6 +505,17 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   } else {
     alert("Crossing updated!");
     document.getElementById("adminModal").style.display = "none";
+  }
+});
+
+document.addEventListener("click", (e) => {
+  if (!adminMode) return;
+
+  if (e.target.classList.contains("admin-edit-btn")) {
+    const tr = e.target.closest("tr");
+    const index = Array.from(crossingsTableBody.children).indexOf(tr);
+    const row = currentProjectRows[index];
+    openAdminModal(row);
   }
 });
 
