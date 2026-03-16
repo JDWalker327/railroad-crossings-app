@@ -14,23 +14,23 @@
   <!-- NEW TAB BAR -->
   <div id="modeTabs" class="mode-tabs">
     <div class="tab" data-mode="projects">Projects</div>
-    <div class="tab" data-mode="lookup">Lookup</div>
+    <div class="tab active" data-mode="lookup">Lookup</div>
   </div>
 
   <!-- NEW MODE HEADER + DESCRIPTION -->
-  <h2 id="modeHeader" class="mode-header">Projects Mode</h2>
-  <p id="modeDescription" class="mode-description">
-    View and manage crossings for your active Rail 1 projects.
-  </p>
+  <h2 id="modeHeader" class="mode-header">Lookup Mode</h2>
+<p id="modeDescription" class="mode-description">
+  Search all UP crossings by DOT number or subdivision.
+</p>
 
   <!-- PROJECTS PANEL -->
-  <div id="projectsPanel" class="mode-panel">
+  <div id="projectsPanel" class="mode-panel" style="display:none;">
     <label>Subdivision / Project:</label>
     <select id="subdivisionSelect"></select>
   </div>
 
   <!-- LOOKUP PANEL -->
-  <div id="lookupPanel" class="mode-panel" style="display:none;">
+  <div id="lookupPanel" class="mode-panel">
     <label>DOT #:</label>
     <input id="dotSearch" type="text">
 
