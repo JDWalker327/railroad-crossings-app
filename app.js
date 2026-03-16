@@ -335,45 +335,52 @@ function renderProjectsTable(rows) {
     return mpA - mpB;
   });
 
-rows.forEach(row => {
-  const tr = document.createElement("tr");
+  rows.forEach(row => {
+    const tr = document.createElement("tr");
 
-  // ⭐ ADMIN CLICK
-  tr.addEventListener("click", () => {
-    if (!adminMode) return;
-    openAdminModal(row);
+    // ⭐ ADMIN CLICK
+    tr.addEventListener("click", () => {
+      if (!adminMode) return;
+      openAdminModal(row);
+    });
+
+    // ⭐ APPLY COLORING
+    if (row.completed === true) tr.classList.add("completed-row");
+    if (row.asphalted === true) tr.classList.add("asphalted-row");
+
+    // ⭐ Build cells manually so click handler stays attached
+    const cells = [
+      mapLinkHtml(row.latitude, row.longitude),
+      escHtml(row["dot-number"]),
+      escHtml(row["mile-post"]),
+      escHtml(row.crossing_number),
+      escHtml(row.track),
+      escHtml(row.type),
+      escHtml(row.completed),
+      escHtml(row.asphalted),
+      escHtml(row.planned_footage),
+      escHtml(row.road_name),
+      escHtml(row.completed_by),
+      escHtml(row.date_completed),
+      escHtml(row.helped)
+    ];
+
+    cells.forEach(html => {
+      const td = document.createElement("td");
+      td.innerHTML = html;
+      tr.appendChild(td);
+    });
+
+    crossingsTableBody.appendChild(tr);
   });
+}  // ← closes renderProjectsTable()
 
-  // ⭐ APPLY COLORING
-  if (row.completed === true) tr.classList.add("completed-row");
-  if (row.asphalted === true) tr.classList.add("asphalted-row");
 
-  // ⭐ Build cells manually so click handler stays attached
-  const cells = [
-    mapLinkHtml(row.latitude, row.longitude),
-    escHtml(row["dot-number"]),
-    escHtml(row["mile-post"]),
-    escHtml(row.crossing_number),
-    escHtml(row.track),
-    escHtml(row.type),
-    escHtml(row.completed),
-    escHtml(row.asphalted),
-    escHtml(row.planned_footage),
-    escHtml(row.road_name),
-    escHtml(row.completed_by),
-    escHtml(row.date_completed),
-    escHtml(row.helped)
-  ];
 
-  cells.forEach(html => {
-    const td = document.createElement("td");
-    td.innerHTML = html;
-    tr.appendChild(td);
-  });
+// ---------------------------------------------------------
+// Admin Modal Helpers
+// ---------------------------------------------------------
 
-  crossingsTableBody.appendChild(tr);
-});
-}
 function fillOperatorDropdowns() {
   const completedBy = document.getElementById("modalCompletedBy");
   const helpedBy = document.getElementById("modalHelped");
@@ -383,7 +390,7 @@ function fillOperatorDropdowns() {
 
   operators.forEach(op => {
     const opt1 = document.createElement("option");
-    opt1.value = op.id;       // operator ID
+    opt1.value = op.id;
     opt1.textContent = op.name;
 
     const opt2 = opt1.cloneNode(true);
@@ -409,6 +416,12 @@ function openAdminModal(crossing) {
   document.getElementById("adminModal").style.display = "block";
 }
 
+
+
+// ---------------------------------------------------------
+// Lookup Table Rendering
+// ---------------------------------------------------------
+
 function renderLookupTable(rows) {
   crossingsTableHead.innerHTML = `
     <tr>
@@ -427,7 +440,6 @@ function renderLookupTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
-  // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
     const mpA = parseFloat(a["mile-post"]) || 0;
     const mpB = parseFloat(b["mile-post"]) || 0;
@@ -470,6 +482,12 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
+
+
+
+// ---------------------------------------------------------
+// Admin Modal Save + Cancel
+// ---------------------------------------------------------
 
 document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   const updates = {
