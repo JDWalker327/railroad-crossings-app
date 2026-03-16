@@ -1,3 +1,4 @@
+console.log("JS LOADED TOP");
 console.log("app start");
 let currentProjectRows = [];
 
