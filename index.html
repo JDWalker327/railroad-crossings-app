@@ -51,13 +51,10 @@
     </table>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
-
- 
   <footer style="text-align:center; margin-top:20px;">
     <p>&copy; 2026 Rail 1. All rights reserved.</p>
   </footer>
+  
   <!-- ADMIN UPDATE MODAL (Hidden by default) -->
 <div id="adminModal" class="modal" style="display:none;">
   <div class="modal-content" style="
@@ -92,5 +89,10 @@
     <button id="modalCancelBtn" style="margin-top:5px;">Cancel</button>
   </div>
 </div>
+
+<!-- THESE MUST BE HERE, NOT INSIDE THE MODAL -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+
 </body>
 </html>
