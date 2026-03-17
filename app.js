@@ -544,7 +544,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       const { error } = await supabaseClient
-        .from("window.currentTable")
+        .from(window.currentTable)
         .update(updates)
         .eq("dot-number", window.currentDot);
 
