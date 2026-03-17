@@ -490,7 +490,7 @@ document.addEventListener("click", (e) => {
     window.currentTable = "crossings_p_" + subdivisionSelect.value;
 
     // Store row
-    window.currentRow = currentProjectRows.find(r => r["dot-number"] === dot);
+    window.currentRow = currentProjectRows.find(r => r["dot_number"] === dot);
 
     console.log("Editing DOT:", window.currentDot);
     console.log("Source table:", window.currentTable);
@@ -521,7 +521,7 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   const { error } = await supabaseClient
     .from(window.currentTable)
     .update(updates)
-    .eq("dot-number", window.currentDot);
+    .eq("dot_number", window.currentDot);
 
   if (error) {
     alert("Error updating crossing: " + error.message);
@@ -546,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const { error } = await supabaseClient
         .from(window.currentTable)
         .update(updates)
-        .eq("dot-number", window.currentDot);
+        .eq("dot_number", window.currentDot);
 
       if (error) {
         alert("Error updating crossing: " + error.message);
