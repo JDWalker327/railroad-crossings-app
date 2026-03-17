@@ -485,17 +485,23 @@ document.addEventListener("click", (e) => {
   if (!adminMode) return;
 
   if (e.target.classList.contains("admin-edit-btn")) {
-    const dot = e.target.dataset.dot;
-    const row = currentProjectRows.find(r => r["dot-number"] === dot);
+  const dot = e.target.dataset.dot;
 
-    if (!row) {
-      console.error("Could not find row for DOT:", dot);
-      return;
-    }
+  window.currentDot = dot;
+  window.currentTable = "crossings_p_" + subdivisionSelect.value;
+  window.currentRow = currentProjectRows.find(r => r["dot-number"] === dot);
 
-    openAdminModal(row);
+  console.log("Editing DOT:", window.currentDot);
+  console.log("Source table:", window.currentTable);
+  console.log("Row:", window.currentRow);
+
+  if (!window.currentRow) {
+    console.error("Could not find row for DOT:", dot);
+    return;
   }
-});
+
+  openAdminModal(window.currentRow);
+}
 
 // ---------------------------------------------------------
 // Admin Modal Save + Cancel
@@ -511,7 +517,7 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   };
 
   const { error } = await supabaseClient
-    .from("Crossings")
+    .from(window.currentTable)
     .update(updates)
     .eq("dot-number", window.currentDot);
 
