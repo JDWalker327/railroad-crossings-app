@@ -486,10 +486,10 @@ document.addEventListener("click", (e) => {
     // Store DOT
     window.currentDot = dot;
 
-    // Store the table the row came from
+    // Store table name
     window.currentTable = "crossings_p_" + subdivisionSelect.value;
 
-    // Store the row object
+    // Store row
     window.currentRow = currentProjectRows.find(r => r["dot-number"] === dot);
 
     console.log("Editing DOT:", window.currentDot);
