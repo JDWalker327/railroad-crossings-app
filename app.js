@@ -349,7 +349,7 @@ function renderProjectsTable(rows) {
     // ⭐ Build cells manually so click handler stays attached
     const cells = [
   adminMode    
-    ? `<button class="admin-edit-btn" data-dot="${row["dot_number"]}">Edit</button>`
+    ? `<button class="admin-edit-btn" data-dot="${row[dot_number]}">Edit</button>`
     : "",  
   mapLinkHtml(row.latitude, row.longitude),
   escHtml(row["dot_number"]),
