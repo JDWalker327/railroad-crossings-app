@@ -521,7 +521,7 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   const { error } = await supabaseClient
     .from(window.currentTable)
     .update(updates)
-    .eq("dot-number", window.currentDot);
+    .eq('"dot-number"', window.currentDot);
 
   if (error) {
     alert("Error updating crossing: " + error.message);
@@ -546,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const { error } = await supabaseClient
         .from(window.currentTable)
         .update(updates)
-        .eq("dot-number", window.currentDot);
+        .eq('"dot-number"', window.currentDot);
 
       if (error) {
         alert("Error updating crossing: " + error.message);
