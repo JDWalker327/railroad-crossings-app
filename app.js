@@ -511,7 +511,7 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   };
 
   const { error } = await supabaseClient
-    .from("crossings_master")
+    .from("Crossings")
     .update(updates)
     .eq("dot-number", window.currentDot);
 
