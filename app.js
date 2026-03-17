@@ -477,31 +477,31 @@ function renderLookupTable(rows) {
   });
 }
 
-// ---------------------------------------------------------
-// GLOBAL EDIT BUTTON HANDLER — PASTE THIS RIGHT HERE
-// ---------------------------------------------------------
-
 document.addEventListener("click", (e) => {
   if (!adminMode) return;
 
   if (e.target.classList.contains("admin-edit-btn")) {
-  const dot = e.target.dataset.dot;
+    const dot = e.target.dataset.dot;
 
-  window.currentDot = dot;
-  window.currentTable = "crossings_p_" + subdivisionSelect.value;
-  window.currentRow = currentProjectRows.find(r => r["dot-number"] === dot);
+    // Only set table name when editing a project row
+    const tableName = "crossings_p_" + subdivisionSelect.value;
 
-  console.log("Editing DOT:", window.currentDot);
-  console.log("Source table:", window.currentTable);
-  console.log("Row:", window.currentRow);
+    window.currentDot = dot;
+    window.currentTable = tableName;
+    window.currentRow = currentProjectRows.find(r => r["dot-number"] === dot);
 
-  if (!window.currentRow) {
-    console.error("Could not find row for DOT:", dot);
-    return;
+    console.log("Editing DOT:", window.currentDot);
+    console.log("Source table:", window.currentTable);
+    console.log("Row:", window.currentRow);
+
+    if (!window.currentRow) {
+      console.error("Could not find row for DOT:", dot);
+      return;
+    }
+
+    openAdminModal(window.currentRow);
   }
-
-  openAdminModal(window.currentRow);
-}
+});
 
 // ---------------------------------------------------------
 // Admin Modal Save + Cancel
@@ -542,7 +542,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       const { error } = await supabaseClient
-        .from("Crossings")
+        .from("window.currentTable")
         .update(updates)
         .eq("dot-number", window.currentDot);
 
