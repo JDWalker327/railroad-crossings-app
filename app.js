@@ -536,7 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       const { error } = await supabaseClient
-        .from("crossings_master")
+        .from("Crossings")
         .update(updates)
         .eq("dot-number", window.currentDot);
 
