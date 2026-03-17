@@ -477,6 +477,26 @@ function renderLookupTable(rows) {
 }
 
 // ---------------------------------------------------------
+// GLOBAL EDIT BUTTON HANDLER — PASTE THIS RIGHT HERE
+// ---------------------------------------------------------
+
+document.addEventListener("click", (e) => {
+  if (!adminMode) return;
+
+  if (e.target.classList.contains("admin-edit-btn")) {
+    const dot = e.target.dataset.dot;
+    const row = currentProjectRows.find(r => r["dot-number"] === dot);
+
+    if (!row) {
+      console.error("Could not find row for DOT:", dot);
+      return;
+    }
+
+    openAdminModal(row);
+  }
+});
+
+// ---------------------------------------------------------
 // Admin Modal Save + Cancel
 // ---------------------------------------------------------
 
