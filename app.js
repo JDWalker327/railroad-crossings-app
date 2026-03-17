@@ -405,7 +405,7 @@ function openAdminModal(crossing) {
     crossing.date_completed || new Date().toISOString().split("T")[0];
 
   // store DOT for saving
-  window.currentDot = crossing["dot-number"];
+  window.currentDot = crossing["dot_number"];
 
   document.getElementById("adminModal").style.display = "block";
 }
