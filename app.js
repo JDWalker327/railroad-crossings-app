@@ -1,5 +1,6 @@
 console.log("app start");
 let currentProjectRows = [];
+console.log("EDIT CLICK DETECTED");
 
 // ---------------------------------------------------------
 // 0. HTML-escaping helper (prevents XSS via innerHTML)
