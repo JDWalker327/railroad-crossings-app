@@ -352,7 +352,7 @@ function renderProjectsTable(rows) {
     ? `<button class="admin-edit-btn" data-dot="${row["dot-number"]}">Edit</button>`
     : "",  
   mapLinkHtml(row.latitude, row.longitude),
-  escHtml(row["dot-number"]),
+  escHtml(row["dot_number"]),
   escHtml(row["mile-post"]),
   escHtml(row.crossing_number),
   escHtml(row.track),
