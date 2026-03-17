@@ -483,11 +483,13 @@ document.addEventListener("click", (e) => {
   if (e.target.classList.contains("admin-edit-btn")) {
     const dot = e.target.dataset.dot;
 
-    // Only set table name when editing a project row
-    const tableName = "crossings_p_" + subdivisionSelect.value;
-
+    // Store DOT
     window.currentDot = dot;
-    window.currentTable = tableName;
+
+    // Store the table the row came from
+    window.currentTable = "crossings_p_" + subdivisionSelect.value;
+
+    // Store the row object
     window.currentRow = currentProjectRows.find(r => r["dot-number"] === dot);
 
     console.log("Editing DOT:", window.currentDot);
