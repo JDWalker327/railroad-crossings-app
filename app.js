@@ -349,7 +349,7 @@ function renderProjectsTable(rows) {
     // ⭐ Build cells manually so click handler stays attached
     const cells = [
   adminMode    
-    ? `<button class="admin-edit-btn" data-dot="${row[dot_number]}">Edit</button>`
+    ? `<button class="admin-edit-btn" data-dot="${row.dot_number}">Edit</button>`
     : "",  
   mapLinkHtml(row.latitude, row.longitude),
   escHtml(row["dot_number"]),
@@ -405,7 +405,7 @@ function openAdminModal(crossing) {
     crossing.date_completed || new Date().toISOString().split("T")[0];
 
   // store DOT for saving
-  window.currentDot = crossing["dot_number"];
+  window.currentDot = crossing.dot_number;
 
   document.getElementById("adminModal").style.display = "block";
 }
@@ -521,7 +521,7 @@ document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   const { error } = await supabaseClient
     .from(window.currentTable)
     .update(updates)
-    .eq("dot_number", window.currentDot);
+    .eq(dot_number, window.currentDot);
 
   if (error) {
     alert("Error updating crossing: " + error.message);
@@ -546,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const { error } = await supabaseClient
         .from(window.currentTable)
         .update(updates)
-        .eq("dot_number", window.currentDot);
+        .eq(dot_number, window.currentDot);
 
       if (error) {
         alert("Error updating crossing: " + error.message);
