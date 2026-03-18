@@ -9,7 +9,7 @@ function escHtml(val) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -192,13 +192,13 @@ async function searchLookupSubdivisions() {
   );
 
   if (error) {
-    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
+    lookupResults.innerHTML = `<div style=\"color:crimson;\">${escHtml(error.message)}</div>`;
     return;
   }
 
   const rows = data || [];
   if (!rows.length) {
-    lookupResults.innerHTML = `<div style="opacity:0.7;">No matches</div>`;
+    lookupResults.innerHTML = `<div style=\"opacity:0.7;\">No matches</div>`;
     return;
   }
 
@@ -217,7 +217,7 @@ async function searchLookupSubdivisions() {
 
     btn.onclick = async () => {
       selectedLookup = r;
-      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(r.subdivision)}</strong>…</div>`;
+      lookupResults.innerHTML = `<div style=\"opacity:0.8;\">Loading crossings for <strong>${escHtml(r.subdivision)}</strong>…</div>`;
       await loadLookupCrossingsForSubdivision();
     };
 
@@ -237,18 +237,14 @@ async function loadLookupCrossingsForSubdivision() {
   }
 );
 
-
-
-
-
   if (error) {
     console.error(error);
-    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
+    lookupResults.innerHTML = `<div style=\"color:crimson;\">${escHtml(error.message)}</div>`;
     return;
   }
 
   lookupCrossingsCache = data || [];
-  lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
+  lookupResults.innerHTML = `<div style=\"opacity:0.8;\"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
   renderLookupTable(lookupCrossingsCache);
 }
 
@@ -299,8 +295,8 @@ function renderProjectsTable(rows) {
 
   // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
-    const mpA = parseFloat(a["mile-post"]);
-    const mpB = parseFloat(b["mile-post"]);
+    const mpA = parseFloat(a["mile_post"] ?? a["mile-post"] ?? 0);
+    const mpB = parseFloat(b["mile_post"] ?? b["mile-post"] ?? 0);
     return mpA - mpB;
   });
 
@@ -313,8 +309,8 @@ function renderProjectsTable(rows) {
 
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row["dot-number"])}</td>
-      <td>${escHtml(row["mile-post"])}</td>
+      <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
+      <td>${escHtml(row["mile_post"] ?? row["mile-post"] ?? "")}</td>
       <td>${escHtml(row.crossing_number)}</td>
       <td>${escHtml(row.track)}</td>
       <td>${escHtml(row.type)}</td>
@@ -351,8 +347,8 @@ function renderLookupTable(rows) {
 
   // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
-    const mpA = parseFloat(a["mile-post"]) || 0;
-    const mpB = parseFloat(b["mile-post"]) || 0;
+    const mpA = parseFloat(a["mile_post"] ?? a["mile-post"] ?? 0) || 0;
+    const mpB = parseFloat(b["mile_post"] ?? b["mile-post"] ?? 0) || 0;
     return mpA - mpB;
   });
 
@@ -378,8 +374,8 @@ function renderLookupTable(rows) {
         }
       </td>
 
-      <td>${escHtml(row["dot-number"] || "")}</td>
-      <td>${escHtml(row["mile-post"] || "")}</td>
+      <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
+      <td>${escHtml(row["mile_post"] ?? row["mile-post"] ?? "")}</td>
       <td>${escHtml(row.city || "")}</td>
       <td>${escHtml(row.road_name || "")}</td>
       <td>${escHtml(row.state || "")}</td>
