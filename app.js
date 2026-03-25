@@ -295,8 +295,8 @@ function renderProjectsTable(rows) {
 
   // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
-    const mpA = parseFloat(a["mile_post"] ?? a["mile-post"] ?? 0);
-    const mpB = parseFloat(b["mile_post"] ?? b["mile-post"] ?? 0);
+    const mpA = parseFloat(a["mile_post_num"] ?? 0) || 0;
+    const mpB = parseFloat(b["mile_post_num"] ?? 0) || 0;
     return mpA - mpB;
   });
 
@@ -310,7 +310,7 @@ function renderProjectsTable(rows) {
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
       <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
-      <td>${escHtml(row["mile_post"] ?? row["mile-post"] ?? "")}</td>
+      <td>${escHtml(row["mile_post_num"] ?? "")}</td>
       <td>${escHtml(row.crossing_number)}</td>
       <td>${escHtml(row.track)}</td>
       <td>${escHtml(row.type)}</td>
@@ -388,8 +388,6 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
-
-
 
 // ---------------------------------------------------------
 // 8. INITIAL LOAD
