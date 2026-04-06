@@ -202,18 +202,17 @@ async function searchLookupSubdivisions() {
     return;
   }
 
+  const label = document.createElement("p");
+  label.className = "subdivision-results-label";
+  label.textContent = "Tap a subdivision to load its crossings:";
+
   const container = document.createElement("div");
   rows.forEach((r) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.style.display = "block";
-    btn.style.width = "100%";
-    btn.style.textAlign = "left";
-    btn.style.padding = "6px";
-    btn.style.marginBottom = "6px";
-    btn.style.cursor = "pointer";
+    btn.className = "subdivision-result-btn";
 
-    btn.innerHTML = `<strong>${escHtml(r.subdivision)}</strong> — ${escHtml(r.state)}`;
+    btn.innerHTML = `<span><strong>${escHtml(r.subdivision)}</strong> — ${escHtml(r.state)}</span><span class="subdivision-result-arrow">›</span>`;
 
     btn.onclick = async () => {
       selectedLookup = r;
@@ -224,6 +223,7 @@ async function searchLookupSubdivisions() {
     container.appendChild(btn);
   });
 
+  lookupResults.appendChild(label);
   lookupResults.appendChild(container);
 }
 
@@ -256,9 +256,9 @@ dotSearchBtn.addEventListener("click", async () => {
   if (!dot) return;
 
   const { data, error } = await supabaseClient
-    .from("stg_form71_up")
+    .from("crossings_stage")
     .select("*")
-    .eq("crossing_id", dot);
+    .eq("dot_number", dot);
 
   if (error) {
     console.error(error);

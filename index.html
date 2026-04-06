@@ -31,11 +31,17 @@
 
   <!-- LOOKUP PANEL -->
 <div id="lookupPanel" class="mode-panel">
-  <label>DOT #:</label>
-  <input id="dotSearch" type="text">
 
-  <label>Subdivision search:</label>
-  <input id="subdivisionSearch" type="text">
+  <p class="lookup-hint">
+    💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
+    <strong>Search by Subdivision</strong> — start typing a name, then <strong>tap a result</strong> from the list to load its crossings.
+  </p>
+
+  <label>DOT #:</label>
+  <input id="dotSearch" type="text" placeholder="e.g. 123456A">
+
+  <label style="margin-top:10px;">Subdivision search:</label>
+  <input id="subdivisionSearch" type="text" placeholder="e.g. Cheyenne">
 
   <div id="lookupResults" style="margin-top:10px;"></div>
 
