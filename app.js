@@ -258,7 +258,7 @@ dotSearchBtn.addEventListener("click", async () => {
   const { data, error } = await supabaseClient
     .from("crossings_stage")
     .select("*")
-    .eq("dot_number", dot);
+    .ilike("dot_number", dot);
 
   if (error) {
     console.error(error);
