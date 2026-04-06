@@ -256,9 +256,9 @@ dotSearchBtn.addEventListener("click", async () => {
   if (!dot) return;
 
   const { data, error } = await supabaseClient
-    .from("stg_form71_up")
+    .from("crossings_stage")
     .select("*")
-    .eq("crossing_id", dot);
+    .eq("dot_number", dot);
 
   if (error) {
     console.error(error);
