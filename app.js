@@ -116,39 +116,68 @@ setMode("lookup");
 // ---------------------------------------------------------
 // 4. PROJECTS MODE (clean + modern)
 // ---------------------------------------------------------
+function normalizeSubdivision(value) {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
 async function loadProjects() {
   const { data: projects, error } = await supabaseClient
     .from("projects")
-    .select("*");
+    .select("subdivision")
+    .not("subdivision", "is", null);
 
   if (error) {
-    console.error("Error loading projects:", error);
+    console.error("Error loading projects:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return;
   }
 
   subdivisionSelect.innerHTML =
     '<option value="" disabled selected>Select subdivision</option>';
 
-  projects.forEach(p => {
+  // Deduplicate by normalized key, keep original label for display
+  const seen = new Set();
+
+  (projects || []).forEach((p) => {
+    const label = (p.subdivision || "").trim();
+    const normalized = normalizeSubdivision(label);
+    if (!normalized || seen.has(normalized)) return;
+
+    seen.add(normalized);
+
     const opt = document.createElement("option");
-    opt.value = p.subdivision;
-    opt.textContent = p.subdivision;
+    opt.value = normalized;   // safe value used for table name
+    opt.textContent = label;  // user-friendly label
     subdivisionSelect.appendChild(opt);
   });
 }
 
 async function loadProjectCrossings() {
-  const subdivision = subdivisionSelect.value;
-  if (!subdivision) return;
+  const normalizedSubdivision = subdivisionSelect.value;
+  if (!normalizedSubdivision) return;
 
-  const tableName = "crossings_p_" + subdivision;
+  const tableName = `crossings_p_${normalizedSubdivision}`;
+  console.log("Querying table:", tableName);
 
   const { data, error } = await supabaseClient
     .from(tableName)
     .select("*");
 
   if (error) {
-    console.error("Error loading project crossings:", error);
+    console.error("Error loading project crossings:", {
+      tableName,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return;
   }
 
@@ -156,6 +185,9 @@ async function loadProjectCrossings() {
 }
 
 subdivisionSelect.addEventListener("change", loadProjectCrossings);
+
+// call once on page load
+loadProjects();
 
 // ---------------------------------------------------------
 // 5. LOOKUP MODE (DOT or Subdivision search)
