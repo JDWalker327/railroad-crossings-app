@@ -164,8 +164,6 @@ async function loadProjectCrossings() {
   if (!normalizedSubdivision) return;
 
   const tableName = `crossings_p_${normalizedSubdivision}`;
-  console.log("SUPABASE URL:", SUPABASE_URL);
-console.log("Final tableName:", tableName);
   console.log("Querying table:", tableName);
 
   const { data, error } = await supabaseClient
