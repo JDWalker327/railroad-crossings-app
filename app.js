@@ -408,7 +408,7 @@ function renderLookupTable(rows) {
     tr.innerHTML = `
       <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
       <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
-      <td>${escHtml(row["mile_post"] ?? row["mile-post"] ?? "")}</td>
+      <td>${escHtml(row["mile_post_num"] ?? row["mile_post"] ?? row["mile-post"] ?? "")}</td>
       <td>${escHtml(row.city || "")}</td>
       <td>${escHtml(row.road_name || "")}</td>
       <td>${escHtml(row.state || "")}</td>
