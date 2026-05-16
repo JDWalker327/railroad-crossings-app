@@ -396,10 +396,11 @@ function renderLookupTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
-  rows.sort((a, b) => {
-    const mpA = parseFloat(a["mile_post"] ?? a["mile-post"] ?? 0) || 0;
-    const mpB = parseFloat(b["mile_post"] ?? b["mile-post"] ?? 0) || 0;
-    return mpA - mpB;
+    rows.sort((a, b) => {
+    const mpA = parseFloat(a.mile_post_num ?? a.mile_post ?? a["mile-post"]);
+    const mpB = parseFloat(b.mile_post_num ?? b.mile_post ?? b["mile-post"]);
+    return (isNaN(mpA) ? Number.POSITIVE_INFINITY : mpA) -
+           (isNaN(mpB) ? Number.POSITIVE_INFINITY : mpB);
   });
 
   rows.forEach((row) => {
