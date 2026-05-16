@@ -163,17 +163,15 @@ async function loadProjectCrossings() {
   const normalizedSubdivision = subdivisionSelect.value;
   if (!normalizedSubdivision) return;
 
-  const tableName = `crossings_p_${normalizedSubdivision}`;
-  console.log("Querying table:", tableName);
+  console.log("Loading project crossings via RPC:", normalizedSubdivision);
 
-  const { data, error } = await supabaseClient
-    .schema("public")
-    .from(tableName)
-    .select("*");
+  const { data, error } = await supabaseClient.rpc("get_project_crossings", {
+    subdivision_name: normalizedSubdivision,
+  });
 
   if (error) {
     console.error("Error loading project crossings:", {
-      tableName,
+      subdivision: normalizedSubdivision,
       code: error.code,
       message: error.message,
       details: error.details,
@@ -182,7 +180,16 @@ async function loadProjectCrossings() {
     return;
   }
 
-  renderProjectsTable(data || []);
+  const rows = (data || []).map((row) => {
+    if (row && typeof row === "object" && !Array.isArray(row)) return row;
+    try {
+      return JSON.parse(row);
+    } catch {
+      return row;
+    }
+  });
+
+  renderProjectsTable(rows);
 }
 
 subdivisionSelect.addEventListener("change", loadProjectCrossings);
