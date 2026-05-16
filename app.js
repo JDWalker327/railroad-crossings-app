@@ -58,7 +58,7 @@ const supabaseClient = supabase.createClient(
 
 async function incrementVisitCount() {
   console.log("Calling increment_visits...");
-  const { data, error } = await supabaseClient.rpc('increment_visits');
+  const { data, error } = await supabaseClient.rpc("increment_visits");
   console.log("RPC result:", data, error);
 }
 incrementVisitCount();
@@ -87,7 +87,7 @@ const projectsPanel = document.getElementById("projectsPanel");
 const lookupPanel = document.getElementById("lookupPanel");
 
 function setMode(mode) {
-  tabs.forEach(t => t.classList.remove("active"));
+  tabs.forEach((t) => t.classList.remove("active"));
   document.querySelector(`[data-mode="${mode}"]`).classList.add("active");
 
   if (mode === "projects") {
@@ -105,7 +105,7 @@ function setMode(mode) {
   }
 }
 
-tabs.forEach(tab => {
+tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     setMode(tab.dataset.mode);
   });
@@ -142,7 +142,6 @@ async function loadProjects() {
   subdivisionSelect.innerHTML =
     '<option value="" disabled selected>Select subdivision</option>';
 
-  // Deduplicate by normalized key, keep original label for display
   const seen = new Set();
 
   (projects || []).forEach((p) => {
@@ -153,8 +152,8 @@ async function loadProjects() {
     seen.add(normalized);
 
     const opt = document.createElement("option");
-    opt.value = normalized;   // safe value used for table name
-    opt.textContent = label;  // user-friendly label
+    opt.value = normalized;
+    opt.textContent = label;
     subdivisionSelect.appendChild(opt);
   });
 }
@@ -218,19 +217,43 @@ async function searchLookupSubdivisions() {
 
   if (q.length < 2) return;
 
-  const { data, error } = await supabaseClient.rpc(
-    "search_crossings_verified_subdivisions",
-    { q, lim: 20 }
-  );
+  const { data, error } = await supabaseClient
+    .from("crossings_verified")
+    .select("subdivision, state")
+    .not("subdivision", "is", null)
+    .ilike("subdivision", `%${q}%`)
+    .limit(50);
 
   if (error) {
-    lookupResults.innerHTML = `<div style=\"color:crimson;\">${escHtml(error.message)}</div>`;
+    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
     return;
   }
 
-  const rows = data || [];
+  const seen = new Set();
+  const rows = [];
+
+  (data || []).forEach((r) => {
+    const subdivision = (r.subdivision || "").trim();
+    const state = (r.state || "").trim();
+    const key = `${subdivision.toLowerCase()}|${state.toLowerCase()}`;
+
+    if (!subdivision || seen.has(key)) return;
+
+    seen.add(key);
+    rows.push({
+      subdivision,
+      state,
+    });
+  });
+
+  rows.sort((a, b) => {
+    const bySubdivision = a.subdivision.localeCompare(b.subdivision);
+    if (bySubdivision !== 0) return bySubdivision;
+    return a.state.localeCompare(b.state);
+  });
+
   if (!rows.length) {
-    lookupResults.innerHTML = `<div style=\"opacity:0.7;\">No matches</div>`;
+    lookupResults.innerHTML = `<div style="opacity:0.7;">No matches</div>`;
     return;
   }
 
@@ -248,7 +271,7 @@ async function searchLookupSubdivisions() {
 
     btn.onclick = async () => {
       selectedLookup = r;
-      lookupResults.innerHTML = `<div style=\"opacity:0.8;\">Loading crossings for <strong>${escHtml(r.subdivision)}</strong>…</div>`;
+      lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(r.subdivision)}</strong>…</div>`;
       await loadLookupCrossingsForSubdivision();
     };
 
@@ -262,21 +285,19 @@ async function searchLookupSubdivisions() {
 async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
- const { data, error } = await supabaseClient.rpc(
-  "get_crossings_verified_for_subdivision",
-  {
-    subdivision_input: selectedLookup.subdivision
-  }
-);
+  const { data, error } = await supabaseClient
+    .from("crossings_verified")
+    .select("*")
+    .eq("subdivision", selectedLookup.subdivision);
 
   if (error) {
     console.error(error);
-    lookupResults.innerHTML = `<div style=\"color:crimson;\">${escHtml(error.message)}</div>`;
+    lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
     return;
   }
 
   lookupCrossingsCache = data || [];
-  lookupResults.innerHTML = `<div style=\"opacity:0.8;\"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
+  lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
   renderLookupTable(lookupCrossingsCache);
 }
 
@@ -325,17 +346,15 @@ function renderProjectsTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
-  // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
     const mpA = parseFloat(a["mile_post_num"] ?? 0) || 0;
     const mpB = parseFloat(b["mile_post_num"] ?? 0) || 0;
     return mpA - mpB;
   });
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     const tr = document.createElement("tr");
 
-    // ⭐ APPLY COLORING
     if (row.completed === true) tr.classList.add("completed-row");
     if (row.asphalted === true) tr.classList.add("asphalted-row");
 
@@ -377,35 +396,17 @@ function renderLookupTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
-  // ⭐ SORT BY MILEPOST ASCENDING
   rows.sort((a, b) => {
     const mpA = parseFloat(a["mile_post"] ?? a["mile-post"] ?? 0) || 0;
     const mpB = parseFloat(b["mile_post"] ?? b["mile-post"] ?? 0) || 0;
     return mpA - mpB;
   });
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>
-        ${
-          row.latitude && row.longitude
-            ? `
-              <a 
-                class="map-icon-link" 
-                href="https://www.google.com/maps?q=${row.latitude},${row.longitude}" 
-                target="_blank"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                  <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5c-1.4 0-2.5-1.1-2.5-2.5S10.6 6.5 12 6.5s2.5 1.1 2.5 2.5S13.4 11.5 12 11.5z"/>
-                </svg>
-              </a>
-            `
-            : ""
-        }
-      </td>
-
+      <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
       <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
       <td>${escHtml(row["mile_post"] ?? row["mile-post"] ?? "")}</td>
       <td>${escHtml(row.city || "")}</td>
