@@ -219,7 +219,7 @@ async function searchLookupSubdivisions() {
   if (q.length < 2) return;
 
   const { data, error } = await supabaseClient.rpc(
-    "search_crossings_stage_subdivisions",
+    "search_crossings_verified_subdivisions",
     { q, lim: 20 }
   );
 
@@ -263,7 +263,7 @@ async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
  const { data, error } = await supabaseClient.rpc(
-  "get_crossings_stage_for_subdivision",
+  "get_crossings_verified_for_subdivision",
   {
     subdivision_input: selectedLookup.subdivision
   }
