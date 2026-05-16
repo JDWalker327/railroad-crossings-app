@@ -125,6 +125,7 @@ function normalizeSubdivision(value) {
 
 async function loadProjects() {
   const { data: projects, error } = await supabaseClient
+    .schema("public")
     .from("projects")
     .select("subdivision")
     .not("subdivision", "is", null);
@@ -166,6 +167,7 @@ async function loadProjectCrossings() {
   console.log("Querying table:", tableName);
 
   const { data, error } = await supabaseClient
+    .schema("public")
     .from(tableName)
     .select("*");
 
@@ -185,7 +187,6 @@ async function loadProjectCrossings() {
 
 subdivisionSelect.addEventListener("change", loadProjectCrossings);
 
-// call once on page load
 loadProjects();
 
 // ---------------------------------------------------------
@@ -218,6 +219,7 @@ async function searchLookupSubdivisions() {
   if (q.length < 2) return;
 
   const { data, error } = await supabaseClient
+    .schema("public")
     .from("crossings_verified")
     .select("subdivision, state")
     .not("subdivision", "is", null)
@@ -286,6 +288,7 @@ async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
 
   const { data, error } = await supabaseClient
+    .schema("public")
     .from("crossings_verified")
     .select("*")
     .eq("subdivision", selectedLookup.subdivision);
@@ -309,6 +312,7 @@ dotSearchBtn.addEventListener("click", async () => {
   if (!dot) return;
 
   const { data, error } = await supabaseClient
+    .schema("public")
     .from("crossings_verified")
     .select("*")
     .ilike("dot_number", dot);
@@ -396,7 +400,7 @@ function renderLookupTable(rows) {
 
   crossingsTableBody.innerHTML = "";
 
-    rows.sort((a, b) => {
+  rows.sort((a, b) => {
     const mpA = parseFloat(a.mile_post_num ?? a.mile_post ?? a["mile-post"]);
     const mpB = parseFloat(b.mile_post_num ?? b.mile_post ?? b["mile-post"]);
     return (isNaN(mpA) ? Number.POSITIVE_INFINITY : mpA) -
@@ -422,8 +426,3 @@ function renderLookupTable(rows) {
     crossingsTableBody.appendChild(tr);
   });
 }
-
-// ---------------------------------------------------------
-// 8. INITIAL LOAD
-// ---------------------------------------------------------
-loadProjects();
