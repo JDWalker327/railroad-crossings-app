@@ -97,7 +97,9 @@ A non-blocking placeholder panel is included in-app for the planned monetization
 - 14-day free trial
 - then $5/month
 
-Billing logic is intentionally **disabled** in this repo phase to avoid breaking current usage until Apple/Google products and credentials are configured.
+Billing is intentionally **not implemented yet** in this repo phase to avoid breaking current usage until Apple/Google products and credentials are configured.
+
+Target timeline: enable real billing after App Store Connect + Google Play products are created and native shells complete device testing.
 
 ### Where real billing gets added later
 
