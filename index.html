@@ -3,66 +3,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Railroad crossing lookup by DOT number or subdivision with one-tap maps launch.">
+  <meta name="theme-color" content="#0b3d5c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rail Crossings">
   <title>Railroad Crossings App</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icons/app-icon.svg">
+  <link rel="apple-touch-icon" href="icons/app-icon.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <h1>Railroad Crossings App</h1>
-  <div id="rail1-tagline">A Rail 1 Application</div>
+  <div class="app-shell">
+    <header class="app-header">
+      <h1>Railroad Crossings App</h1>
+      <div id="rail1-tagline">A Rail 1 Application</div>
+      <p id="installMessage" class="install-message">
+        Install this app for faster field access.
+        <button id="installBtn" class="install-btn" type="button" hidden>Install</button>
+      </p>
+    </header>
 
-  <!-- NEW TAB BAR -->
-  <div id="modeTabs" class="mode-tabs">
-    <div class="tab" data-mode="projects">Projects</div>
-    <div class="tab active" data-mode="lookup">Lookup</div>
-  </div>
+    <!-- NEW TAB BAR -->
+    <div id="modeTabs" class="mode-tabs">
+      <div class="tab" data-mode="projects">Projects</div>
+      <div class="tab active" data-mode="lookup">Lookup</div>
+    </div>
 
-  <!-- NEW MODE HEADER + DESCRIPTION -->
-  <h2 id="modeHeader" class="mode-header">Lookup Mode</h2>
-<p id="modeDescription" class="mode-description">
-  Search all UP crossings by DOT number or subdivision.
-</p>
+    <!-- NEW MODE HEADER + DESCRIPTION -->
+    <h2 id="modeHeader" class="mode-header">Lookup Mode</h2>
+    <p id="modeDescription" class="mode-description">
+      Search all UP crossings by DOT number or subdivision.
+    </p>
 
-  <!-- PROJECTS PANEL -->
-  <div id="projectsPanel" class="mode-panel" style="display:none;">
-    <label>Subdivision / Project:</label>
-    <select id="subdivisionSelect"></select>
-  </div>
+    <!-- PROJECTS PANEL -->
+    <div id="projectsPanel" class="mode-panel" style="display:none;">
+      <label>Subdivision / Project:</label>
+      <select id="subdivisionSelect"></select>
+    </div>
 
-  <!-- LOOKUP PANEL -->
-<div id="lookupPanel" class="mode-panel">
+    <!-- LOOKUP PANEL -->
+    <div id="lookupPanel" class="mode-panel">
 
-  <p class="lookup-hint">
-    💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
-    <strong>Search by Subdivision</strong> — start typing a name, then <strong>tap a result</strong> from the list to load its crossings.
-  </p>
+      <p class="lookup-hint">
+        💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
+        <strong>Search by Subdivision</strong> — start typing a name, then <strong>tap a result</strong> from the list to load its crossings.
+      </p>
 
-  <label>DOT #:</label>
-  <input id="dotSearch" type="text" placeholder="e.g. 123456A">
+      <label>DOT #:</label>
+      <input id="dotSearch" type="text" placeholder="e.g. 123456A">
 
-  <label style="margin-top:10px;">Subdivision search:</label>
-  <input id="subdivisionSearch" type="text" placeholder="e.g. Cheyenne">
+      <label style="margin-top:10px;">Subdivision search:</label>
+      <input id="subdivisionSearch" type="text" placeholder="e.g. Cheyenne">
 
-  <div id="lookupResults" style="margin-top:10px;"></div>
+      <div id="lookupResults" style="margin-top:10px;"></div>
 
-  <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
-</div>
+      <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
+    </div>
 
-  <div id="status"></div>
+    <div id="status"></div>
 
-  <div id="tableContainer" style="margin-top:20px;">
-    <table id="crossingsTable" border="1" cellspacing="0" cellpadding="4">
-      <thead id="crossingsTableHead"></thead>
-      <tbody id="crossingsTableBody"></tbody>
-    </table>
-  </div>
+    <section class="plan-panel" aria-label="Subscription preview">
+      <h3>Subscription (coming soon)</h3>
+      <p>Planned release flow: <strong>14-day free trial</strong> then <strong>$5/month</strong> in the app stores.</p>
+      <p class="plan-note">Billing stays disabled in this branch until Apple/Google store products and credentials are configured.</p>
+      <button type="button" disabled>Start Trial (disabled for now)</button>
+    </section>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+    <div id="tableContainer" style="margin-top:20px;">
+      <table id="crossingsTable" border="1" cellspacing="0" cellpadding="4">
+        <thead id="crossingsTableHead"></thead>
+        <tbody id="crossingsTableBody"></tbody>
+      </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
 
  
-  <footer style="text-align:center; margin-top:20px;">
-    <p>&copy; 2026 Rail 1. All rights reserved.</p>
-  </footer>
+    <footer class="app-footer" style="text-align:center; margin-top:20px;">
+      <p>&copy; 2026 Rail 1. All rights reserved.</p>
+    </footer>
+  </div>
 </body>
 </html>

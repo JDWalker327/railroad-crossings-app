@@ -1,24 +1,62 @@
 /* Basic page layout */
 body {
   font-family: Arial, sans-serif;
-  margin: 20px;
+  margin: 0;
+  padding: 16px;
   background-color: #f5f5f5;
+  color: #1d1d1f;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.app-header {
+  background: linear-gradient(180deg, #0b3d5c 0%, #0f4f78 100%);
+  color: #fff;
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
 }
 
 /* App title */
 h1 {
   text-align: center;
   margin-bottom: 5px;
+  margin-top: 0;
+  font-size: 1.65rem;
 }
 
 /* Tagline under the title */
 #rail1-tagline {
   text-align: center;
   margin-top: 0px;
-  margin-bottom: 20px;
-  font-size: 32px;
+  margin-bottom: 8px;
+  font-size: 24px;
   font-weight: bold;
-  color: #333;
+  color: #d7e8f8;
+}
+
+.install-message {
+  margin: 10px auto 0;
+  text-align: center;
+  font-size: 14px;
+  max-width: 540px;
+  color: #eff7ff;
+}
+
+.install-btn {
+  margin-left: 8px;
+  background: #1a73e8;
+  border-color: #1558b0;
+  color: #fff;
+}
+
+#status {
+  margin-top: 10px;
+  font-size: 14px;
 }
 
 /* Table styling */
@@ -54,7 +92,7 @@ th {
 select,
 input[type="text"] {
   width: 100%;
-  max-width: 350px;
+  max-width: 420px;
   padding: 12px 14px;
   font-size: 16px;
   border: 1px solid #bbb;
@@ -73,6 +111,24 @@ input[type="text"]:focus {
   border-color: #888;
   box-shadow: 0 0 4px rgba(0,0,0,0.15);
 }
+
+button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #0f4f78;
+  border-radius: 8px;
+  background: #0f4f78;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 /* Map icon link (Google Maps) - blue button */
 .map-icon-link {
   display: inline-flex;
@@ -169,10 +225,11 @@ input[type="text"]:focus {
 /* TAB BAR */
 .mode-tabs {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   margin-bottom: 15px;
   border-bottom: 2px solid #ccc;
   padding-bottom: 8px;
+  overflow-x: auto;
 }
 
 .tab {
@@ -193,3 +250,65 @@ input[type="text"]:focus {
   color: white;
 }
 
+.mode-header {
+  margin-bottom: 6px;
+}
+
+.mode-description {
+  margin-top: 0;
+  color: #444;
+}
+
+.plan-panel {
+  margin-top: 18px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.plan-panel h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.plan-panel p {
+  margin: 0 0 8px 0;
+}
+
+.plan-note {
+  font-size: 13px;
+  color: #555;
+}
+
+#tableContainer {
+  overflow-x: auto;
+}
+
+.app-footer {
+  color: #4c4c4c;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+  }
+
+  #rail1-tagline {
+    font-size: 18px;
+  }
+
+  .app-header {
+    border-radius: 10px;
+    padding: 14px 12px 12px;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 14px;
+  }
+}

@@ -1,5 +1,13 @@
 console.log("app start");
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((err) => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
+
 // ---------------------------------------------------------
 // 0. HTML-escaping helper (prevents XSS via innerHTML)
 // ---------------------------------------------------------
@@ -75,6 +83,37 @@ const lookupResults = document.getElementById("lookupResults");
 
 const crossingsTableHead = document.getElementById("crossingsTableHead");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
+const installBtn = document.getElementById("installBtn");
+const installMessage = document.getElementById("installMessage");
+
+let deferredInstallPrompt = null;
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installBtn) installBtn.hidden = false;
+});
+
+if (installBtn) {
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.hidden = true;
+    if (installMessage) {
+      installMessage.textContent = "App install prompt opened. If already installed, open from your home screen.";
+    }
+  });
+}
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  if (installBtn) installBtn.hidden = true;
+  if (installMessage) {
+    installMessage.textContent = "App installed. Open it anytime from your phone home screen.";
+  }
+});
 
 // ---------------------------------------------------------
 // 3. MODE SWITCHING (Tabs)

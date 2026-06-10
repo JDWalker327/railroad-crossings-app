@@ -2,6 +2,8 @@
 
 A mobile-friendly dashboard for viewing and managing railroad crossing projects, backed by [Supabase](https://supabase.com/).
 
+This branch adds **PWA + Capacitor groundwork** so the same web app can be packaged for iOS/Android without changing the existing DOT/subdivision/maps workflow.
+
 ## Viewing the App
 
 ### Option 1 – Live (GitHub Pages)
@@ -32,6 +34,78 @@ npx serve .
 
 > **Note:** The data tables require an active Supabase connection.  
 > Supabase credentials are already embedded in `app.js` and work from any origin, so both the live site and your local preview will load real data.
+
+---
+
+## PWA groundwork (added)
+
+- `manifest.webmanifest` defines app name, icon, colors, and standalone app display mode.
+- `sw.js` provides a minimal app-shell cache for local assets only.
+- `index.html` now includes mobile app meta tags and icon/manifest links.
+- `app.js` now:
+  - registers the service worker
+  - shows a safe install prompt when the browser supports it
+
+### PWA behavior
+
+- In supported browsers, users can install from browser UI or the in-app Install button.
+- Cached shell files allow faster startup and a basic offline shell.
+- Live Supabase data still requires internet.
+
+---
+
+## Capacitor/native packaging setup (added)
+
+`package.json` and `capacitor.config.json` are included so this repo can be used directly for native shell generation.
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Create platform shells
+
+```bash
+npm run cap:add:ios
+npm run cap:add:android
+```
+
+### Sync web assets into native projects
+
+```bash
+npm run cap:sync
+```
+
+`cap:sync` and `cap:copy` automatically stage the current static web files into `www/` first.
+
+### Open native projects
+
+```bash
+npm run cap:open:ios
+npm run cap:open:android
+```
+
+> `main` static deployment remains unchanged; these files only add packaging support for local/native workflows.
+
+---
+
+## Subscription/trial groundwork
+
+A non-blocking placeholder panel is included in-app for the planned monetization:
+
+- 14-day free trial
+- then $5/month
+
+Billing logic is intentionally **disabled** in this repo phase to avoid breaking current usage until Apple/Google products and credentials are configured.
+
+### Where real billing gets added later
+
+1. Configure App Store Connect and Google Play subscription products.
+2. Add a billing SDK (typically RevenueCat or direct store SDK integration) in the Capacitor app layer.
+3. Implement purchase, restore, and entitlement checks.
+4. Replace placeholder panel with a real paywall screen.
+5. Gate premium behavior only after entitlement checks are reliable.
 
 ---
 
@@ -78,22 +152,17 @@ GitHub Pages always serves the latest commit on `main`. To roll back:
 
 ---
 
-## Screenshots
-
-| Desktop (1280 px) | Mobile (375 px) |
-|---|---|
-| ![Desktop view](https://github.com/user-attachments/assets/b18e281a-fa4c-48ac-a444-1a48aebe79d7) | ![Mobile view](https://github.com/user-attachments/assets/d0034bce-54df-4c58-886b-dceb95ec8269) |
-
-On mobile, the header controls stack vertically and all buttons/inputs are sized for touch (≥ 44 px). The data table scrolls horizontally so no columns are hidden.
-
----
-
 ## Project Structure
 
 ```
 index.html   – Page markup
 style.css    – All styles, including responsive breakpoints
 app.js       – Supabase queries and DOM rendering
+manifest.webmanifest – PWA manifest
+sw.js        – Minimal app-shell service worker
+icons/       – App icon assets
+package.json – Capacitor scripts/dependencies
+capacitor.config.json – Capacitor app configuration
 ```
 
 ## Features
@@ -102,3 +171,5 @@ app.js       – Supabase queries and DOM rendering
 - **Lookup mode** – Search any UP crossing by DOT number or subdivision name
 - **Google Maps links** – DOT numbers link directly to the crossing location when lat/lon are available
 - **Responsive design** – Usable on screens from 320 px wide up to large desktop displays
+- **Installable PWA shell** – App manifest + service worker + install prompt support
+- **Native packaging ready** – Capacitor config/scripts prepared for iOS and Android shells

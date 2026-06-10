@@ -1,0 +1,8 @@
+{
+  "appId": "com.rail1.crossings",
+  "appName": "Railroad Crossings",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "https"
+  }
+}
