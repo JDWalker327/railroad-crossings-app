@@ -66,8 +66,6 @@ incrementVisitCount();
 // ---------------------------------------------------------
 // 2. DOM Elements (new UI)
 // ---------------------------------------------------------
-const subdivisionSelect = document.getElementById("subdivisionSelect");
-
 const dotSearch = document.getElementById("dotSearch");
 const dotSearchBtn = document.getElementById("dotSearchBtn");
 const subdivisionSearch = document.getElementById("subdivisionSearch");
@@ -77,120 +75,7 @@ const crossingsTableHead = document.getElementById("crossingsTableHead");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
 
 // ---------------------------------------------------------
-// 3. MODE SWITCHING (Tabs)
-// ---------------------------------------------------------
-const tabs = document.querySelectorAll(".tab");
-const header = document.getElementById("modeHeader");
-const desc = document.getElementById("modeDescription");
-
-const projectsPanel = document.getElementById("projectsPanel");
-const lookupPanel = document.getElementById("lookupPanel");
-
-function setMode(mode) {
-  tabs.forEach((t) => t.classList.remove("active"));
-  document.querySelector(`[data-mode="${mode}"]`).classList.add("active");
-
-  if (mode === "projects") {
-    header.textContent = "Projects Mode";
-    desc.textContent = "View and manage crossings for your active Rail 1 projects.";
-
-    projectsPanel.style.display = "block";
-    lookupPanel.style.display = "none";
-  } else {
-    header.textContent = "Lookup Mode";
-    desc.textContent = "Search the full Union Pacific crossing database.";
-
-    projectsPanel.style.display = "none";
-    lookupPanel.style.display = "block";
-  }
-}
-
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    setMode(tab.dataset.mode);
-  });
-});
-
-setMode("lookup");
-
-// ---------------------------------------------------------
-// 4. PROJECTS MODE (clean + modern)
-// ---------------------------------------------------------
-function normalizeSubdivision(value) {
-  return (value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "_");
-}
-
-async function loadProjects() {
-  const { data: projects, error } = await supabaseClient
-    .schema("public")
-    .from("projects")
-    .select("subdivision")
-    .not("subdivision", "is", null);
-
-  if (error) {
-    console.error("Error loading projects:", {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-    });
-    return;
-  }
-
-  subdivisionSelect.innerHTML =
-    '<option value="" disabled selected>Select subdivision</option>';
-
-  const seen = new Set();
-
-  (projects || []).forEach((p) => {
-    const label = (p.subdivision || "").trim();
-    const normalized = normalizeSubdivision(label);
-    if (!normalized || seen.has(normalized)) return;
-
-    seen.add(normalized);
-
-    const opt = document.createElement("option");
-    opt.value = normalized;
-    opt.textContent = label;
-    subdivisionSelect.appendChild(opt);
-  });
-}
-
-async function loadProjectCrossings() {
-  const normalizedSubdivision = subdivisionSelect.value;
-  if (!normalizedSubdivision) return;
-
-  const tableName = `crossings_p_${normalizedSubdivision}`;
-  console.log("Querying table:", tableName);
-
-  const { data, error } = await supabaseClient
-    .schema("public")
-    .from(tableName)
-    .select("*");
-
-  if (error) {
-    console.error("Error loading project crossings:", {
-      tableName,
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-    });
-    return;
-  }
-
-  renderProjectsTable(data || []);
-}
-
-subdivisionSelect.addEventListener("change", loadProjectCrossings);
-
-loadProjects();
-
-// ---------------------------------------------------------
-// 5. LOOKUP MODE (DOT or Subdivision search)
+// 3. LOOKUP MODE (DOT or Subdivision search)
 // ---------------------------------------------------------
 let selectedLookup = null;
 let lookupCrossingsCache = [];
@@ -305,7 +190,7 @@ async function loadLookupCrossingsForSubdivision() {
 }
 
 // ---------------------------------------------------------
-// 6. DOT Lookup
+// 4. DOT Lookup
 // ---------------------------------------------------------
 dotSearchBtn.addEventListener("click", async () => {
   const dot = dotSearch.value.trim();
@@ -326,61 +211,8 @@ dotSearchBtn.addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------
-// 7. TABLE RENDERING
+// 5. TABLE RENDERING
 // ---------------------------------------------------------
-
-function renderProjectsTable(rows) {
-  crossingsTableHead.innerHTML = `
-    <tr>
-      <th>Map</th>
-      <th>DOT #</th>
-      <th>Milepost</th>
-      <th>Crossing #</th>
-      <th>Track Type</th>
-      <th>Crossing Type</th>
-      <th>Completed</th>
-      <th>Asphalted</th>
-      <th>Planned Footage</th>
-      <th>Street Name</th>
-      <th>Completed By</th>
-      <th>Date Completed</th>
-      <th>Helped</th>
-    </tr>
-  `;
-
-  crossingsTableBody.innerHTML = "";
-
-  rows.sort((a, b) => {
-    const mpA = parseFloat(a["mile_post_num"] ?? 0) || 0;
-    const mpB = parseFloat(b["mile_post_num"] ?? 0) || 0;
-    return mpA - mpB;
-  });
-
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-
-    if (row.completed === true) tr.classList.add("completed-row");
-    if (row.asphalted === true) tr.classList.add("asphalted-row");
-
-    tr.innerHTML = `
-      <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
-      <td>${escHtml(row["mile_post_num"] ?? "")}</td>
-      <td>${escHtml(row.crossing_number)}</td>
-      <td>${escHtml(row.track)}</td>
-      <td>${escHtml(row.type)}</td>
-      <td>${escHtml(row.completed)}</td>
-      <td>${escHtml(row.asphalted)}</td>
-      <td>${escHtml(row.planned_footage)}</td>
-      <td>${escHtml(row.road_name)}</td>
-      <td>${escHtml(row.completed_by)}</td>
-      <td>${escHtml(row.date_completed)}</td>
-      <td>${escHtml(row.helped)}</td>
-    `;
-
-    crossingsTableBody.appendChild(tr);
-  });
-}
 
 function renderLookupTable(rows) {
   crossingsTableHead.innerHTML = `
