@@ -43,7 +43,21 @@
     </table>
   </div>
 
+  <!-- Paywall Modal -->
+  <div id="paywallModal" class="paywall-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
+    <div class="paywall-content">
+      <button id="paywallCloseBtn" class="paywall-close-btn" aria-label="Close">&times;</button>
+      <h2 id="paywallTitle">Railroad Crossings Pro</h2>
+      <p class="paywall-description">Unlock full crossing details including location, milepost, city, road name and more.</p>
+      <div class="paywall-price">$2.99 / month</div>
+      <button id="paywallSubscribeBtn" class="paywall-subscribe-btn">Subscribe</button>
+      <button id="paywallRestoreBtn" class="paywall-restore-btn">Restore Purchases</button>
+      <div id="paywallStatus" class="paywall-status"></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@latest/dist/purchases.min.js"></script>
   <script src="app.js"></script>
 
  

@@ -156,3 +156,166 @@ input[type="text"]:focus {
   line-height: 1;
   margin-left: 8px;
 }
+
+/* =========================================================
+   Paywall Modal
+   ========================================================= */
+.paywall-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.paywall-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px 24px;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.paywall-content h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  color: #222;
+}
+
+.paywall-description {
+  font-size: 15px;
+  color: #555;
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.paywall-price {
+  font-size: 28px;
+  font-weight: bold;
+  color: #0078d4;
+  margin-bottom: 20px;
+}
+
+.paywall-subscribe-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  font-size: 17px;
+  font-weight: bold;
+  background-color: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background-color 0.15s;
+}
+
+.paywall-subscribe-btn:hover {
+  background-color: #005fa3;
+}
+
+.paywall-subscribe-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.paywall-restore-btn {
+  display: block;
+  width: 100%;
+  padding: 11px;
+  font-size: 15px;
+  background: transparent;
+  color: #0078d4;
+  border: 1px solid #0078d4;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 0;
+  transition: background-color 0.15s;
+}
+
+.paywall-restore-btn:hover {
+  background-color: #e8f4fd;
+}
+
+.paywall-restore-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.paywall-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+}
+
+.paywall-close-btn:hover {
+  color: #333;
+}
+
+.paywall-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #c0392b;
+  min-height: 18px;
+}
+
+/* =========================================================
+   Subscribe Banner (shown below table for free users)
+   ========================================================= */
+.subscribe-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background-color: #e8f4fd;
+  border: 1px solid #0078d4;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 14px;
+  font-size: 15px;
+  color: #333;
+  flex-wrap: wrap;
+}
+
+.subscribe-banner-btn {
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s;
+}
+
+.subscribe-banner-btn:hover {
+  background-color: #005fa3;
+}
+
+/* Locked column headers and cells */
+.locked-col {
+  color: #888;
+  font-style: italic;
+}
+
+.locked-cell {
+  color: #bbb;
+  text-align: center;
+}

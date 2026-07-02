@@ -64,6 +64,120 @@ async function incrementVisitCount() {
 incrementVisitCount();
 
 // ---------------------------------------------------------
+// 1b. RevenueCat Setup
+// ---------------------------------------------------------
+const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
+const RC_ENTITLEMENT = "Railroad Crossings Pro";
+
+let isPro = false;
+
+async function initRevenueCat() {
+  try {
+    let userId = localStorage.getItem("rc_user_id");
+    if (!userId) {
+      userId = crypto.randomUUID();
+      localStorage.setItem("rc_user_id", userId);
+    }
+    Purchases.configure(RC_API_KEY, userId);
+    await checkEntitlements();
+  } catch (e) {
+    console.error("RevenueCat init error:", e);
+  }
+}
+
+async function checkEntitlements() {
+  try {
+    const customerInfo = await Purchases.getSharedInstance().getCustomerInfo();
+    isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
+  } catch (e) {
+    console.error("Error checking entitlements:", e);
+    isPro = false;
+  }
+}
+
+initRevenueCat();
+
+// ---------------------------------------------------------
+// 1c. Paywall Modal Logic
+// ---------------------------------------------------------
+const paywallModal = document.getElementById("paywallModal");
+const paywallCloseBtn = document.getElementById("paywallCloseBtn");
+const paywallSubscribeBtn = document.getElementById("paywallSubscribeBtn");
+const paywallRestoreBtn = document.getElementById("paywallRestoreBtn");
+const paywallStatus = document.getElementById("paywallStatus");
+
+function openPaywall() {
+  paywallModal.style.display = "flex";
+  paywallStatus.textContent = "";
+}
+
+function closePaywall() {
+  paywallModal.style.display = "none";
+}
+
+paywallCloseBtn.addEventListener("click", closePaywall);
+
+paywallModal.addEventListener("click", (e) => {
+  if (e.target === paywallModal) closePaywall();
+});
+
+paywallSubscribeBtn.addEventListener("click", async () => {
+  paywallStatus.textContent = "Loading…";
+  paywallSubscribeBtn.disabled = true;
+  try {
+    const offerings = await Purchases.getSharedInstance().getOfferings();
+    const pkg =
+      offerings.current?.availablePackages.find(
+        (p) => p.rcBillingProduct?.identifier === "com.railroadcrossings.monthly"
+      ) || offerings.current?.availablePackages[0];
+
+    if (!pkg) {
+      paywallStatus.textContent = "No subscription package found.";
+      paywallSubscribeBtn.disabled = false;
+      return;
+    }
+
+    const { customerInfo } = await Purchases.getSharedInstance().purchasePackage(pkg);
+    isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
+    if (isPro) {
+      closePaywall();
+      if (lookupCrossingsCache.length > 0) renderLookupTable(lookupCrossingsCache);
+    } else {
+      paywallStatus.textContent = "Purchase complete but entitlement not found. Please restore purchases.";
+    }
+  } catch (e) {
+    if (e.code !== "PURCHASE_CANCELLED") {
+      console.error("Purchase error:", e);
+      paywallStatus.textContent = "Purchase failed. Please try again.";
+    } else {
+      paywallStatus.textContent = "";
+    }
+  } finally {
+    paywallSubscribeBtn.disabled = false;
+  }
+});
+
+paywallRestoreBtn.addEventListener("click", async () => {
+  paywallStatus.textContent = "Restoring…";
+  paywallRestoreBtn.disabled = true;
+  try {
+    const customerInfo = await Purchases.getSharedInstance().restorePurchases();
+    isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
+    if (isPro) {
+      closePaywall();
+      if (lookupCrossingsCache.length > 0) renderLookupTable(lookupCrossingsCache);
+    } else {
+      paywallStatus.textContent = "No active subscription found.";
+    }
+  } catch (e) {
+    console.error("Restore error:", e);
+    paywallStatus.textContent = "Restore failed. Please try again.";
+  } finally {
+    paywallRestoreBtn.disabled = false;
+  }
+});
+
+// ---------------------------------------------------------
 // 2. DOM Elements (new UI)
 // ---------------------------------------------------------
 const dotSearch = document.getElementById("dotSearch");
@@ -215,22 +329,9 @@ dotSearchBtn.addEventListener("click", async () => {
 // ---------------------------------------------------------
 
 function renderLookupTable(rows) {
-  crossingsTableHead.innerHTML = `
-    <tr>
-      <th>Map</th>
-      <th>DOT #</th>
-      <th>Milepost</th>
-      <th>City</th>
-      <th>Road Name</th>
-      <th>State</th>
-      <th>Subdivision</th>
-      <th>Planned Footage</th>
-      <th>Latitude</th>
-      <th>Longitude</th>
-    </tr>
-  `;
-
-  crossingsTableBody.innerHTML = "";
+  // Remove any existing subscribe banner
+  const existingBanner = document.getElementById("subscribeBanner");
+  if (existingBanner) existingBanner.remove();
 
   rows.sort((a, b) => {
     const mpA = parseFloat(a.mile_post_num ?? a.mile_post ?? a["mile-post"]);
@@ -239,22 +340,80 @@ function renderLookupTable(rows) {
            (isNaN(mpB) ? Number.POSITIVE_INFINITY : mpB);
   });
 
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-      <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
-      <td>${escHtml(row["mile_post_num"] ?? row["mile_post"] ?? row["mile-post"] ?? "")}</td>
-      <td>${escHtml(row.city || "")}</td>
-      <td>${escHtml(row.road_name || "")}</td>
-      <td>${escHtml(row.state || "")}</td>
-      <td>${escHtml(row.subdivision || "")}</td>
-      <td>${escHtml(row.planned_footage || "")}</td>
-      <td>${escHtml(row.latitude || "")}</td>
-      <td>${escHtml(row.longitude || "")}</td>
+  if (isPro) {
+    crossingsTableHead.innerHTML = `
+      <tr>
+        <th>Map</th>
+        <th>DOT #</th>
+        <th>Milepost</th>
+        <th>City</th>
+        <th>Road Name</th>
+        <th>State</th>
+        <th>Subdivision</th>
+        <th>Planned Footage</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+      </tr>
     `;
 
-    crossingsTableBody.appendChild(tr);
-  });
+    crossingsTableBody.innerHTML = "";
+
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
+        <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
+        <td>${escHtml(row["mile_post_num"] ?? row["mile_post"] ?? row["mile-post"] ?? "")}</td>
+        <td>${escHtml(row.city || "")}</td>
+        <td>${escHtml(row.road_name || "")}</td>
+        <td>${escHtml(row.state || "")}</td>
+        <td>${escHtml(row.subdivision || "")}</td>
+        <td>${escHtml(row.planned_footage || "")}</td>
+        <td>${escHtml(row.latitude || "")}</td>
+        <td>${escHtml(row.longitude || "")}</td>
+      `;
+
+      crossingsTableBody.appendChild(tr);
+    });
+  } else {
+    crossingsTableHead.innerHTML = `
+      <tr>
+        <th>DOT #</th>
+        <th class="locked-col">🔒 Milepost</th>
+        <th class="locked-col">🔒 City</th>
+        <th class="locked-col">🔒 Road Name</th>
+        <th class="locked-col">🔒 State</th>
+        <th class="locked-col">🔒 Subdivision</th>
+        <th class="locked-col">🔒 Map &amp; More</th>
+      </tr>
+    `;
+
+    crossingsTableBody.innerHTML = "";
+
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
+        <td class="locked-cell">—</td>
+        <td class="locked-cell">—</td>
+        <td class="locked-cell">—</td>
+        <td class="locked-cell">—</td>
+        <td class="locked-cell">—</td>
+        <td class="locked-cell">—</td>
+      `;
+
+      crossingsTableBody.appendChild(tr);
+    });
+
+    const banner = document.createElement("div");
+    banner.id = "subscribeBanner";
+    banner.className = "subscribe-banner";
+    banner.innerHTML = `🔒 Subscribe to see full details <button class="subscribe-banner-btn" id="openPaywallBtn">Subscribe Now</button>`;
+    document.getElementById("tableContainer").appendChild(banner);
+
+    document.getElementById("openPaywallBtn").addEventListener("click", openPaywall);
+  }
 }
+
