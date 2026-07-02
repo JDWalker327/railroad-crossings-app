@@ -68,6 +68,7 @@ incrementVisitCount();
 // ---------------------------------------------------------
 const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
 const RC_ENTITLEMENT = "Railroad Crossings Pro";
+const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
 
 let isPro = false;
 
@@ -128,7 +129,7 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     const offerings = await Purchases.getSharedInstance().getOfferings();
     const pkg =
       offerings.current?.availablePackages.find(
-        (p) => p.rcBillingProduct?.identifier === "com.railroadcrossings.monthly"
+      (p) => p.rcBillingProduct?.identifier === RC_PRODUCT_ID
       ) || offerings.current?.availablePackages[0];
 
     if (!pkg) {
@@ -413,7 +414,7 @@ function renderLookupTable(rows) {
     banner.innerHTML = `🔒 Subscribe to see full details <button class="subscribe-banner-btn" id="openPaywallBtn">Subscribe Now</button>`;
     document.getElementById("tableContainer").appendChild(banner);
 
-    document.getElementById("openPaywallBtn").addEventListener("click", openPaywall);
+    document.getElementById("openPaywallBtn").onclick = openPaywall;
   }
 }
 
