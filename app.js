@@ -58,7 +58,8 @@ const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
 const RC_ENTITLEMENT = "Railroad Crossings Pro";
 const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
 
-let isPro = false;
+// TEMP: testing branch paywall bypass
+let isPro = true;
 
 async function initRevenueCat() {
   try {
