@@ -424,11 +424,8 @@ async function searchLookupSubdivisions() {
 
   if (q.length < 2) return;
 
-  // UP keeps crossings_verified, all others use railroads
-  const lookupTable =
-    activeRailroadFilter.type === "classI" && activeRailroadFilter.key === "up"
-      ? "crossings_verified"
-      : "railroads";
+  // Use railroads for all class I railroads, including UP
+  const lookupTable = "railroads";
 
   let query = supabaseClient
     .schema("public")
@@ -520,11 +517,8 @@ async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
   activeMode = "lookup";
 
-  // UP keeps crossings_verified, all others use railroads
-  const lookupTable =
-    activeRailroadFilter.type === "classI" && activeRailroadFilter.key === "up"
-      ? "crossings_verified"
-      : "railroads";
+  // Use railroads for all class I railroads, including UP
+  const lookupTable = "railroads";
 
   let query = supabaseClient
     .schema("public")
@@ -560,11 +554,8 @@ dotSearchBtn.addEventListener("click", async () => {
   const dot = dotSearch.value.trim();
   if (!dot) return;
 
-  // UP keeps crossings_verified, all others use railroads
-  const lookupTable =
-    activeRailroadFilter.type === "classI" && activeRailroadFilter.key === "up"
-      ? "crossings_verified"
-      : "railroads";
+  // Use railroads for all class I railroads, including UP
+  const lookupTable = "railroads";
 
   let query = supabaseClient
     .schema("public")
