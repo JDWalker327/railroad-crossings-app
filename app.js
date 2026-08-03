@@ -167,6 +167,7 @@ const dotSearch = document.getElementById("dotSearch");
 const dotSearchBtn = document.getElementById("dotSearchBtn");
 const subdivisionSearch = document.getElementById("subdivisionSearch");
 const lookupResults = document.getElementById("lookupResults");
+const lookupDescription = document.getElementById("lookupDescription");
 const railroadStatus = document.getElementById("railroadStatus");
 const classITabs = document.getElementById("classITabs");
 const otherRailroadsSelect = document.getElementById("otherRailroadsSelect");
@@ -360,6 +361,17 @@ function setRailroadFilter(nextFilter) {
   if (nextFilter.type !== "other") {
     otherRailroadsSelect.value = "";
   }
+  // Update lookup description to reflect selected railroad
+  const railroadName = nextFilter.type === "all" ? "" : nextFilter.label;
+  lookupDescription.textContent = railroadName
+    ? `Search all ${railroadName} crossings by DOT number or subdivision.`
+    : "Search all crossings by DOT number or subdivision.";
+  // Clear stale subdivision selection and results when railroad changes
+  if (subdivisionSearch.value) {
+    subdivisionSearch.value = "";
+    lookupResults.innerHTML = "";
+    selectedLookup = null;
+  }
   renderRailroadTabs();
   renderOtherRailroadsOptions(railroadRowsCache);
   renderActiveResults();
@@ -411,13 +423,24 @@ async function searchLookupSubdivisions() {
 
   if (q.length < 2) return;
 
-  const { data, error } = await supabaseClient
+  let query = supabaseClient
     .schema("public")
     .from("crossings_verified")
-    .select("subdivision, state")
+    .select("subdivision, state, railroad_abreviation")
     .not("subdivision", "is", null)
     .ilike("subdivision", `%${q}%`)
     .limit(50);
+
+  if (activeRailroadFilter.type === "classI") {
+    const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
+    if (railroad && railroad.aliases.length > 0) {
+      query = query.in("railroad_abreviation", railroad.aliases);
+    }
+  } else if (activeRailroadFilter.type === "other") {
+    query = query.ilike("railroad_abreviation", activeRailroadFilter.key);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     lookupResults.innerHTML = `<div style="color:crimson;">${escHtml(error.message)}</div>`;
