@@ -393,6 +393,12 @@ input[type="text"]:focus {
   flex: 1 1 260px;
 }
 
+#letterSelect {
+  flex: 0 0 auto;
+  width: 80px;
+  min-width: 70px;
+}
+
 .filter-status {
   margin-top: 12px;
   min-height: 20px;

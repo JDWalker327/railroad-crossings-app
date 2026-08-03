@@ -171,6 +171,7 @@ const lookupResults = document.getElementById("lookupResults");
 const lookupDescription = document.getElementById("lookupDescription");
 const railroadStatus = document.getElementById("railroadStatus");
 const classITabs = document.getElementById("classITabs");
+const letterSelect = document.getElementById("letterSelect");
 const otherRailroadsSelect = document.getElementById("otherRailroadsSelect");
 const clearRailroadFilterBtn = document.getElementById("clearRailroadFilterBtn");
 
@@ -292,38 +293,80 @@ function renderRailroadTabs() {
   });
 }
 
-function buildOtherRailroadsOptions(rows) {
-  const seen = new Map();
-
-  rows.forEach((row) => {
-    const metadata = getRailroadFilterMetadata(row);
-    if (metadata.filterType !== "other") return;
-    const optionKey = metadata.normalized || normalizeRailroadName(metadata.displayName) || metadata.displayName;
-    if (!optionKey || seen.has(optionKey)) return;
-    seen.set(optionKey, metadata.displayName);
+function renderLetterDropdown() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  letterSelect.innerHTML = '<option value="">Browse by letter…</option>';
+  letters.forEach((letter) => {
+    const opt = document.createElement("option");
+    opt.value = letter;
+    opt.textContent = letter;
+    letterSelect.appendChild(opt);
   });
-
-  return [...seen.entries()]
-    .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function renderOtherRailroadsOptions(rows) {
-  const options = buildOtherRailroadsOptions(rows);
-  otherRailroadsSelect.innerHTML = '<option value="">Other Railroads</option>';
+async function loadRailroadsForLetter(letter) {
+  otherRailroadsSelect.innerHTML = '<option value="">Loading…</option>';
+  otherRailroadsSelect.disabled = true;
 
-  options.forEach((option) => {
-    const element = document.createElement("option");
-    element.value = option.value;
-    element.textContent = option.label;
-    if (activeRailroadFilter.type === "other" && activeRailroadFilter.key === option.value) {
-      element.selected = true;
+  const { data, error } = await supabaseClient
+    .schema("public")
+    .from("railroads")
+    .select("railroad, railroad_abreviation")
+    .ilike("railroad", `${letter}%`)
+    .order("railroad", { ascending: true })
+    .limit(1000);
+
+  if (error) {
+    console.error(error);
+    otherRailroadsSelect.innerHTML = '<option value="">Error loading railroads</option>';
+    return;
+  }
+
+  const seen = new Map();
+  (data || []).forEach((row) => {
+    const metadata = getRailroadFilterMetadata(row);
+    if (metadata.filterType !== "other") return;
+    const key = metadata.normalized || normalizeRailroadName(metadata.displayName) || metadata.displayName;
+    if (!key || seen.has(key)) return;
+    seen.set(key, metadata.displayName);
+  });
+
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
+  options.forEach(({ value, label }) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    if (activeRailroadFilter.type === "other" && activeRailroadFilter.key === value) {
+      opt.selected = true;
     }
-    otherRailroadsSelect.appendChild(element);
+    otherRailroadsSelect.appendChild(opt);
   });
 
   otherRailroadsSelect.disabled = options.length === 0;
 }
+
+letterSelect.addEventListener("change", () => {
+  const letter = letterSelect.value;
+  otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
+  otherRailroadsSelect.disabled = true;
+  if (!letter) return;
+  loadRailroadsForLetter(letter);
+});
+
+otherRailroadsSelect.addEventListener("change", () => {
+  const value = otherRailroadsSelect.value;
+  if (!value) {
+    setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
+    return;
+  }
+
+  const label = otherRailroadsSelect.options[otherRailroadsSelect.selectedIndex]?.textContent || "Other Railroad";
+  setRailroadFilter({ type: "other", key: value, label });
+});
 
 function filterRailroadRows(rows) {
   if (activeRailroadFilter.key === "all") return rows;
@@ -360,7 +403,9 @@ function setRailroadFilter(nextFilter) {
   activeMode = "railroads";
   activeRailroadFilter = nextFilter;
   if (nextFilter.type !== "other") {
-    otherRailroadsSelect.value = "";
+    letterSelect.value = "";
+    otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
+    otherRailroadsSelect.disabled = true;
   }
   // Update lookup description to reflect selected railroad
   const railroadName = nextFilter.type === "all" ? "" : nextFilter.label;
@@ -374,20 +419,8 @@ function setRailroadFilter(nextFilter) {
     selectedLookup = null;
   }
   renderRailroadTabs();
-  renderOtherRailroadsOptions(railroadRowsCache);
   renderActiveResults();
 }
-
-otherRailroadsSelect.addEventListener("change", () => {
-  const value = otherRailroadsSelect.value;
-  if (!value) {
-    setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
-    return;
-  }
-
-  const label = otherRailroadsSelect.options[otherRailroadsSelect.selectedIndex]?.textContent || "Other Railroad";
-  setRailroadFilter({ type: "other", key: value, label });
-});
 
 clearRailroadFilterBtn.addEventListener("click", () => {
   setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
@@ -411,7 +444,6 @@ async function loadRailroads() {
 
   railroadRowsCache = data || [];
   renderRailroadTabs();
-  renderOtherRailroadsOptions(railroadRowsCache);
   renderActiveResults();
 }
 
@@ -668,5 +700,5 @@ function renderLookupTable(rows, options = {}) {
 }
 
 renderRailroadTabs();
-renderOtherRailroadsOptions([]);
+renderLetterDropdown();
 loadRailroads();
