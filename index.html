@@ -11,28 +11,50 @@
   <h1>Railroad Crossings App</h1>
   <div id="rail1-tagline">A MJ Construction Application</div>
 
+  <section class="mode-panel railroad-browser-panel">
+    <div class="mode-panel-header">
+      <div>
+        <h2 class="mode-header">Browse Railroads</h2>
+        <p class="mode-description">
+          Filter nationwide railroad crossings by Class I railroad tabs or by selecting a non-Class-I carrier.
+        </p>
+      </div>
+    </div>
+
+    <div class="railroad-filter-toolbar">
+      <div id="classITabs" class="railroad-tabs" aria-label="Class I Railroad Filters"></div>
+      <div class="other-railroads-controls">
+        <select id="otherRailroadsSelect" aria-label="Other Railroads">
+          <option value="">Other Railroads</option>
+        </select>
+        <button id="clearRailroadFilterBtn" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div id="railroadStatus" class="filter-status" aria-live="polite"></div>
+  </section>
+
   <h2 class="mode-header">Lookup</h2>
   <p class="mode-description">
     Search all UP crossings by DOT number or subdivision.
   </p>
 
-<div class="mode-panel">
+  <div class="mode-panel">
+    <p class="lookup-hint">
+      💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
+      <strong>Search by Subdivision</strong> — start typing a name, then <strong>tap a result</strong> from the list to load its crossings.
+    </p>
 
-  <p class="lookup-hint">
-    💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
-    <strong>Search by Subdivision</strong> — start typing a name, then <strong>tap a result</strong> from the list to load its crossings.
-  </p>
+    <label>DOT #:</label>
+    <input id="dotSearch" type="text" placeholder="e.g. 123456A">
 
-  <label>DOT #:</label>
-  <input id="dotSearch" type="text" placeholder="e.g. 123456A">
+    <label style="margin-top:10px;">Subdivision search:</label>
+    <input id="subdivisionSearch" type="text" placeholder="e.g. Cheyenne">
 
-  <label style="margin-top:10px;">Subdivision search:</label>
-  <input id="subdivisionSearch" type="text" placeholder="e.g. Cheyenne">
+    <div id="lookupResults" style="margin-top:10px;"></div>
 
-  <div id="lookupResults" style="margin-top:10px;"></div>
-
-  <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
-</div>
+    <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
+  </div>
 
   <div id="status"></div>
 
@@ -43,7 +65,6 @@
     </table>
   </div>
 
-  <!-- Paywall Modal -->
   <div id="paywallModal" class="paywall-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
     <div class="paywall-content">
       <button id="paywallCloseBtn" class="paywall-close-btn" aria-label="Close">&times;</button>
@@ -60,7 +81,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.47.0/dist/purchases.min.js"></script>
   <script src="app.js"></script>
 
- 
   <footer style="text-align:center; margin-top:20px;">
     <p>&copy; 2026 MJ Construction. All rights reserved.</p>
   </footer>

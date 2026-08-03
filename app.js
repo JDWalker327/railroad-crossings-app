@@ -1,8 +1,5 @@
 console.log("app start");
 
-// ---------------------------------------------------------
-// 0. HTML-escaping helper (prevents XSS via innerHTML)
-// ---------------------------------------------------------
 function escHtml(val) {
   if (val == null) return "";
   return String(val)
@@ -13,9 +10,6 @@ function escHtml(val) {
     .replace(/'/g, "&#39;");
 }
 
-// ---------------------------------------------------------
-// 0b. Map helpers
-// ---------------------------------------------------------
 function hasLatLon(lat, lon) {
   return (
     lat != null &&
@@ -48,9 +42,6 @@ function mapLinkHtml(lat, lon) {
   `;
 }
 
-// ---------------------------------------------------------
-// 1. Initialize Supabase Client
-// ---------------------------------------------------------
 const supabaseClient = supabase.createClient(
   "https://hbesqtcjkcjmzowhgowe.supabase.co",
   "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
@@ -63,9 +54,6 @@ async function incrementVisitCount() {
 }
 incrementVisitCount();
 
-// ---------------------------------------------------------
-// 1b. RevenueCat Setup
-// ---------------------------------------------------------
 const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
 const RC_ENTITLEMENT = "Railroad Crossings Pro";
 const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
@@ -98,9 +86,6 @@ async function checkEntitlements() {
 
 initRevenueCat();
 
-// ---------------------------------------------------------
-// 1c. Paywall Modal Logic
-// ---------------------------------------------------------
 const paywallModal = document.getElementById("paywallModal");
 const paywallCloseBtn = document.getElementById("paywallCloseBtn");
 const paywallSubscribeBtn = document.getElementById("paywallSubscribeBtn");
@@ -129,7 +114,7 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     const offerings = await Purchases.getSharedInstance().getOfferings();
     const pkg =
       offerings.current?.availablePackages.find(
-      (p) => p.rcBillingProduct?.identifier === RC_PRODUCT_ID
+        (p) => p.rcBillingProduct?.identifier === RC_PRODUCT_ID
       ) || offerings.current?.availablePackages[0];
 
     if (!pkg) {
@@ -142,7 +127,7 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
     if (isPro) {
       closePaywall();
-      if (lookupCrossingsCache.length > 0) renderLookupTable(lookupCrossingsCache);
+      renderActiveResults();
     } else {
       paywallStatus.textContent = "Purchase complete but entitlement not found. Please restore purchases.";
     }
@@ -166,7 +151,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
     isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
     if (isPro) {
       closePaywall();
-      if (lookupCrossingsCache.length > 0) renderLookupTable(lookupCrossingsCache);
+      renderActiveResults();
     } else {
       paywallStatus.textContent = "No active subscription found.";
     }
@@ -178,23 +163,40 @@ paywallRestoreBtn.addEventListener("click", async () => {
   }
 });
 
-// ---------------------------------------------------------
-// 2. DOM Elements (new UI)
-// ---------------------------------------------------------
 const dotSearch = document.getElementById("dotSearch");
 const dotSearchBtn = document.getElementById("dotSearchBtn");
 const subdivisionSearch = document.getElementById("subdivisionSearch");
 const lookupResults = document.getElementById("lookupResults");
+const railroadStatus = document.getElementById("railroadStatus");
+const classITabs = document.getElementById("classITabs");
+const otherRailroadsSelect = document.getElementById("otherRailroadsSelect");
+const clearRailroadFilterBtn = document.getElementById("clearRailroadFilterBtn");
 
 const crossingsTableHead = document.getElementById("crossingsTableHead");
 const crossingsTableBody = document.getElementById("crossingsTableBody");
 
-// ---------------------------------------------------------
-// 3. LOOKUP MODE (DOT or Subdivision search)
-// ---------------------------------------------------------
+const CLASS_I_RAILROADS = [
+  { key: "bnsf", label: "BNSF", aliases: ["BNSF", "BNSF RAILWAY", "BNSF RAILWAY COMPANY"] },
+  { key: "cn", label: "CN", aliases: ["CN", "CANADIAN NATIONAL", "CANADIAN NATIONAL RAILWAY"] },
+  { key: "cpkc", label: "CPKC", aliases: ["CPKC", "CANADIAN PACIFIC KANSAS CITY", "KANSAS CITY SOUTHERN", "KCS"] },
+  { key: "csx", label: "CSX", aliases: ["CSX", "CSX TRANSPORTATION", "CSXT"] },
+  { key: "ns", label: "NS", aliases: ["NS", "NORFOLK SOUTHERN", "NORFOLK SOUTHERN RAILWAY"] },
+  { key: "up", label: "Union Pacific", aliases: ["UP", "UNION PACIFIC", "UNION PACIFIC RAILROAD"] }
+];
+
+const CLASS_I_ALIAS_TO_KEY = new Map();
+CLASS_I_RAILROADS.forEach((item) => {
+  item.aliases.forEach((alias) => {
+    CLASS_I_ALIAS_TO_KEY.set(alias, item.key);
+  });
+});
+
 let selectedLookup = null;
 let lookupCrossingsCache = [];
 let lookupSearchTimer = null;
+let railroadRowsCache = [];
+let activeMode = "lookup";
+let activeRailroadFilter = { type: "all", key: "all", label: "All Railroads" };
 
 subdivisionSearch.addEventListener("input", () => {
   clearTimeout(lookupSearchTimer);
@@ -203,14 +205,205 @@ subdivisionSearch.addEventListener("input", () => {
   }, 300);
 });
 
+function normalizeRailroadName(value) {
+  const normalized = String(value || "")
+    .toUpperCase()
+    .replace(/&/g, " AND ")
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  return normalized;
+}
+
+function getRailroadFilterMetadata(row) {
+  const candidates = [row.railroad_abreviation, row.railroad];
+  for (const candidate of candidates) {
+    const normalized = normalizeRailroadName(candidate);
+    if (!normalized) continue;
+    const classIKey = CLASS_I_ALIAS_TO_KEY.get(normalized);
+    if (classIKey) {
+      const classI = CLASS_I_RAILROADS.find((item) => item.key === classIKey);
+      return {
+        normalized,
+        classIKey,
+        filterType: "classI",
+        displayName: classI ? classI.label : candidate
+      };
+    }
+  }
+
+  const displayName = String(row.railroad || row.railroad_abreviation || "Unknown Railroad").trim() || "Unknown Railroad";
+  return {
+    normalized: normalizeRailroadName(displayName),
+    classIKey: null,
+    filterType: "other",
+    displayName
+  };
+}
+
+function sortRowsByMilepost(rows) {
+  return [...rows].sort((a, b) => {
+    const mpA = parseFloat(a.mile_post_num ?? a.mile_post ?? a["mile-post"]);
+    const mpB = parseFloat(b.mile_post_num ?? b.mile_post ?? b["mile-post"]);
+    return (isNaN(mpA) ? Number.POSITIVE_INFINITY : mpA) -
+           (isNaN(mpB) ? Number.POSITIVE_INFINITY : mpB);
+  });
+}
+
 function clearLookupUI() {
   selectedLookup = null;
   lookupCrossingsCache = [];
   lookupResults.innerHTML = "";
-  crossingsTableBody.innerHTML = "";
+  if (activeMode === "lookup") {
+    crossingsTableBody.innerHTML = "";
+    crossingsTableHead.innerHTML = "";
+  }
+}
+
+function setRailroadStatus(message, isError = false) {
+  railroadStatus.textContent = message || "";
+  railroadStatus.classList.toggle("error-text", isError);
+}
+
+function renderRailroadTabs() {
+  classITabs.innerHTML = "";
+
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = "railroad-filter-btn";
+  if (activeRailroadFilter.key === "all") allBtn.classList.add("is-active");
+  allBtn.textContent = "All Railroads";
+  allBtn.onclick = () => setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
+  classITabs.appendChild(allBtn);
+
+  CLASS_I_RAILROADS.forEach((railroad) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "railroad-filter-btn";
+    if (activeRailroadFilter.type === "classI" && activeRailroadFilter.key === railroad.key) {
+      btn.classList.add("is-active");
+    }
+    btn.textContent = railroad.label;
+    btn.onclick = () => setRailroadFilter({ type: "classI", key: railroad.key, label: railroad.label });
+    classITabs.appendChild(btn);
+  });
+}
+
+function buildOtherRailroadsOptions(rows) {
+  const seen = new Map();
+
+  rows.forEach((row) => {
+    const metadata = getRailroadFilterMetadata(row);
+    if (metadata.filterType !== "other") return;
+    const optionKey = metadata.normalized || normalizeRailroadName(metadata.displayName) || metadata.displayName;
+    if (!optionKey || seen.has(optionKey)) return;
+    seen.set(optionKey, metadata.displayName);
+  });
+
+  return [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function renderOtherRailroadsOptions(rows) {
+  const options = buildOtherRailroadsOptions(rows);
+  otherRailroadsSelect.innerHTML = '<option value="">Other Railroads</option>';
+
+  options.forEach((option) => {
+    const element = document.createElement("option");
+    element.value = option.value;
+    element.textContent = option.label;
+    if (activeRailroadFilter.type === "other" && activeRailroadFilter.key === option.value) {
+      element.selected = true;
+    }
+    otherRailroadsSelect.appendChild(element);
+  });
+
+  otherRailroadsSelect.disabled = options.length === 0;
+}
+
+function filterRailroadRows(rows) {
+  if (activeRailroadFilter.key === "all") return rows;
+
+  return rows.filter((row) => {
+    const metadata = getRailroadFilterMetadata(row);
+    if (activeRailroadFilter.type === "classI") {
+      return metadata.classIKey === activeRailroadFilter.key;
+    }
+    if (activeRailroadFilter.type === "other") {
+      return metadata.filterType === "other" && metadata.normalized === activeRailroadFilter.key;
+    }
+    return true;
+  });
+}
+
+function renderRailroadTable(rows) {
+  renderLookupTable(rows, { isRailroadMode: true });
+}
+
+function renderActiveResults() {
+  if (activeMode === "railroads") {
+    const filteredRows = filterRailroadRows(railroadRowsCache);
+    renderRailroadTable(filteredRows);
+    const countLabel = filteredRows.length === 1 ? "crossing" : "crossings";
+    setRailroadStatus(`${activeRailroadFilter.label}: ${filteredRows.length} ${countLabel}`);
+    return;
+  }
+
+  renderLookupTable(lookupCrossingsCache);
+}
+
+function setRailroadFilter(nextFilter) {
+  activeMode = "railroads";
+  activeRailroadFilter = nextFilter;
+  if (nextFilter.type !== "other") {
+    otherRailroadsSelect.value = "";
+  }
+  renderRailroadTabs();
+  renderOtherRailroadsOptions(railroadRowsCache);
+  renderActiveResults();
+}
+
+otherRailroadsSelect.addEventListener("change", () => {
+  const value = otherRailroadsSelect.value;
+  if (!value) {
+    setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
+    return;
+  }
+
+  const label = otherRailroadsSelect.options[otherRailroadsSelect.selectedIndex]?.textContent || "Other Railroad";
+  setRailroadFilter({ type: "other", key: value, label });
+});
+
+clearRailroadFilterBtn.addEventListener("click", () => {
+  setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
+});
+
+async function loadRailroads() {
+  setRailroadStatus("Loading railroads…");
+
+  const { data, error } = await supabaseClient
+    .schema("public")
+    .from("railroads")
+    .select("dot_number, railroad, railroad_abreviation, subdivision, road_name, city, state, mile_post_num, type, latitude, longitude")
+    .order("railroad", { ascending: true })
+    .limit(10000);
+
+  if (error) {
+    console.error(error);
+    setRailroadStatus(error.message, true);
+    return;
+  }
+
+  railroadRowsCache = data || [];
+  renderRailroadTabs();
+  renderOtherRailroadsOptions(railroadRowsCache);
+  renderActiveResults();
 }
 
 async function searchLookupSubdivisions() {
+  activeMode = "lookup";
   const q = (subdivisionSearch.value || "").trim();
 
   lookupResults.innerHTML = "";
@@ -242,10 +435,7 @@ async function searchLookupSubdivisions() {
     if (!subdivision || seen.has(key)) return;
 
     seen.add(key);
-    rows.push({
-      subdivision,
-      state,
-    });
+    rows.push({ subdivision, state });
   });
 
   rows.sort((a, b) => {
@@ -286,6 +476,7 @@ async function searchLookupSubdivisions() {
 
 async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
+  activeMode = "lookup";
 
   const { data, error } = await supabaseClient
     .schema("public")
@@ -301,13 +492,11 @@ async function loadLookupCrossingsForSubdivision() {
 
   lookupCrossingsCache = data || [];
   lookupResults.innerHTML = `<div style="opacity:0.8;"><strong>${escHtml(selectedLookup.subdivision)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`;
-  renderLookupTable(lookupCrossingsCache);
+  renderActiveResults();
 }
 
-// ---------------------------------------------------------
-// 4. DOT Lookup
-// ---------------------------------------------------------
 dotSearchBtn.addEventListener("click", async () => {
+  activeMode = "lookup";
   const dot = dotSearch.value.trim();
   if (!dot) return;
 
@@ -322,36 +511,27 @@ dotSearchBtn.addEventListener("click", async () => {
     return;
   }
 
-  renderLookupTable(data || []);
+  lookupCrossingsCache = data || [];
+  renderActiveResults();
 });
 
-// ---------------------------------------------------------
-// 5. TABLE RENDERING
-// ---------------------------------------------------------
-
-function renderLookupTable(rows) {
-  // Remove any existing subscribe banner
+function renderLookupTable(rows, options = {}) {
+  const { isRailroadMode = false } = options;
   const existingBanner = document.getElementById("subscribeBanner");
   if (existingBanner) existingBanner.remove();
 
-  rows.sort((a, b) => {
-    const mpA = parseFloat(a.mile_post_num ?? a.mile_post ?? a["mile-post"]);
-    const mpB = parseFloat(b.mile_post_num ?? b.mile_post ?? b["mile-post"]);
-    return (isNaN(mpA) ? Number.POSITIVE_INFINITY : mpA) -
-           (isNaN(mpB) ? Number.POSITIVE_INFINITY : mpB);
-  });
+  const sortedRows = sortRowsByMilepost(rows || []);
 
-  if (isPro) {
+  if (isRailroadMode || isPro) {
     crossingsTableHead.innerHTML = `
       <tr>
         <th>Map</th>
-        <th>DOT #</th>
+        <th>DOT#</th>
         <th>Milepost</th>
         <th>City</th>
-        <th>Road Name</th>
         <th>State</th>
+        <th>Road Name</th>
         <th>Subdivision</th>
-        <th>Planned Footage</th>
         <th>Latitude</th>
         <th>Longitude</th>
       </tr>
@@ -359,62 +539,65 @@ function renderLookupTable(rows) {
 
     crossingsTableBody.innerHTML = "";
 
-    rows.forEach((row) => {
+    sortedRows.forEach((row) => {
       const tr = document.createElement("tr");
-
       tr.innerHTML = `
         <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
-        <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
-        <td>${escHtml(row["mile_post_num"] ?? row["mile_post"] ?? row["mile-post"] ?? "")}</td>
+        <td>${escHtml(row.dot_number ?? row["dot-number"] ?? "")}</td>
+        <td>${escHtml(row.mile_post_num ?? row.mile_post ?? row["mile-post"] ?? "")}</td>
         <td>${escHtml(row.city || "")}</td>
-        <td>${escHtml(row.road_name || "")}</td>
         <td>${escHtml(row.state || "")}</td>
+        <td>${escHtml(row.road_name || "")}</td>
         <td>${escHtml(row.subdivision || "")}</td>
-        <td>${escHtml(row.planned_footage || "")}</td>
         <td>${escHtml(row.latitude || "")}</td>
         <td>${escHtml(row.longitude || "")}</td>
       `;
-
-      crossingsTableBody.appendChild(tr);
-    });
-  } else {
-    crossingsTableHead.innerHTML = `
-      <tr>
-        <th>DOT #</th>
-        <th class="locked-col">🔒 Milepost</th>
-        <th class="locked-col">🔒 City</th>
-        <th class="locked-col">🔒 Road Name</th>
-        <th class="locked-col">🔒 State</th>
-        <th class="locked-col">🔒 Subdivision</th>
-        <th class="locked-col">🔒 Map &amp; More</th>
-      </tr>
-    `;
-
-    crossingsTableBody.innerHTML = "";
-
-    rows.forEach((row) => {
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${escHtml(row["dot_number"] ?? row["dot-number"] ?? "")}</td>
-        <td class="locked-cell">—</td>
-        <td class="locked-cell">—</td>
-        <td class="locked-cell">—</td>
-        <td class="locked-cell">—</td>
-        <td class="locked-cell">—</td>
-        <td class="locked-cell">—</td>
-      `;
-
       crossingsTableBody.appendChild(tr);
     });
 
-    const banner = document.createElement("div");
-    banner.id = "subscribeBanner";
-    banner.className = "subscribe-banner";
-    banner.innerHTML = `🔒 Subscribe to see full details <button class="subscribe-banner-btn" id="openPaywallBtn">Subscribe Now</button>`;
-    document.getElementById("tableContainer").appendChild(banner);
-
-    document.getElementById("openPaywallBtn").onclick = openPaywall;
+    if (!sortedRows.length) {
+      crossingsTableBody.innerHTML = '<tr><td colspan="9" class="empty-state-cell">No crossings found for this filter.</td></tr>';
+    }
+    return;
   }
+
+  crossingsTableHead.innerHTML = `
+    <tr>
+      <th>DOT #</th>
+      <th class="locked-col">🔒 Milepost</th>
+      <th class="locked-col">🔒 City</th>
+      <th class="locked-col">🔒 Road Name</th>
+      <th class="locked-col">🔒 State</th>
+      <th class="locked-col">🔒 Subdivision</th>
+      <th class="locked-col">🔒 Map &amp; More</th>
+    </tr>
+  `;
+
+  crossingsTableBody.innerHTML = "";
+
+  sortedRows.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escHtml(row.dot_number ?? row["dot-number"] ?? "")}</td>
+      <td class="locked-cell">—</td>
+      <td class="locked-cell">—</td>
+      <td class="locked-cell">—</td>
+      <td class="locked-cell">—</td>
+      <td class="locked-cell">—</td>
+      <td class="locked-cell">—</td>
+    `;
+    crossingsTableBody.appendChild(tr);
+  });
+
+  const banner = document.createElement("div");
+  banner.id = "subscribeBanner";
+  banner.className = "subscribe-banner";
+  banner.innerHTML = `🔒 Subscribe to see full details <button class="subscribe-banner-btn" id="openPaywallBtn">Subscribe Now</button>`;
+  document.getElementById("tableContainer").appendChild(banner);
+
+  document.getElementById("openPaywallBtn").onclick = openPaywall;
 }
 
+renderRailroadTabs();
+renderOtherRailroadsOptions([]);
+loadRailroads();
