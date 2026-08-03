@@ -423,10 +423,16 @@ async function searchLookupSubdivisions() {
 
   if (q.length < 2) return;
 
+  // UP keeps crossings_verified, all others use railroads
+  const lookupTable =
+    activeRailroadFilter.type === "classI" && activeRailroadFilter.key === "up"
+      ? "crossings_verified"
+      : "railroads";
+
   let query = supabaseClient
     .schema("public")
-    .from("crossings_verified")
-    .select("subdivision, state, railroad_abreviation")
+    .from(lookupTable)
+    .select("subdivision, state, railroad_abreviation, railroad")
     .not("subdivision", "is", null)
     .ilike("subdivision", `%${q}%`)
     .limit(50);
@@ -434,10 +440,22 @@ async function searchLookupSubdivisions() {
   if (activeRailroadFilter.type === "classI") {
     const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
     if (railroad && railroad.aliases.length > 0) {
-      query = query.in("railroad_abreviation", railroad.aliases);
+      // Match class-I aliases against abbreviation and full railroad name
+      const orParts = railroad.aliases.map((alias) => {
+        const safe = String(alias).replace(/,/g, " ");
+        return `railroad_abreviation.ilike.%${safe}%`;
+      });
+      const orParts2 = railroad.aliases.map((alias) => {
+        const safe = String(alias).replace(/,/g, " ");
+        return `railroad.ilike.%${safe}%`;
+      });
+      query = query.or([...orParts, ...orParts2].join(","));
     }
   } else if (activeRailroadFilter.type === "other") {
-    query = query.ilike("railroad_abreviation", activeRailroadFilter.key);
+    // activeRailroadFilter.key is normalized display name for "other" railroads
+    const selectedOther = activeRailroadFilter.label || "";
+    const safe = String(selectedOther).replace(/,/g, " ");
+    query = query.or(`railroad.ilike.%${safe}%,railroad_abreviation.ilike.%${safe}%`);
   }
 
   const { data, error } = await query;
@@ -501,11 +519,29 @@ async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
   activeMode = "lookup";
 
-  const { data, error } = await supabaseClient
+  // UP keeps crossings_verified, all others use railroads
+  const lookupTable =
+    activeRailroadFilter.type === "classI" && activeRailroadFilter.key === "up"
+      ? "crossings_verified"
+      : "railroads";
+
+  let query = supabaseClient
     .schema("public")
-    .from("crossings_verified")
+    .from(lookupTable)
     .select("*")
     .eq("subdivision", selectedLookup.subdivision);
+
+  if (activeRailroadFilter.type === "classI") {
+    const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
+    if (railroad && railroad.aliases.length > 0) {
+      query = query.in("railroad_abreviation", railroad.aliases);
+    }
+  } else if (activeRailroadFilter.type === "other") {
+    const selectedOther = activeRailroadFilter.label || "";
+    query = query.ilike("railroad", `%${selectedOther}%`);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(error);
@@ -523,11 +559,29 @@ dotSearchBtn.addEventListener("click", async () => {
   const dot = dotSearch.value.trim();
   if (!dot) return;
 
-  const { data, error } = await supabaseClient
+  // UP keeps crossings_verified, all others use railroads
+  const lookupTable =
+    activeRailroadFilter.type === "classI" && activeRailroadFilter.key === "up"
+      ? "crossings_verified"
+      : "railroads";
+
+  let query = supabaseClient
     .schema("public")
-    .from("crossings_verified")
+    .from(lookupTable)
     .select("*")
     .ilike("dot_number", dot);
+
+  if (activeRailroadFilter.type === "classI") {
+    const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
+    if (railroad && railroad.aliases.length > 0) {
+      query = query.in("railroad_abreviation", railroad.aliases);
+    }
+  } else if (activeRailroadFilter.type === "other") {
+    const selectedOther = activeRailroadFilter.label || "";
+    query = query.ilike("railroad", `%${selectedOther}%`);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(error);
