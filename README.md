@@ -1,6 +1,6 @@
 # Railroad Crossings App
 
-A mobile-friendly dashboard for looking up Union Pacific railroad crossings, backed by [Supabase](https://supabase.com/).
+A mobile-friendly dashboard for browsing nationwide railroad crossings and looking up Union Pacific crossings, backed by [Supabase](https://supabase.com/).
 
 ## Viewing the App
 
@@ -98,6 +98,7 @@ app.js       – Supabase queries and DOM rendering
 
 ## Features
 
+- **Railroad browsing** – Browse `public.railroads` with Class I quick-filter tabs and an Other Railroads dropdown
 - **Lookup mode** – Search any UP crossing by DOT number or subdivision name
-- **Google Maps links** – DOT numbers link directly to the crossing location when lat/lon are available
+- **Google Maps links** – Open crossing coordinates directly in Google Maps when lat/lon are available
 - **Responsive design** – Usable on screens from 320 px wide up to large desktop displays
