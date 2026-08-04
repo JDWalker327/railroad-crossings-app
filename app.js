@@ -357,10 +357,9 @@ function filterRailroadRows(rows) {
       return metadata.classIKey === activeRailroadFilter.key;
     }
     if (activeRailroadFilter.type === "other") {
-      const selectedName = (activeRailroadFilter.key || "").toUpperCase();
-      const rowRailroad = String(row.railroad || "").toUpperCase();
-      const rowAbbrev = String(row.railroad_abreviation || "").toUpperCase();
-      return rowRailroad === selectedName || rowAbbrev === selectedName;
+      const selectedName = String(activeRailroadFilter.key || "").trim().toUpperCase();
+      const rowRailroad = String(row.railroad || "").trim().toUpperCase();
+      return rowRailroad === selectedName;
     }
     return true;
   });
