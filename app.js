@@ -171,7 +171,6 @@ const lookupResults = document.getElementById("lookupResults");
 const lookupDescription = document.getElementById("lookupDescription");
 const railroadStatus = document.getElementById("railroadStatus");
 const classITabs = document.getElementById("classITabs");
-const letterSelect = document.getElementById("letterSelect");
 const otherRailroadsSelect = document.getElementById("otherRailroadsSelect");
 const clearRailroadFilterBtn = document.getElementById("clearRailroadFilterBtn");
 
@@ -293,45 +292,32 @@ function renderRailroadTabs() {
   });
 }
 
-function renderLetterDropdown() {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-  letterSelect.innerHTML = '<option value="">Browse by letter…</option>';
-  letters.forEach((letter) => {
-    const opt = document.createElement("option");
-    opt.value = letter;
-    opt.textContent = letter;
-    letterSelect.appendChild(opt);
-  });
-}
-
-async function loadRailroadsForLetter(letter) {
-  otherRailroadsSelect.innerHTML = '<option value="">Loading…</option>';
+async function loadAllRailroadNames() {
+  otherRailroadsSelect.innerHTML = '<option value="">Loading railroads…</option>';
   otherRailroadsSelect.disabled = true;
 
   const { data, error } = await supabaseClient
     .schema("public")
-    .from("railroad_names")
-    .select("railroads")
-    .ilike("railroads", `${letter}%`)
-    .order("railroads", { ascending: true });
+    .from("railroads_names")
+    .select("railroad_name")
+    .order("railroad_name", { ascending: true });
 
   if (error) {
     console.error(error);
     otherRailroadsSelect.innerHTML = '<option value="">Error loading railroads</option>';
+    setRailroadStatus("Error loading railroad list.", true);
     return;
   }
 
   const options = [];
   (data || []).forEach((row) => {
-    const displayName = String(row.railroads || "").trim();
+    const displayName = String(row.railroad_name || "").trim();
     if (!displayName) return;
     const normalized = normalizeRailroadName(displayName);
     // Skip Class I railroads — they have their own tabs
     if (CLASS_I_ALIAS_TO_KEY.has(normalized)) return;
-    options.push({ value: normalized, label: displayName });
+    options.push({ value: displayName, label: displayName });
   });
-
-  options.sort((a, b) => a.label.localeCompare(b.label));
 
   otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
   options.forEach(({ value, label }) => {
@@ -346,14 +332,6 @@ async function loadRailroadsForLetter(letter) {
 
   otherRailroadsSelect.disabled = options.length === 0;
 }
-
-letterSelect.addEventListener("change", () => {
-  const letter = letterSelect.value;
-  otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
-  otherRailroadsSelect.disabled = true;
-  if (!letter) return;
-  loadRailroadsForLetter(letter);
-});
 
 otherRailroadsSelect.addEventListener("change", () => {
   const value = otherRailroadsSelect.value;
@@ -375,7 +353,10 @@ function filterRailroadRows(rows) {
       return metadata.classIKey === activeRailroadFilter.key;
     }
     if (activeRailroadFilter.type === "other") {
-      return metadata.filterType === "other" && metadata.normalized === activeRailroadFilter.key;
+      const selectedName = (activeRailroadFilter.key || "").toUpperCase();
+      const rowRailroad = String(row.railroad || "").toUpperCase();
+      const rowAbbrev = String(row.railroad_abreviation || "").toUpperCase();
+      return rowRailroad === selectedName || rowAbbrev === selectedName;
     }
     return true;
   });
@@ -401,9 +382,7 @@ function setRailroadFilter(nextFilter) {
   activeMode = "railroads";
   activeRailroadFilter = nextFilter;
   if (nextFilter.type !== "other") {
-    letterSelect.value = "";
-    otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
-    otherRailroadsSelect.disabled = true;
+    otherRailroadsSelect.value = "";
   }
   // Update lookup description to reflect selected railroad
   const railroadName = nextFilter.type === "all" ? "" : nextFilter.label;
@@ -698,5 +677,5 @@ function renderLookupTable(rows, options = {}) {
 }
 
 renderRailroadTabs();
-renderLetterDropdown();
+loadAllRailroadNames();
 loadRailroads();
