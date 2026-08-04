@@ -417,8 +417,7 @@ async function loadRailroads() {
     .schema("public")
     .from("railroads")
     .select("dot_number, railroad, railroad_abreviation, subdivision, road_name, city, state, mile_post_num, type, latitude, longitude")
-    .order("railroad", { ascending: true })
-    .limit(10000);
+    .order("railroad", { ascending: true });
 
   if (error) {
     console.error(error);
