@@ -193,6 +193,8 @@ CLASS_I_RAILROADS.forEach((item) => {
   });
 });
 
+const JUNK_SUBDIVISIONS = new Set([".", "'", "*", "n/a", "#n/a", "na", "-", "--", "none", "unknown"]);
+
 let selectedLookup = null;
 let lookupCrossingsCache = [];
 let railroadRowsCache = [];
@@ -337,15 +339,15 @@ async function loadAllRailroadNames() {
   otherRailroadsSelect.disabled = options.length === 0;
 }
 
-otherRailroadsSelect.addEventListener("change", () => {
+otherRailroadsSelect.addEventListener("change", async () => {
   const value = otherRailroadsSelect.value;
   if (!value) {
-    setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
+    await setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
     return;
   }
 
   const label = otherRailroadsSelect.options[otherRailroadsSelect.selectedIndex]?.textContent || "Other Railroad";
-  setRailroadFilter({ type: "other", key: value, label });
+  await setRailroadFilter({ type: "other", key: value, label });
 });
 
 function filterRailroadRows(rows) {
@@ -381,7 +383,7 @@ function renderActiveResults() {
   renderLookupTable(lookupCrossingsCache);
 }
 
-function setRailroadFilter(nextFilter) {
+async function setRailroadFilter(nextFilter) {
   activeMode = "railroads";
   activeRailroadFilter = nextFilter;
   if (nextFilter.type !== "other") {
@@ -398,12 +400,14 @@ function setRailroadFilter(nextFilter) {
     lookupResults.innerHTML = "";
     selectedLookup = null;
   }
+
+  await loadSubdivisionDropdown();
   renderRailroadTabs();
   renderActiveResults();
 }
 
-clearRailroadFilterBtn.addEventListener("click", () => {
-  setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
+clearRailroadFilterBtn.addEventListener("click", async () => {
+  await setRailroadFilter({ type: "all", key: "all", label: "All Railroads" });
 });
 
 async function loadRailroads() {
@@ -431,12 +435,24 @@ async function loadSubdivisionDropdown() {
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
   subdivisionSelect.disabled = true;
 
-  const { data, error } = await supabaseClient
+  let query = supabaseClient
     .schema("public")
     .from("railroads")
     .select("subdivision")
-    .not("subdivision", "is", null)
-    .order("subdivision", { ascending: true });
+    .not("subdivision", "is", null);
+
+  if (activeRailroadFilter.type === "classI") {
+    const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
+    if (railroad && railroad.aliases.length > 0) {
+      query = query.in("railroad_abreviation", railroad.aliases);
+    }
+  } else if (activeRailroadFilter.type === "other") {
+    query = query.ilike("railroad", activeRailroadFilter.key);
+  }
+
+  query = query.order("subdivision", { ascending: true });
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(error);
@@ -444,14 +460,13 @@ async function loadSubdivisionDropdown() {
     return;
   }
 
-  const JUNK_SUBDIVISIONS = new Set([".", "'", "*", "n/a", "#n/a", "na", "-", "--", "none", "unknown"]);
-
   const seen = new Set();
   const names = [];
   (data || []).forEach((row) => {
     const name = (row.subdivision || "").trim();
-    if (!name || JUNK_SUBDIVISIONS.has(name.toLowerCase()) || seen.has(name.toLowerCase())) return;
-    seen.add(name.toLowerCase());
+    const normalized = name.toLowerCase();
+    if (!name || JUNK_SUBDIVISIONS.has(normalized) || seen.has(normalized)) return;
+    seen.add(normalized);
     names.push(name);
   });
   names.sort((a, b) => a.localeCompare(b));
@@ -485,8 +500,7 @@ async function loadLookupCrossingsForSubdivision() {
       query = query.in("railroad_abreviation", railroad.aliases);
     }
   } else if (activeRailroadFilter.type === "other") {
-    const selectedOther = activeRailroadFilter.label || "";
-    query = query.ilike("railroad", `%${selectedOther}%`);
+    query = query.ilike("railroad", activeRailroadFilter.key);
   }
 
   const { data, error } = await query;
@@ -522,8 +536,7 @@ dotSearchBtn.addEventListener("click", async () => {
       query = query.in("railroad_abreviation", railroad.aliases);
     }
   } else if (activeRailroadFilter.type === "other") {
-    const selectedOther = activeRailroadFilter.label || "";
-    query = query.ilike("railroad", `%${selectedOther}%`);
+    query = query.ilike("railroad", activeRailroadFilter.key);
   }
 
   const { data, error } = await query;
