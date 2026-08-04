@@ -42,6 +42,44 @@ function mapLinkHtml(lat, lon) {
   `;
 }
 
+const SUBDIVISION_PAGE_SIZE = 1000;
+
+function collectSubdivisionNames(rows) {
+  const seen = new Set();
+  const names = [];
+  (rows || []).forEach((row) => {
+    const name = (row.subdivision || "").trim();
+    const normalized = name.toLowerCase();
+    if (!name || JUNK_SUBDIVISIONS.has(normalized) || seen.has(normalized)) return;
+    seen.add(normalized);
+    names.push(name);
+  });
+  names.sort((a, b) => a.localeCompare(b));
+  return names;
+}
+
+async function fetchAllSubdivisionRows(buildQuery, pageSize = SUBDIVISION_PAGE_SIZE) {
+  const allRows = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await buildQuery()
+      .order("subdivision", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) return { data: null, error };
+
+    const rows = data || [];
+    allRows.push(...rows);
+
+    if (rows.length < pageSize) {
+      return { data: allRows, error: null };
+    }
+
+    from += pageSize;
+  }
+}
+
 const supabaseClient = supabase.createClient(
   "https://hbesqtcjkcjmzowhgowe.supabase.co",
   "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y"
@@ -52,7 +90,6 @@ async function incrementVisitCount() {
   const { data, error } = await supabaseClient.rpc("increment_visits");
   console.log("RPC result:", data, error);
 }
-incrementVisitCount();
 
 const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
 const RC_ENTITLEMENT = "Railroad Crossings Pro";
@@ -85,7 +122,6 @@ async function checkEntitlements() {
   }
 }
 
-initRevenueCat();
 
 const paywallModal = document.getElementById("paywallModal");
 const paywallCloseBtn = document.getElementById("paywallCloseBtn");
@@ -434,24 +470,25 @@ async function loadSubdivisionDropdown() {
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
   subdivisionSelect.disabled = true;
 
-  let query = supabaseClient
-    .schema("public")
-    .from("railroads")
-    .select("subdivision")
-    .not("subdivision", "is", null);
+  const buildQuery = () => {
+    let query = supabaseClient
+      .schema("public")
+      .from("railroads")
+      .select("subdivision")
+      .not("subdivision", "is", null);
 
-  if (activeRailroadFilter.type === "classI") {
-    const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
-    if (railroad && railroad.aliases.length > 0) {
-      query = query.in("railroad_abreviation", railroad.aliases);
+    if (activeRailroadFilter.type === "classI") {
+      const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
+      if (railroad && railroad.aliases.length > 0) {
+        query = query.in("railroad_abreviation", railroad.aliases);
+      }
+    } else if (activeRailroadFilter.type === "other") {
+      query = query.ilike("railroad", activeRailroadFilter.key);
     }
-  } else if (activeRailroadFilter.type === "other") {
-    query = query.ilike("railroad", activeRailroadFilter.key);
-  }
 
-  query = query.order("subdivision", { ascending: true });
-
-  const { data, error } = await query;
+    return query;
+  };
+  const { data, error } = await fetchAllSubdivisionRows(buildQuery);
 
   if (error) {
     console.error(error);
@@ -459,16 +496,7 @@ async function loadSubdivisionDropdown() {
     return;
   }
 
-  const seen = new Set();
-  const names = [];
-  (data || []).forEach((row) => {
-    const name = (row.subdivision || "").trim();
-    const normalized = name.toLowerCase();
-    if (!name || JUNK_SUBDIVISIONS.has(normalized) || seen.has(normalized)) return;
-    seen.add(normalized);
-    names.push(name);
-  });
-  names.sort((a, b) => a.localeCompare(b));
+  const names = collectSubdivisionNames(data);
 
   subdivisionSelect.innerHTML = '<option value="">Select a subdivision…</option>';
   names.forEach((name) => {
@@ -478,6 +506,14 @@ async function loadSubdivisionDropdown() {
     subdivisionSelect.appendChild(opt);
   });
   subdivisionSelect.disabled = names.length === 0;
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    collectSubdivisionNames,
+    fetchAllSubdivisionRows,
+    SUBDIVISION_PAGE_SIZE,
+  };
 }
 
 async function loadLookupCrossingsForSubdivision() {
@@ -632,7 +668,11 @@ function renderLookupTable(rows, options = {}) {
   document.getElementById("openPaywallBtn").onclick = openPaywall;
 }
 
-renderRailroadTabs();
-loadAllRailroadNames();
-loadRailroads();
-loadSubdivisionDropdown();
+if (typeof module === "undefined") {
+  incrementVisitCount();
+  initRevenueCat();
+  renderRailroadTabs();
+  loadAllRailroadNames();
+  loadRailroads();
+  loadSubdivisionDropdown();
+}
