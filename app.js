@@ -310,11 +310,10 @@ async function loadRailroadsForLetter(letter) {
 
   const { data, error } = await supabaseClient
     .schema("public")
-    .from("railroads")
+    .from("railroad_names")
     .select("railroad, railroad_abreviation")
     .ilike("railroad", `${letter}%`)
-    .order("railroad", { ascending: true })
-    .limit(1000);
+    .order("railroad", { ascending: true });
 
   if (error) {
     console.error(error);
