@@ -310,11 +310,10 @@ async function loadRailroadsForLetter(letter) {
 
   const { data, error } = await supabaseClient
     .schema("public")
-    .from("railroads")
-    .select("railroad, railroad_abreviation")
-    .ilike("railroad", `${letter}%`)
-    .order("railroad", { ascending: true })
-    .limit(1000);
+    .from("railroad_names")
+    .select("railroads")
+    .ilike("railroads", `${letter}%`)
+    .order("railroads", { ascending: true });
 
   if (error) {
     console.error(error);
@@ -322,18 +321,17 @@ async function loadRailroadsForLetter(letter) {
     return;
   }
 
-  const seen = new Map();
+  const options = [];
   (data || []).forEach((row) => {
-    const metadata = getRailroadFilterMetadata(row);
-    if (metadata.filterType !== "other") return;
-    const key = metadata.normalized || normalizeRailroadName(metadata.displayName) || metadata.displayName;
-    if (!key || seen.has(key)) return;
-    seen.set(key, metadata.displayName);
+    const displayName = String(row.railroads || "").trim();
+    if (!displayName) return;
+    const normalized = normalizeRailroadName(displayName);
+    // Skip Class I railroads — they have their own tabs
+    if (CLASS_I_ALIAS_TO_KEY.has(normalized)) return;
+    options.push({ value: normalized, label: displayName });
   });
 
-  const options = [...seen.entries()]
-    .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  options.sort((a, b) => a.label.localeCompare(b.label));
 
   otherRailroadsSelect.innerHTML = '<option value="">Select a railroad…</option>';
   options.forEach(({ value, label }) => {
