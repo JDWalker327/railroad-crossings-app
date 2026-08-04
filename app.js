@@ -299,8 +299,8 @@ async function loadAllRailroadNames() {
   const { data, error } = await supabaseClient
     .schema("public")
     .from("railroads_names")
-    .select("railroad_name")
-    .order("railroad_name", { ascending: true });
+    .select("railroads")
+    .order("railroads", { ascending: true });
 
   if (error) {
     console.error(error);
@@ -311,7 +311,7 @@ async function loadAllRailroadNames() {
 
   const options = [];
   (data || []).forEach((row) => {
-    const displayName = String(row.railroad_name || "").trim();
+    const displayName = String(row.railroads || "").trim();
     if (!displayName) return;
     const normalized = normalizeRailroadName(displayName);
     // Skip Class I railroads — they have their own tabs
