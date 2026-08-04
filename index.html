@@ -42,14 +42,16 @@
   <div class="mode-panel">
     <p class="lookup-hint">
       💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
-      <strong>Search by Subdivision</strong> — start typing a name, then <strong>tap a result</strong> from the list to load its crossings.
+      <strong>Search by Subdivision</strong> — select a subdivision from the dropdown to load its crossings.
     </p>
 
     <label>DOT #:</label>
     <input id="dotSearch" type="text" placeholder="e.g. 123456A">
 
-    <label style="margin-top:10px;">Subdivision search:</label>
-    <input id="subdivisionSearch" type="text" placeholder="e.g. Cheyenne">
+    <label style="margin-top:10px;">Subdivision:</label>
+    <select id="subdivisionSelect" disabled>
+      <option value="">Loading subdivisions…</option>
+    </select>
 
     <div id="lookupResults" style="margin-top:10px;"></div>
 
