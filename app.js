@@ -445,11 +445,13 @@ async function loadSubdivisionDropdown() {
     return;
   }
 
+  const JUNK_SUBDIVISIONS = new Set([".", "'", "*", "n/a", "#n/a", "na", "-", "--", "none", "unknown"]);
+
   const seen = new Set();
   const names = [];
   (data || []).forEach((row) => {
     const name = (row.subdivision || "").trim();
-    if (!name || seen.has(name.toLowerCase())) return;
+    if (!name || JUNK_SUBDIVISIONS.has(name.toLowerCase()) || seen.has(name.toLowerCase())) return;
     seen.add(name.toLowerCase());
     names.push(name);
   });
