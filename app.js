@@ -229,6 +229,8 @@ CLASS_I_RAILROADS.forEach((item) => {
   });
 });
 
+const CLASS_I_TABLES = new Set(["bnsf", "cn", "cpkc", "csx", "ns", "up"]);
+
 const JUNK_SUBDIVISIONS = new Set([".", "'", "*", "n/a", "#n/a", "na", "-", "--", "none", "unknown"]);
 
 let selectedLookup = null;
@@ -470,14 +472,19 @@ async function loadSubdivisionDropdown() {
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
   subdivisionSelect.disabled = true;
 
+  const isClassITable =
+    activeRailroadFilter.type === "classI" &&
+    CLASS_I_TABLES.has(activeRailroadFilter.key);
+
   const buildQuery = () => {
+    const tableName = isClassITable ? activeRailroadFilter.key : "railroads";
     let query = supabaseClient
       .schema("public")
-      .from("railroads")
+      .from(tableName)
       .select("subdivision")
       .not("subdivision", "is", null);
 
-    if (activeRailroadFilter.type === "classI") {
+    if (!isClassITable && activeRailroadFilter.type === "classI") {
       const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
       if (railroad && railroad.aliases.length > 0) {
         query = query.in("railroad_abreviation", railroad.aliases);
