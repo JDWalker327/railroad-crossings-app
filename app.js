@@ -432,11 +432,13 @@ async function setRailroadFilter(nextFilter) {
   lookupDescription.textContent = railroadName
     ? `Search all ${railroadName} crossings by DOT number or subdivision.`
     : "Search all crossings by DOT number or subdivision.";
-  // Clear stale subdivision selection and results when railroad changes
-  if (subdivisionSelect.value) {
+  // When switching to All Railroads, unconditionally reset subdivision context;
+  // otherwise clear only if a subdivision was previously selected.
+  if (nextFilter.type === "all" || subdivisionSelect.value) {
     subdivisionSelect.value = "";
     lookupResults.innerHTML = "";
     selectedLookup = null;
+    lookupCrossingsCache = [];
   }
 
   await loadSubdivisionDropdown();
