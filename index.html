@@ -11,73 +11,92 @@
   <h1>Railroad Crossings App</h1>
   <div id="rail1-tagline">A MJ Construction Application</div>
 
-  <section class="mode-panel railroad-browser-panel">
-    <div class="mode-panel-header">
-      <div>
-        <h2 class="mode-header">Browse Railroads</h2>
-        <p class="mode-description">
-          Filter nationwide railroad crossings by Class I railroad tabs or by selecting a non-Class-I carrier.
-        </p>
-      </div>
+  <!-- Railroad picker / first-run screen -->
+  <div id="railroadPicker" style="display:none;">
+    <div class="picker-card">
+      <h2>Choose Your Railroad</h2>
+      <p class="picker-description">Select your primary railroad. Your choice will be saved so the app opens directly to it next time.</p>
+      <div id="pickerButtons" class="picker-buttons"></div>
+      <p class="picker-hint">You can always switch railroads using the <strong>Change Railroad</strong> button.</p>
+    </div>
+  </div>
+
+  <!-- Main app content (hidden until railroad is chosen) -->
+  <div id="appContent" style="display:none;">
+    <div class="app-toolbar">
+      <span id="activeRailroadLabel" class="active-railroad-label"></span>
+      <button id="changeRailroadBtn" class="change-railroad-btn" type="button">🏠 Change Railroad</button>
     </div>
 
-    <div class="railroad-filter-toolbar">
-      <div id="classITabs" class="railroad-tabs" aria-label="Class I Railroad Filters"></div>
-      <div class="other-railroads-controls">
-        <select id="otherRailroadsSelect" aria-label="Other Railroads" disabled>
-          <option value="">Loading railroads…</option>
-        </select>
-        <button id="clearRailroadFilterBtn" type="button">Reset</button>
+    <section class="mode-panel railroad-browser-panel">
+      <div class="mode-panel-header">
+        <div>
+          <h2 class="mode-header">Browse Railroads</h2>
+          <p class="mode-description">
+            Filter nationwide railroad crossings by Class I railroad tabs or by selecting a non-Class-I carrier.
+          </p>
+        </div>
       </div>
-    </div>
 
-    <div id="railroadStatus" class="filter-status" aria-live="polite"></div>
-  </section>
+      <div class="railroad-filter-toolbar">
+        <div id="classITabs" class="railroad-tabs" aria-label="Class I Railroad Filters"></div>
+        <div class="other-railroads-controls">
+          <select id="otherRailroadsSelect" aria-label="Other Railroads" disabled>
+            <option value="">Loading railroads…</option>
+          </select>
+          <button id="clearRailroadFilterBtn" type="button">Reset</button>
+        </div>
+      </div>
 
-  <h2 class="mode-header">Lookup</h2>
-  <p id="lookupDescription" class="mode-description">
-    Search all crossings by DOT number or subdivision.
-  </p>
+      <div id="railroadStatus" class="filter-status" aria-live="polite"></div>
+    </section>
 
-  <div class="mode-panel">
-    <p class="lookup-hint">
-      💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
-      <strong>Search by Subdivision</strong> — select a subdivision from the dropdown to load its crossings.
+    <h2 class="mode-header">Lookup</h2>
+    <p id="lookupDescription" class="mode-description">
+      Search all crossings by DOT number or subdivision.
     </p>
 
-    <label>DOT #:</label>
-    <input id="dotSearch" type="text" placeholder="e.g. 123456A">
+    <div class="mode-panel">
+      <p class="lookup-hint">
+        💡 <strong>Search by DOT #</strong> — type a crossing number and tap <em>Lookup DOT</em>.<br>
+        <strong>Search by Subdivision</strong> — select a subdivision from the dropdown to load its crossings.
+      </p>
 
-    <label style="margin-top:10px;">Subdivision:</label>
-    <select id="subdivisionSelect" disabled>
-      <option value="">Loading subdivisions…</option>
-    </select>
+      <label>DOT #:</label>
+      <input id="dotSearch" type="text" placeholder="e.g. 123456A">
 
-    <div id="lookupResults" style="margin-top:10px;"></div>
+      <label style="margin-top:10px;">Subdivision:</label>
+      <select id="subdivisionSelect" disabled>
+        <option value="">Loading subdivisions…</option>
+      </select>
 
-    <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
-  </div>
+      <div id="lookupResults" style="margin-top:10px;"></div>
 
-  <div id="status"></div>
-
-  <div id="tableContainer" style="margin-top:20px;">
-    <table id="crossingsTable" border="1" cellspacing="0" cellpadding="4">
-      <thead id="crossingsTableHead"></thead>
-      <tbody id="crossingsTableBody"></tbody>
-    </table>
-  </div>
-
-  <div id="paywallModal" class="paywall-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
-    <div class="paywall-content">
-      <button id="paywallCloseBtn" class="paywall-close-btn" aria-label="Close">&times;</button>
-      <h2 id="paywallTitle">Railroad Crossings Pro</h2>
-      <p class="paywall-description">Unlock full crossing details including location, milepost, city, road name and more.</p>
-      <div class="paywall-price">$2.99 / month</div>
-      <button id="paywallSubscribeBtn" class="paywall-subscribe-btn">Subscribe</button>
-      <button id="paywallRestoreBtn" class="paywall-restore-btn">Restore Purchases</button>
-      <div id="paywallStatus" class="paywall-status"></div>
+      <button id="dotSearchBtn" style="margin-top:10px;">Lookup DOT</button>
     </div>
-  </div>
+
+    <div id="status"></div>
+
+    <div id="tableContainer" style="margin-top:20px;">
+      <table id="crossingsTable" border="1" cellspacing="0" cellpadding="4">
+        <thead id="crossingsTableHead"></thead>
+        <tbody id="crossingsTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="paywallModal" class="paywall-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
+      <div class="paywall-content">
+        <button id="paywallCloseBtn" class="paywall-close-btn" aria-label="Close">&times;</button>
+        <h2 id="paywallTitle">Railroad Crossings Pro</h2>
+        <p class="paywall-description">Unlock full crossing details including location, milepost, city, road name and more.</p>
+        <div class="paywall-price">$2.99 / month</div>
+        <button id="paywallSubscribeBtn" class="paywall-subscribe-btn">Subscribe</button>
+        <button id="paywallRestoreBtn" class="paywall-restore-btn">Restore Purchases</button>
+        <div id="paywallStatus" class="paywall-status"></div>
+      </div>
+    </div>
+
+  </div><!-- end #appContent -->
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/@revenuecat/purchases-js@1.47.0/dist/purchases.min.js"></script>
