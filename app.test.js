@@ -59,12 +59,13 @@ async function run() {
   assert.deepEqual(Array.from(names), ["Alpha", "beta", "Gamma"]);
 
   assert.equal(isClassISubdivisionSearchEnabled({ type: "classI", key: "up" }), true);
+  assert.equal(isClassISubdivisionSearchEnabled({ type: "classI", key: "bnsf" }), true);
   assert.equal(isClassISubdivisionSearchEnabled({ type: "classI", key: "not-a-class-i" }), false);
   assert.equal(isClassISubdivisionSearchEnabled({ type: "other", key: "Regional Railroad" }), false);
 
   assert.deepEqual(
-    Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "a")),
-    ["Alpha", "Beta", "Gamma", "Delta"]
+    Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "et")),
+    ["Beta"]
   );
   assert.deepEqual(
     Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "mm")),
