@@ -457,6 +457,13 @@ input[type="text"]:focus {
     width: 100%;
     max-width: none;
   }
+
+  #otherRailroadsSelect,
+  #subdivisionSelect {
+    max-width: 350px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
 }
 
 /* ---- Railroad Picker ---- */
