@@ -1,6 +1,6 @@
 # Railroad Crossings App
 
-A mobile-friendly dashboard for viewing and managing railroad crossing projects, backed by [Supabase](https://supabase.com/).
+A mobile-friendly dashboard for browsing nationwide railroad crossings and looking up Union Pacific crossings, backed by [Supabase](https://supabase.com/).
 
 ## Viewing the App
 
@@ -44,7 +44,7 @@ npx serve .
 Before promoting, confirm:
 
 - [ ] You have previewed the changes locally (`python3 -m http.server 8080`) or in the PR's branch URL and the app behaves as expected
-- [ ] The live Supabase data still loads correctly (Projects and Lookup modes both return rows)
+- [ ] The live Supabase data still loads correctly (DOT and subdivision lookups both return rows)
 - [ ] No JavaScript console errors appear in the browser DevTools (F12 → Console)
 - [ ] The table is readable on both a desktop browser and a mobile screen width
 
@@ -98,7 +98,7 @@ app.js       – Supabase queries and DOM rendering
 
 ## Features
 
-- **Projects mode** – Filter crossings by subdivision; rows highlighted yellow (completed) or green (asphalted)
+- **Railroad browsing** – Browse `public.railroads` with Class I quick-filter tabs and an Other Railroads dropdown
 - **Lookup mode** – Search any UP crossing by DOT number or subdivision name
-- **Google Maps links** – DOT numbers link directly to the crossing location when lat/lon are available
+- **Google Maps links** – Open crossing coordinates directly in Google Maps when lat/lon are available
 - **Responsive design** – Usable on screens from 320 px wide up to large desktop displays
