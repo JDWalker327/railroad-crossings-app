@@ -434,14 +434,13 @@ async function setRailroadFilter(nextFilter) {
   lookupDescription.textContent = railroadName
     ? `Search all ${railroadName} crossings by DOT number or subdivision.`
     : "Search all crossings by DOT number or subdivision.";
-  // When switching to All Railroads, unconditionally reset subdivision context;
-  // otherwise clear only if a subdivision was previously selected.
-  if (nextFilter.type === "all" || subdivisionSelect.value) {
-    subdivisionSelect.value = "";
-    lookupResults.innerHTML = "";
-    selectedLookup = null;
-    lookupCrossingsCache = [];
-  }
+  // Always reset subdivision context when the railroad filter changes so stale
+  // options are never visible while the new list is loading.
+  subdivisionSelect.value = "";
+  subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
+  lookupResults.innerHTML = "";
+  selectedLookup = null;
+  lookupCrossingsCache = [];
 
   await loadSubdivisionDropdown();
   renderRailroadTabs();
@@ -476,30 +475,39 @@ async function loadSubdivisionDropdown() {
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
   subdivisionSelect.disabled = true;
 
+  // Snapshot the filter so we can detect if the user changed railroad while
+  // the async fetch was in flight and discard stale results.
+  const snapshotFilter = activeRailroadFilter;
+
   const isClassITable =
-    activeRailroadFilter.type === "classI" &&
-    CLASS_I_TABLES.has(activeRailroadFilter.key);
+    snapshotFilter.type === "classI" &&
+    CLASS_I_TABLES.has(snapshotFilter.key);
 
   const buildQuery = () => {
-    const tableName = isClassITable ? activeRailroadFilter.key : "railroads";
+    const tableName = isClassITable ? snapshotFilter.key : "railroads";
     let query = supabaseClient
       .schema("public")
       .from(tableName)
       .select("subdivision")
       .not("subdivision", "is", null);
 
-    if (!isClassITable && activeRailroadFilter.type === "classI") {
-      const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
+    if (!isClassITable && snapshotFilter.type === "classI") {
+      const railroad = CLASS_I_RAILROADS.find((r) => r.key === snapshotFilter.key);
       if (railroad && railroad.aliases.length > 0) {
         query = query.in("railroad_abreviation", railroad.aliases);
       }
-    } else if (activeRailroadFilter.type === "other") {
-      query = query.ilike("railroad", activeRailroadFilter.key);
+    } else if (snapshotFilter.type === "other") {
+      query = query.ilike("railroad", snapshotFilter.key);
     }
 
     return query;
   };
   const { data, error } = await fetchAllSubdivisionRows(buildQuery);
+
+  // If the user switched railroads while this fetch was in flight, discard results.
+  if (activeRailroadFilter !== snapshotFilter) {
+    return;
+  }
 
   if (error) {
     console.error(error);
