@@ -19,9 +19,10 @@ function loadAppExports() {
         textContent: "",
         innerHTML: "",
         disabled: false,
+        hidden: false,
         value: "",
         appendChild() {},
-        classList: { add() {}, remove() {} },
+        classList: { add() {}, remove() {}, toggle() {} },
       }),
       createElement: () => ({
         value: "",
@@ -40,7 +41,12 @@ function loadAppExports() {
 }
 
 async function run() {
-  const { collectSubdivisionNames, fetchAllSubdivisionRows } = loadAppExports();
+  const {
+    collectSubdivisionNames,
+    fetchAllSubdivisionRows,
+    filterSubdivisionNames,
+    isClassISubdivisionSearchEnabled,
+  } = loadAppExports();
 
   const names = collectSubdivisionNames([
     { subdivision: "  Alpha " },
@@ -51,6 +57,24 @@ async function run() {
     { subdivision: "Gamma" },
   ]);
   assert.deepEqual(Array.from(names), ["Alpha", "beta", "Gamma"]);
+
+  assert.equal(isClassISubdivisionSearchEnabled({ type: "classI", key: "up" }), true);
+  assert.equal(isClassISubdivisionSearchEnabled({ type: "classI", key: "bnsf" }), true);
+  assert.equal(isClassISubdivisionSearchEnabled({ type: "classI", key: "not-a-class-i" }), false);
+  assert.equal(isClassISubdivisionSearchEnabled({ type: "other", key: "Regional Railroad" }), false);
+
+  assert.deepEqual(
+    Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "et")),
+    ["Beta"]
+  );
+  assert.deepEqual(
+    Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "mm")),
+    ["Gamma"]
+  );
+  assert.deepEqual(
+    Array.from(filterSubdivisionNames(["Alpha", "Beta"], "")),
+    ["Alpha", "Beta"]
+  );
 
   const pageSize = 12;
   const total = 29;

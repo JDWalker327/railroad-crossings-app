@@ -202,6 +202,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
 
 const dotSearch = document.getElementById("dotSearch");
 const dotSearchBtn = document.getElementById("dotSearchBtn");
+const subdivisionSearch = document.getElementById("subdivisionSearch");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const lookupResults = document.getElementById("lookupResults");
 const lookupDescription = document.getElementById("lookupDescription");
@@ -236,6 +237,7 @@ const JUNK_SUBDIVISIONS = new Set([".", "'", "*", "n/a", "#n/a", "na", "-", "--"
 let selectedLookup = null;
 let lookupCrossingsCache = [];
 let railroadRowsCache = [];
+let availableSubdivisionNames = [];
 let activeMode = "lookup";
 let activeRailroadFilter = { type: "all", key: "all", label: "All Railroads" };
 
@@ -310,6 +312,59 @@ function clearLookupUI() {
 function setRailroadStatus(message, isError = false) {
   railroadStatus.textContent = message || "";
   railroadStatus.classList.toggle("error-text", isError);
+}
+
+function isClassISubdivisionSearchEnabled(filter = activeRailroadFilter) {
+  return filter?.type === "classI" && CLASS_I_TABLES.has(filter.key);
+}
+
+function filterSubdivisionNames(names, query) {
+  const trimmedQuery = String(query || "").trim().toLowerCase();
+  if (!trimmedQuery) return [...(names || [])];
+
+  return (names || []).filter((name) =>
+    String(name || "").toLowerCase().includes(trimmedQuery)
+  );
+}
+
+function renderSubdivisionOptions(names, selectedValue = "") {
+  subdivisionSelect.innerHTML = '<option value="">Select a subdivision…</option>';
+
+  (names || []).forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    subdivisionSelect.appendChild(opt);
+  });
+
+  subdivisionSelect.disabled = (names || []).length === 0;
+  if (selectedValue && (names || []).includes(selectedValue)) {
+    subdivisionSelect.value = selectedValue;
+  }
+}
+
+function syncSubdivisionSearchMode(filter = activeRailroadFilter) {
+  const enableSearch = isClassISubdivisionSearchEnabled(filter);
+  // Toggle searchable filtering only for the six Class I railroads; all other
+  // railroads keep the original dropdown-only subdivision behavior.
+  subdivisionSearch.hidden = !enableSearch;
+  subdivisionSearch.disabled = !enableSearch;
+  if (!enableSearch) {
+    subdivisionSearch.value = "";
+  }
+}
+
+function applySubdivisionSearchFilter() {
+  const previousSelection = subdivisionSelect.value;
+  const filteredNames = isClassISubdivisionSearchEnabled()
+    ? filterSubdivisionNames(availableSubdivisionNames, subdivisionSearch.value)
+    : [...availableSubdivisionNames];
+
+  renderSubdivisionOptions(filteredNames, previousSelection);
+
+  if (previousSelection && subdivisionSelect.value !== previousSelection) {
+    clearLookupUI();
+  }
 }
 
 function renderRailroadTabs() {
@@ -436,8 +491,11 @@ async function setRailroadFilter(nextFilter) {
     : "Search all crossings by DOT number or subdivision.";
   // Always reset subdivision context when the railroad filter changes so stale
   // options are never visible while the new list is loading.
+  availableSubdivisionNames = [];
+  syncSubdivisionSearchMode(nextFilter);
   subdivisionSelect.value = "";
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
+  subdivisionSelect.disabled = true;
   lookupResults.innerHTML = "";
   selectedLookup = null;
   lookupCrossingsCache = [];
@@ -472,6 +530,8 @@ async function loadRailroads() {
 }
 
 async function loadSubdivisionDropdown() {
+  availableSubdivisionNames = [];
+  syncSubdivisionSearchMode(activeRailroadFilter);
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
   subdivisionSelect.disabled = true;
 
@@ -516,24 +576,23 @@ async function loadSubdivisionDropdown() {
   }
 
   const names = collectSubdivisionNames(data);
-
-  subdivisionSelect.innerHTML = '<option value="">Select a subdivision…</option>';
-  names.forEach((name) => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    subdivisionSelect.appendChild(opt);
-  });
-  subdivisionSelect.disabled = names.length === 0;
+  availableSubdivisionNames = names;
+  applySubdivisionSearchFilter();
 }
 
 if (typeof module !== "undefined") {
   module.exports = {
     collectSubdivisionNames,
     fetchAllSubdivisionRows,
+    filterSubdivisionNames,
+    isClassISubdivisionSearchEnabled,
     SUBDIVISION_PAGE_SIZE,
   };
 }
+
+subdivisionSearch.addEventListener("input", () => {
+  applySubdivisionSearchFilter();
+});
 
 async function loadLookupCrossingsForSubdivision() {
   if (!selectedLookup) return;
