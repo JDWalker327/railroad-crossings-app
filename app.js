@@ -691,11 +691,113 @@ function renderLookupTable(rows, options = {}) {
   document.getElementById("openPaywallBtn").onclick = openPaywall;
 }
 
+// ---------------------------------------------------------------------------
+// Railroad preference flow
+// ---------------------------------------------------------------------------
+
+const FAVORITE_RAILROAD_KEY = "favoriteRailroad";
+
+function getSavedFavoriteRailroad() {
+  try {
+    const raw = localStorage.getItem(FAVORITE_RAILROAD_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveFavoriteRailroad(filter) {
+  try {
+    localStorage.setItem(FAVORITE_RAILROAD_KEY, JSON.stringify(filter));
+  } catch (e) {
+    console.warn("Could not save favorite railroad:", e);
+  }
+}
+
+function clearFavoriteRailroad() {
+  try {
+    localStorage.removeItem(FAVORITE_RAILROAD_KEY);
+  } catch (e) {
+    // ignore
+  }
+}
+
+function showPicker() {
+  document.getElementById("railroadPicker").style.display = "block";
+  document.getElementById("appContent").style.display = "none";
+}
+
+function showApp() {
+  document.getElementById("railroadPicker").style.display = "none";
+  document.getElementById("appContent").style.display = "block";
+}
+
+function buildPickerButtons() {
+  const container = document.getElementById("pickerButtons");
+  container.innerHTML = "";
+
+  CLASS_I_RAILROADS.forEach((railroad) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "picker-btn";
+    btn.textContent = railroad.label;
+    btn.addEventListener("click", () => {
+      const filter = { type: "classI", key: railroad.key, label: railroad.label };
+      saveFavoriteRailroad(filter);
+      applyFavoriteAndShowApp(filter);
+    });
+    container.appendChild(btn);
+  });
+
+  // "All Railroads" option for power users
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = "picker-btn picker-btn-all";
+  allBtn.textContent = "Browse All Railroads";
+  allBtn.addEventListener("click", () => {
+    const filter = { type: "all", key: "all", label: "All Railroads" };
+    saveFavoriteRailroad(filter);
+    applyFavoriteAndShowApp(filter);
+  });
+  container.appendChild(allBtn);
+}
+
+async function applyFavoriteAndShowApp(filter) {
+  showApp();
+  updateActiveRailroadLabel(filter);
+  await Promise.all([loadAllRailroadNames(), loadRailroads()]);
+  await setRailroadFilter(filter);
+}
+
+function updateActiveRailroadLabel(filter) {
+  const label = document.getElementById("activeRailroadLabel");
+  if (label) {
+    label.textContent = filter.label || "All Railroads";
+  }
+}
+
 if (typeof module === "undefined") {
   incrementVisitCount();
   initRevenueCat();
-  renderRailroadTabs();
-  loadAllRailroadNames();
-  loadRailroads();
-  loadSubdivisionDropdown();
+
+  // Wire up "Change Railroad" button
+  const changeRailroadBtn = document.getElementById("changeRailroadBtn");
+  if (changeRailroadBtn) {
+    changeRailroadBtn.addEventListener("click", () => {
+      clearFavoriteRailroad();
+      showPicker();
+    });
+  }
+
+  buildPickerButtons();
+
+  const savedFilter = getSavedFavoriteRailroad();
+  if (savedFilter) {
+    // Returning user — go straight to their railroad
+    applyFavoriteAndShowApp(savedFilter);
+  } else {
+    // First visit — show picker
+    showPicker();
+  }
 }
