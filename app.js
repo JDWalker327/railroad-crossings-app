@@ -424,6 +424,7 @@ function renderActiveResults() {
 async function setRailroadFilter(nextFilter) {
   activeMode = "railroads";
   activeRailroadFilter = nextFilter;
+  updateActiveRailroadLabel(nextFilter);
   if (nextFilter.type !== "other") {
     otherRailroadsSelect.value = "";
   }
@@ -765,7 +766,6 @@ function buildPickerButtons() {
 
 async function applyFavoriteAndShowApp(filter) {
   showApp();
-  updateActiveRailroadLabel(filter);
   await Promise.all([loadAllRailroadNames(), loadRailroads()]);
   await setRailroadFilter(filter);
 }

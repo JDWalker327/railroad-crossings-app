@@ -545,8 +545,10 @@ input[type="text"]:focus {
 }
 
 .active-railroad-label {
+  margin: 0;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
   color: #1a73e8;
 }
 
