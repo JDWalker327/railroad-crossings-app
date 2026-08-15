@@ -774,7 +774,14 @@ async function applyFavoriteAndShowApp(filter) {
 function updateActiveRailroadLabel(filter) {
   const label = document.getElementById("activeRailroadLabel");
   if (label) {
-    const text = filter.type === "all" ? "All Class 2 Railroads" : (filter.label || "All Railroads");
+    let text;
+    if (filter.type === "all") {
+      text = "All Class 2 Railroads";
+    } else if (filter.type === "other") {
+      text = filter.label || "Other Railroad";
+    } else {
+      text = filter.label || "All Railroads";
+    }
     label.textContent = text;
   }
 }
@@ -784,11 +791,7 @@ function updateRailroadBrowserPanel(filter) {
   if (!panel) return;
   // Show the browser panel when no specific Class I railroad is locked in,
   // so users can still pick / change the Class II railroad from the dropdown.
-  if (filter.type === "classI") {
-    panel.hidden = true;
-  } else {
-    panel.hidden = false;
-  }
+  panel.hidden = filter.type === "classI";
 }
 
 if (typeof module === "undefined") {
