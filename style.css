@@ -64,6 +64,14 @@ input[type="text"]:focus {
   border-color: #888;
   box-shadow: 0 0 4px rgba(0,0,0,0.15);
 }
+
+#subdivisionSearch[hidden] {
+  display: none;
+}
+
+#subdivisionSearch {
+  margin-top: 0;
+}
 /* Map icon link (Google Maps) - blue button */
 .map-icon-link {
   display: inline-flex;
