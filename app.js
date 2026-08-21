@@ -1370,6 +1370,26 @@ function renderMapMarkers(rows, filter) {
   }
 }
 
+function updateClearSubdivisionBtn() {
+  const btn = document.getElementById("mapResetFilterBtn");
+  if (!btn) return;
+  const hasActive = !!(activeMapSubdivision || (document.getElementById("mapSubdivisionSearch") || {}).value);
+  btn.disabled = !hasActive;
+}
+
+function clearMapSubdivision() {
+  activeMapSubdivision = "";
+  const mapSubEl = document.getElementById("mapSubdivisionSearch");
+  if (mapSubEl) mapSubEl.value = "";
+  const mapSubResultsEl = document.getElementById("mapSubdivisionResults");
+  if (mapSubResultsEl) {
+    mapSubResultsEl.hidden = true;
+    mapSubResultsEl.innerHTML = "";
+  }
+  updateClearSubdivisionBtn();
+  renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), activeMapFilter);
+}
+
 async function applyMapFilter(filter, keepSubdivision = false) {
   activeMapFilter = filter;
   if (!keepSubdivision) {
@@ -1381,6 +1401,7 @@ async function applyMapFilter(filter, keepSubdivision = false) {
       mapSubResultsEl.hidden = true;
       mapSubResultsEl.innerHTML = "";
     }
+    updateClearSubdivisionBtn();
   }
   buildMapClassITabs();
   allMapRows = await loadMapCrossings(filter);
@@ -1416,6 +1437,7 @@ function renderMapSubdivisionAutocomplete(names) {
       resultsEl.hidden = true;
       resultsEl.innerHTML = "";
       activeMapSubdivision = name;
+      updateClearSubdivisionBtn();
       renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), activeMapFilter);
     });
     fragment.appendChild(btn);
@@ -1589,9 +1611,7 @@ if (typeof module === "undefined") {
   const mapResetFilterBtnEl = document.getElementById("mapResetFilterBtn");
   if (mapResetFilterBtnEl) {
     mapResetFilterBtnEl.addEventListener("click", () => {
-      const sel = document.getElementById("mapClassIISelect");
-      if (sel) sel.value = "";
-      applyMapFilter({ type: "all", key: "all", label: "All Railroads" });
+      clearMapSubdivision();
     });
   }
 
@@ -1609,6 +1629,7 @@ if (typeof module === "undefined") {
       const query = mapSubdivisionSearchEl.value.trim().toLowerCase();
       const filtered = allMapSubdivisionNames.filter((n) => n.toLowerCase().includes(query));
       renderMapSubdivisionAutocomplete(filtered);
+      updateClearSubdivisionBtn();
     });
     mapSubdivisionSearchEl.addEventListener("blur", () => {
       // Delay hiding so click events on autocomplete items can fire first.
@@ -1622,15 +1643,7 @@ if (typeof module === "undefined") {
     });
     mapSubdivisionSearchEl.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
-        const resultsEl = document.getElementById("mapSubdivisionResults");
-        if (resultsEl) {
-          resultsEl.hidden = true;
-          resultsEl.innerHTML = "";
-        }
-        if (!activeMapSubdivision) return;
-        activeMapSubdivision = "";
-        mapSubdivisionSearchEl.value = "";
-        renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), activeMapFilter);
+        clearMapSubdivision();
       }
     });
   }
