@@ -674,6 +674,8 @@ if (typeof module !== "undefined") {
     isClassISubdivisionSearchEnabled,
     shouldDeferClassISubdivisionLoad,
     SUBDIVISION_PAGE_SIZE,
+    getMapTableConfig,
+    getMapFilterColor,
   };
 }
 
@@ -1028,6 +1030,295 @@ function updateRailroadBrowserPanel(filter) {
   panel.hidden = filter.type === "classI";
 }
 
+// ============================================================
+// MAP FEATURE
+// ============================================================
+
+/** Color per Class I railroad key for consistent visual identity across the map. */
+const CLASS_I_COLORS = {
+  bnsf: "#f97316",
+  cn:   "#16a34a",
+  cpkc: "#dc2626",
+  csx:  "#2563eb",
+  ns:   "#7c3aed",
+  up:   "#ca8a04",
+};
+const DEFAULT_MAP_COLOR = "#6b7280";
+
+let mapLeafletInstance = null;
+let mapMarkersLayer = null;
+let mapTrackLayer = null;
+let activeMapFilter = { type: "all", key: "all", label: "All Railroads" };
+let mapClassIINames = [];
+
+/**
+ * Track-geometry stub.
+ *
+ * Returns a GeoJSON FeatureCollection of railroad track lines for the given
+ * railroad key, or null when data is not yet available.
+ *
+ * Expected data shape when implemented:
+ * {
+ *   type: "FeatureCollection",
+ *   features: [
+ *     {
+ *       type: "Feature",
+ *       geometry: { type: "LineString", coordinates: [[lon, lat], …] },
+ *       properties: { railroad_key: "up", subdivision: "Sunset" }
+ *     }
+ *   ]
+ * }
+ *
+ * To wire up real data, replace this stub with a fetch() call to a hosted
+ * GeoJSON file or an API endpoint that returns the shape above.
+ *
+ * @param {string} _railroadKey – e.g. "up", "bnsf", or a Class II name
+ * @returns {object|null}
+ */
+function getTrackGeometry(_railroadKey) {
+  return null;
+}
+
+/**
+ * Returns the Supabase table name and optional row-level filter for a map filter.
+ * Exported for unit testing.
+ *
+ * @param {{ type: string, key: string }} filter
+ * @returns {{ tableName: string, aliasFilter: string[]|null, nameFilter?: string }}
+ */
+function getMapTableConfig(filter) {
+  if (filter.type === "classI" && CLASS_I_TABLES.has(filter.key)) {
+    return { tableName: filter.key, aliasFilter: null };
+  }
+  if (filter.type === "classI") {
+    const railroad = CLASS_I_RAILROADS.find((r) => r.key === filter.key);
+    return { tableName: "railroads", aliasFilter: railroad ? railroad.aliases : [] };
+  }
+  if (filter.type === "other") {
+    return { tableName: "railroads", aliasFilter: null, nameFilter: filter.key };
+  }
+  return { tableName: "railroads", aliasFilter: null };
+}
+
+/**
+ * Returns the highlight color for a map filter.
+ * Exported for unit testing.
+ *
+ * @param {{ type: string, key: string }} filter
+ * @returns {string} CSS color string
+ */
+function getMapFilterColor(filter) {
+  if (filter.type === "classI") return CLASS_I_COLORS[filter.key] || DEFAULT_MAP_COLOR;
+  return DEFAULT_MAP_COLOR;
+}
+
+async function loadMapCrossings(filter) {
+  const mapStatusEl = document.getElementById("mapStatus");
+  if (mapStatusEl) mapStatusEl.textContent = "Loading crossings…";
+
+  const { tableName, aliasFilter, nameFilter } = getMapTableConfig(filter);
+
+  let query = supabaseClient
+    .schema("public")
+    .from(tableName)
+    .select("dot_number, railroad, subdivision, latitude, longitude")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  if (aliasFilter && aliasFilter.length > 0) {
+    query = query.in("railroad_abreviation", aliasFilter);
+  } else if (nameFilter) {
+    query = query.ilike("railroad", nameFilter);
+  }
+
+  const { data, error } = await query.limit(5000);
+
+  if (mapStatusEl) {
+    mapStatusEl.textContent = error
+      ? `Error: ${error.message}`
+      : `${(data || []).length} crossing(s) shown`;
+  }
+
+  return error ? [] : (data || []);
+}
+
+function renderMapMarkers(rows, filter) {
+  if (!mapLeafletInstance) return;
+
+  if (mapMarkersLayer) {
+    mapMarkersLayer.clearLayers();
+  } else {
+    mapMarkersLayer = L.layerGroup().addTo(mapLeafletInstance);
+  }
+
+  if (mapTrackLayer) {
+    mapTrackLayer.clearLayers();
+  } else {
+    mapTrackLayer = L.layerGroup().addTo(mapLeafletInstance);
+  }
+
+  const color = getMapFilterColor(filter);
+  const validRows = (rows || []).filter((r) => hasLatLon(r.latitude, r.longitude));
+
+  validRows.forEach((row) => {
+    const lat = parseFloat(row.latitude);
+    const lon = parseFloat(row.longitude);
+    if (isNaN(lat) || isNaN(lon)) return;
+
+    const marker = L.circleMarker([lat, lon], {
+      radius: 6,
+      fillColor: color,
+      color: "#fff",
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.85,
+    });
+
+    marker.bindPopup(
+      `<strong>${escHtml(row.railroad || "Unknown")}</strong><br>` +
+      `DOT #: ${escHtml(row.dot_number || "N/A")}<br>` +
+      `Subdivision: ${escHtml(row.subdivision || "N/A")}`
+    );
+    mapMarkersLayer.addLayer(marker);
+  });
+
+  // Track geometry layer — renders automatically once getTrackGeometry() returns data.
+  const trackGeoJson = getTrackGeometry(filter.key);
+  if (trackGeoJson) {
+    const trackStyle = { color, weight: 3, opacity: 0.8 };
+    mapTrackLayer.addLayer(L.geoJSON(trackGeoJson, { style: () => trackStyle }));
+  }
+
+  // Fit view to visible markers
+  if (validRows.length > 0) {
+    try {
+      const latlngs = mapMarkersLayer.getLayers()
+        .filter((l) => typeof l.getLatLng === "function")
+        .map((l) => l.getLatLng());
+      if (latlngs.length > 0) {
+        mapLeafletInstance.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 10 });
+      }
+    } catch (e) {
+      // fitBounds errors are non-fatal
+    }
+  }
+
+  // Update legend
+  const legendEl = document.getElementById("mapLegend");
+  const legendLabel = document.getElementById("mapLegendLabel");
+  const legendDot = document.getElementById("mapLegendDot");
+  if (legendEl) {
+    if (filter.type === "all") {
+      legendEl.style.display = "none";
+    } else {
+      legendEl.style.display = "inline-flex";
+      if (legendLabel) legendLabel.textContent = filter.label;
+      if (legendDot) legendDot.style.background = color;
+    }
+  }
+}
+
+async function applyMapFilter(filter) {
+  activeMapFilter = filter;
+  buildMapClassITabs();
+  const rows = await loadMapCrossings(filter);
+  renderMapMarkers(rows, filter);
+}
+
+function buildMapClassITabs() {
+  const container = document.getElementById("mapClassITabs");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = "map-filter-btn" + (activeMapFilter.type === "all" ? " active" : "");
+  allBtn.textContent = "All";
+  allBtn.onclick = () => applyMapFilter({ type: "all", key: "all", label: "All Railroads" });
+  container.appendChild(allBtn);
+
+  CLASS_I_RAILROADS.forEach((rr) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    const isActive = activeMapFilter.type === "classI" && activeMapFilter.key === rr.key;
+    btn.className = "map-filter-btn" + (isActive ? " active" : "");
+    btn.textContent = rr.label;
+    btn.style.setProperty("--rr-color", CLASS_I_COLORS[rr.key] || DEFAULT_MAP_COLOR);
+    btn.onclick = () => applyMapFilter({ type: "classI", key: rr.key, label: rr.label });
+    container.appendChild(btn);
+  });
+}
+
+async function loadMapClassIINames() {
+  if (mapClassIINames.length > 0) return;
+
+  const { data, error } = await supabaseClient
+    .schema("public")
+    .from("railroads_names")
+    .select("railroads")
+    .order("railroads", { ascending: true });
+
+  if (error || !data) return;
+
+  mapClassIINames = data
+    .map((row) => String(row.railroads || "").trim())
+    .filter((name) => name.length > 0 && !CLASS_I_ALIAS_TO_KEY.has(name.toUpperCase()));
+
+  const sel = document.getElementById("mapClassIISelect");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select Class II railroad…</option>';
+  mapClassIINames.forEach((name) => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+function initMapLeaflet() {
+  const container = document.getElementById("mapContainer");
+  if (!container || mapLeafletInstance) return;
+
+  mapLeafletInstance = L.map("mapContainer").setView([39.5, -98.35], 4);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution:
+      '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(mapLeafletInstance);
+}
+
+function openMapModal() {
+  const modal = document.getElementById("mapModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  document.body.classList.add("map-modal-open");
+
+  // Pre-select the filter that matches the current main-app selection.
+  const initialFilter =
+    activeRailroadFilter.type !== "all"
+      ? activeRailroadFilter
+      : { type: "all", key: "all", label: "All Railroads" };
+  activeMapFilter = initialFilter;
+
+  buildMapClassITabs();
+  loadMapClassIINames();
+
+  // Defer Leaflet initialization by one animation frame so the browser
+  // can perform a layout pass and the container has measured dimensions
+  // before L.map() reads them.
+  requestAnimationFrame(() => {
+    initMapLeaflet();
+    loadMapCrossings(initialFilter).then((rows) => renderMapMarkers(rows, initialFilter));
+  });
+}
+
+function closeMapModal() {
+  const modal = document.getElementById("mapModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  document.body.classList.remove("map-modal-open");
+}
+
 if (typeof module === "undefined") {
   incrementVisitCount();
   initRevenueCat();
@@ -1042,6 +1333,44 @@ if (typeof module === "undefined") {
   }
 
   buildPickerButtons();
+
+  // Wire up Map button and modal events
+  const mapBtnEl = document.getElementById("mapBtn");
+  if (mapBtnEl) mapBtnEl.addEventListener("click", openMapModal);
+
+  const mapCloseBtnEl = document.getElementById("mapCloseBtn");
+  if (mapCloseBtnEl) mapCloseBtnEl.addEventListener("click", closeMapModal);
+
+  const mapResetFilterBtnEl = document.getElementById("mapResetFilterBtn");
+  if (mapResetFilterBtnEl) {
+    mapResetFilterBtnEl.addEventListener("click", () => {
+      const sel = document.getElementById("mapClassIISelect");
+      if (sel) sel.value = "";
+      applyMapFilter({ type: "all", key: "all", label: "All Railroads" });
+    });
+  }
+
+  const mapClassIISelectEl = document.getElementById("mapClassIISelect");
+  if (mapClassIISelectEl) {
+    mapClassIISelectEl.addEventListener("change", () => {
+      const name = mapClassIISelectEl.value;
+      if (name) applyMapFilter({ type: "other", key: name, label: name });
+    });
+  }
+
+  const mapModalEl = document.getElementById("mapModal");
+  if (mapModalEl) {
+    mapModalEl.addEventListener("click", (e) => {
+      if (e.target === mapModalEl) closeMapModal();
+    });
+  }
+
+  // Escape key closes the map modal regardless of which element has focus.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.getElementById("mapModal")?.style.display !== "none") {
+      closeMapModal();
+    }
+  });
 
   const savedFilter = getSavedFavoriteRailroad();
   if (savedFilter) {
