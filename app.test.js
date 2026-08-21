@@ -173,10 +173,10 @@ async function run() {
     assert.ok(f.properties.subdivision);
   });
 
-  // getTrackGeometry – result is the same regardless of key (sample data)
+  // getTrackGeometry – result is the same regardless of key (sample data returns all features)
   const trackGeo2 = getTrackGeometry("bnsf");
   assert.equal(trackGeo2.type, "FeatureCollection");
-  assert.equal(trackGeo2.features.length, trackGeo.features.length);
+  assert.equal(trackGeo2.features.length, 3);
 
   console.log("map feature tests passed");
 }
