@@ -688,8 +688,13 @@ loadAllSubdivisionsBtn.addEventListener("click", async () => {
   loadAllSubdivisionsBtn.disabled = true;
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
   subdivisionSelect.disabled = true;
-  await loadSubdivisionDropdown({ forceFullLoad: true });
-  loadAllSubdivisionsBtn.disabled = false;
+  try {
+    await loadSubdivisionDropdown({ forceFullLoad: true });
+  } finally {
+    if (!loadAllSubdivisionsBtn.hidden) {
+      loadAllSubdivisionsBtn.disabled = false;
+    }
+  }
 });
 
 async function loadLookupCrossingsForSubdivision() {
