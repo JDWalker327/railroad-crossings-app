@@ -620,6 +620,10 @@ subdivisionSearch.addEventListener("input", async () => {
     applySubdivisionSearchFilter();
     return;
   }
+  if (hasLoadedAllClassISubdivisions) {
+    applySubdivisionSearchFilter();
+    return;
+  }
 
   const prefix = subdivisionSearch.value.trim();
   const searchToken = ++latestSubdivisionSearchToken;
