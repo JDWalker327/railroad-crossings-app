@@ -243,6 +243,7 @@ let activeMode = "lookup";
 let activeRailroadFilter = { type: "all", key: "all", label: "All Railroads" };
 let latestSubdivisionSearchToken = 0;
 const subdivisionPrefixCache = new Map();
+let hasLoadedAllClassISubdivisions = false;
 
 subdivisionSelect.addEventListener("change", async () => {
   const subdivision = subdivisionSelect.value;
@@ -352,12 +353,13 @@ function renderSubdivisionOptions(names, selectedValue = "") {
 
 function syncSubdivisionSearchMode(filter = activeRailroadFilter) {
   const enableSearch = isClassISubdivisionSearchEnabled(filter);
+  const showLoadAllButton = enableSearch && !hasLoadedAllClassISubdivisions;
   // Toggle searchable filtering only for the six Class I railroads; all other
   // railroads keep the original dropdown-only subdivision behavior.
   subdivisionSearch.hidden = !enableSearch;
   subdivisionSearch.disabled = !enableSearch;
-  loadAllSubdivisionsBtn.hidden = !enableSearch;
-  loadAllSubdivisionsBtn.disabled = !enableSearch;
+  loadAllSubdivisionsBtn.hidden = !showLoadAllButton;
+  loadAllSubdivisionsBtn.disabled = !showLoadAllButton;
   if (!enableSearch) {
     subdivisionSearch.value = "";
   }
@@ -501,6 +503,7 @@ async function setRailroadFilter(nextFilter) {
   // Always reset subdivision context when the railroad filter changes so stale
   // options are never visible while the new list is loading.
   availableSubdivisionNames = [];
+  hasLoadedAllClassISubdivisions = false;
   subdivisionPrefixCache.clear();
   latestSubdivisionSearchToken += 1;
   syncSubdivisionSearchMode(nextFilter);
@@ -594,6 +597,10 @@ async function loadSubdivisionDropdown({ forceFullLoad = false } = {}) {
 
   const names = collectSubdivisionNames(data);
   availableSubdivisionNames = names;
+  if (forceFullLoad && isClassITable) {
+    hasLoadedAllClassISubdivisions = true;
+  }
+  syncSubdivisionSearchMode(activeRailroadFilter);
   applySubdivisionSearchFilter();
 }
 
