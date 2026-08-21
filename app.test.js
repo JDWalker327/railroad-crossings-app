@@ -163,23 +163,16 @@ async function run() {
   const { getLeafletGlobal: getLeafletFromGlobal } = loadAppExports({ globalLeaflet: mockLeaflet });
   assert.equal(getLeafletFromGlobal(), mockLeaflet);
 
-  // getTrackGeometry – returns a FeatureCollection with LineString features
+  // getTrackGeometry – returns an empty FeatureCollection (all sample segments removed)
   const trackGeo = getTrackGeometry("up");
   assert.equal(trackGeo.type, "FeatureCollection");
   assert.ok(Array.isArray(trackGeo.features));
-  assert.ok(trackGeo.features.length > 0);
-  trackGeo.features.forEach((f) => {
-    assert.equal(f.type, "Feature");
-    assert.equal(f.geometry.type, "LineString");
-    assert.ok(Array.isArray(f.geometry.coordinates));
-    assert.ok(f.properties.railroad_key);
-    assert.ok(f.properties.subdivision);
-  });
+  assert.equal(trackGeo.features.length, 0);
 
-  // getTrackGeometry – result is the same regardless of key (sample data returns all features)
+  // getTrackGeometry – result is the same regardless of key (no sample features remain)
   const trackGeo2 = getTrackGeometry("bnsf");
   assert.equal(trackGeo2.type, "FeatureCollection");
-  assert.equal(trackGeo2.features.length, 1);
+  assert.equal(trackGeo2.features.length, 0);
 
   // map directions URL builder
   assert.equal(
