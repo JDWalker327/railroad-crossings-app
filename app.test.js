@@ -48,6 +48,8 @@ async function run() {
     filterSubdivisionNames,
     isClassISubdivisionSearchEnabled,
     shouldDeferClassISubdivisionLoad,
+    getMapTableConfig,
+    getMapFilterColor,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -111,6 +113,43 @@ async function run() {
   ]);
 
   console.log("app.test.js passed");
+
+  // ── Map feature tests ────────────────────────────────────────────────────
+
+  // getMapTableConfig – Class I railroad with its own dedicated table
+  let cfg = getMapTableConfig({ type: "classI", key: "up" });
+  assert.equal(cfg.tableName, "up");
+  assert.equal(cfg.aliasFilter, null);
+  assert.equal(Object.keys(cfg).includes("nameFilter"), false);
+
+  cfg = getMapTableConfig({ type: "classI", key: "bnsf" });
+  assert.equal(cfg.tableName, "bnsf");
+  assert.equal(cfg.aliasFilter, null);
+
+  // getMapTableConfig – Class II / other railroad
+  cfg = getMapTableConfig({ type: "other", key: "Regional Railroad" });
+  assert.equal(cfg.tableName, "railroads");
+  assert.equal(cfg.aliasFilter, null);
+  assert.equal(cfg.nameFilter, "Regional Railroad");
+
+  // getMapTableConfig – "all" filter falls back to shared railroads table
+  cfg = getMapTableConfig({ type: "all", key: "all" });
+  assert.equal(cfg.tableName, "railroads");
+  assert.equal(cfg.aliasFilter, null);
+
+  // getMapFilterColor – Class I railroads return their designated colors
+  assert.equal(getMapFilterColor({ type: "classI", key: "up" }), "#ca8a04");
+  assert.equal(getMapFilterColor({ type: "classI", key: "bnsf" }), "#f97316");
+  assert.equal(getMapFilterColor({ type: "classI", key: "ns" }), "#7c3aed");
+
+  // getMapFilterColor – unknown Class I key falls back to DEFAULT_MAP_COLOR
+  assert.equal(getMapFilterColor({ type: "classI", key: "unknown" }), "#6b7280");
+
+  // getMapFilterColor – "all" and "other" types return DEFAULT_MAP_COLOR
+  assert.equal(getMapFilterColor({ type: "all", key: "all" }), "#6b7280");
+  assert.equal(getMapFilterColor({ type: "other", key: "Regional Railroad" }), "#6b7280");
+
+  console.log("map feature tests passed");
 }
 
 run().catch((error) => {
