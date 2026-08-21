@@ -23,6 +23,10 @@ function googleMapsUrl(lat, lon) {
   return `https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
 }
 
+function googleMapsDirectionsUrl(lat, lon) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
+}
+
 function mapIconSvg() {
   return `
     <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" focusable="false">
@@ -385,6 +389,7 @@ function applySubdivisionSearchFilter() {
       clearLookupUI();
     }
   }
+
 }
 
 function renderSubdivisionAutocomplete(names) {
@@ -678,6 +683,8 @@ if (typeof module !== "undefined") {
     getMapFilterColor,
     getLeafletGlobal,
     getTrackGeometry,
+    googleMapsDirectionsUrl,
+    shouldAutoShowMarkerInfo,
   };
 }
 
@@ -1048,12 +1055,50 @@ const CLASS_I_COLORS = {
 const DEFAULT_MAP_COLOR = "#6b7280";
 const MAP_MODAL_RENDER_DELAY_MS = 40;
 const MAP_PAGE_SIZE = 1000;
+const MAP_AUTO_INFO_ZOOM = 12;
+const MAP_AUTO_INFO_MAX_MARKERS = 40;
 
 let mapLeafletInstance = null;
 let mapMarkersLayer = null;
 let mapTrackLayer = null;
 let activeMapFilter = { type: "all", key: "all", label: "All Railroads" };
 let mapClassIINames = [];
+
+function shouldAutoShowMarkerInfo(zoom, isInView, shownCount, maxCount = MAP_AUTO_INFO_MAX_MARKERS) {
+  return zoom >= MAP_AUTO_INFO_ZOOM && isInView && shownCount < maxCount;
+}
+
+function openMapDirections(lat, lon) {
+  if (!hasLatLon(lat, lon)) return;
+  const url = googleMapsDirectionsUrl(lat, lon);
+  if (typeof window !== "undefined" && window && typeof window.open === "function") {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
+function refreshMapMarkerPresentation() {
+  if (!mapLeafletInstance || !mapMarkersLayer) return;
+  const zoom = mapLeafletInstance.getZoom();
+  const markerRadius = zoom >= 10 ? 6 : zoom >= 7 ? 8 : 10;
+  const bounds = typeof mapLeafletInstance.getBounds === "function" ? mapLeafletInstance.getBounds() : null;
+  let shownCount = 0;
+
+  mapMarkersLayer.eachLayer((layer) => {
+    if (typeof layer.setRadius === "function") {
+      layer.setRadius(markerRadius);
+    }
+    if (typeof layer.getLatLng !== "function") return;
+
+    const latlng = layer.getLatLng();
+    const isInView = !bounds || typeof bounds.contains !== "function" ? true : bounds.contains(latlng);
+    if (shouldAutoShowMarkerInfo(zoom, isInView, shownCount)) {
+      if (typeof layer.openTooltip === "function") layer.openTooltip();
+      shownCount += 1;
+    } else if (typeof layer.closeTooltip === "function") {
+      layer.closeTooltip();
+    }
+  });
+}
 
 /**
  * Track-geometry stub.
@@ -1224,7 +1269,7 @@ async function loadMapCrossings(filter) {
   if (mapStatusEl) {
     mapStatusEl.textContent = error
       ? `Error: ${error.message}`
-      : `${(data || []).length} crossing(s) shown`;
+      : `${(data || []).length} crossing(s) shown · zoom to ${MAP_AUTO_INFO_ZOOM}+ for quick info · click a marker for directions`;
   }
 
   return error ? [] : (data || []);
@@ -1258,10 +1303,8 @@ function renderMapMarkers(rows, filter) {
     const lon = parseFloat(row.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
 
-    const zoom = mapLeafletInstance.getZoom();
-    const markerRadius = zoom >= 10 ? 6 : zoom >= 7 ? 8 : 10;
     const marker = leaflet.circleMarker([lat, lon], {
-      radius: markerRadius,
+      radius: 8,
       fillColor: color,
       color: "#fff",
       weight: 1,
@@ -1275,6 +1318,11 @@ function renderMapMarkers(rows, filter) {
       `Milepost: ${escHtml(row.mile_post_num != null ? String(row.mile_post_num) : "N/A")}<br>` +
       `Subdivision: ${escHtml(row.subdivision || "N/A")}`
     );
+    marker.bindTooltip(
+      `${escHtml(row.dot_number || "N/A")} · ${escHtml(row.railroad || "Unknown")}`,
+      { direction: "top", opacity: 0.9, offset: [0, -8] }
+    );
+    marker.on("click", () => openMapDirections(lat, lon));
     mapMarkersLayer.addLayer(marker);
   });
 
@@ -1408,6 +1456,7 @@ function initMapLeaflet() {
       return;
     }
     tileLayer.addTo(mapLeafletInstance);
+    mapLeafletInstance.on("zoomend moveend", refreshMapMarkerPresentation);
   } catch (error) {
     if (mapLeafletInstance && typeof mapLeafletInstance.remove === "function") {
       mapLeafletInstance.remove();
