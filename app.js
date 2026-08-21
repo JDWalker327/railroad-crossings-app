@@ -203,6 +203,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
 const dotSearch = document.getElementById("dotSearch");
 const dotSearchBtn = document.getElementById("dotSearchBtn");
 const subdivisionSearch = document.getElementById("subdivisionSearch");
+const loadAllSubdivisionsBtn = document.getElementById("loadAllSubdivisionsBtn");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const lookupResults = document.getElementById("lookupResults");
 const lookupDescription = document.getElementById("lookupDescription");
@@ -240,6 +241,8 @@ let railroadRowsCache = [];
 let availableSubdivisionNames = [];
 let activeMode = "lookup";
 let activeRailroadFilter = { type: "all", key: "all", label: "All Railroads" };
+let latestSubdivisionSearchToken = 0;
+const subdivisionPrefixCache = new Map();
 
 subdivisionSelect.addEventListener("change", async () => {
   const subdivision = subdivisionSelect.value;
@@ -323,8 +326,12 @@ function filterSubdivisionNames(names, query) {
   if (!trimmedQuery) return [...(names || [])];
 
   return (names || []).filter((name) =>
-    String(name || "").toLowerCase().includes(trimmedQuery)
+    String(name || "").toLowerCase().startsWith(trimmedQuery)
   );
+}
+
+function shouldDeferClassISubdivisionLoad(filter = activeRailroadFilter, forceFullLoad = false) {
+  return isClassISubdivisionSearchEnabled(filter) && !forceFullLoad;
 }
 
 function renderSubdivisionOptions(names, selectedValue = "") {
@@ -349,6 +356,8 @@ function syncSubdivisionSearchMode(filter = activeRailroadFilter) {
   // railroads keep the original dropdown-only subdivision behavior.
   subdivisionSearch.hidden = !enableSearch;
   subdivisionSearch.disabled = !enableSearch;
+  loadAllSubdivisionsBtn.hidden = !enableSearch;
+  loadAllSubdivisionsBtn.disabled = !enableSearch;
   if (!enableSearch) {
     subdivisionSearch.value = "";
   }
@@ -492,6 +501,8 @@ async function setRailroadFilter(nextFilter) {
   // Always reset subdivision context when the railroad filter changes so stale
   // options are never visible while the new list is loading.
   availableSubdivisionNames = [];
+  subdivisionPrefixCache.clear();
+  latestSubdivisionSearchToken += 1;
   syncSubdivisionSearchMode(nextFilter);
   subdivisionSelect.value = "";
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
@@ -529,7 +540,7 @@ async function loadRailroads() {
   renderActiveResults();
 }
 
-async function loadSubdivisionDropdown() {
+async function loadSubdivisionDropdown({ forceFullLoad = false } = {}) {
   availableSubdivisionNames = [];
   syncSubdivisionSearchMode(activeRailroadFilter);
   subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
@@ -542,6 +553,12 @@ async function loadSubdivisionDropdown() {
   const isClassITable =
     snapshotFilter.type === "classI" &&
     CLASS_I_TABLES.has(snapshotFilter.key);
+
+  if (shouldDeferClassISubdivisionLoad(snapshotFilter, forceFullLoad)) {
+    subdivisionSelect.innerHTML = '<option value="">Type a prefix to search subdivisions…</option>';
+    subdivisionSelect.disabled = true;
+    return;
+  }
 
   const buildQuery = () => {
     const tableName = isClassITable ? snapshotFilter.key : "railroads";
@@ -586,12 +603,86 @@ if (typeof module !== "undefined") {
     fetchAllSubdivisionRows,
     filterSubdivisionNames,
     isClassISubdivisionSearchEnabled,
+    shouldDeferClassISubdivisionLoad,
     SUBDIVISION_PAGE_SIZE,
   };
 }
 
-subdivisionSearch.addEventListener("input", () => {
+subdivisionSearch.addEventListener("input", async () => {
+  if (!isClassISubdivisionSearchEnabled()) {
+    applySubdivisionSearchFilter();
+    return;
+  }
+
+  const prefix = subdivisionSearch.value.trim();
+  const searchToken = ++latestSubdivisionSearchToken;
+
+  if (!prefix) {
+    availableSubdivisionNames = [];
+    subdivisionSelect.innerHTML = '<option value="">Type a prefix to search subdivisions…</option>';
+    subdivisionSelect.disabled = true;
+    clearLookupUI();
+    return;
+  }
+
+  const cacheKey = `${activeRailroadFilter.key}:${prefix.toLowerCase()}`;
+  if (subdivisionPrefixCache.has(cacheKey)) {
+    availableSubdivisionNames = subdivisionPrefixCache.get(cacheKey) || [];
+    applySubdivisionSearchFilter();
+    return;
+  }
+
+  subdivisionSelect.innerHTML = '<option value="">Searching subdivisions…</option>';
+  subdivisionSelect.disabled = true;
+
+  const snapshotFilter = activeRailroadFilter;
+  const buildQuery = () => {
+    const tableName = CLASS_I_TABLES.has(snapshotFilter.key) ? snapshotFilter.key : "railroads";
+    let query = supabaseClient
+      .schema("public")
+      .from(tableName)
+      .select("subdivision")
+      .not("subdivision", "is", null)
+      .ilike("subdivision", `${prefix}%`);
+
+    if (tableName === "railroads") {
+      const railroad = CLASS_I_RAILROADS.find((r) => r.key === snapshotFilter.key);
+      if (railroad && railroad.aliases.length > 0) {
+        query = query.in("railroad_abreviation", railroad.aliases);
+      }
+    }
+
+    return query;
+  };
+
+  const { data, error } = await fetchAllSubdivisionRows(buildQuery);
+
+  if (searchToken !== latestSubdivisionSearchToken || activeRailroadFilter !== snapshotFilter) {
+    return;
+  }
+
+  if (error) {
+    console.error(error);
+    subdivisionSelect.innerHTML = '<option value="">Error loading subdivisions</option>';
+    return;
+  }
+
+  const names = collectSubdivisionNames(data);
+  subdivisionPrefixCache.set(cacheKey, names);
+  availableSubdivisionNames = names;
   applySubdivisionSearchFilter();
+  if (!names.length) {
+    subdivisionSelect.innerHTML = '<option value="">No subdivisions found for that prefix</option>';
+    subdivisionSelect.disabled = true;
+  }
+});
+
+loadAllSubdivisionsBtn.addEventListener("click", async () => {
+  loadAllSubdivisionsBtn.disabled = true;
+  subdivisionSelect.innerHTML = '<option value="">Loading subdivisions…</option>';
+  subdivisionSelect.disabled = true;
+  await loadSubdivisionDropdown({ forceFullLoad: true });
+  loadAllSubdivisionsBtn.disabled = false;
 });
 
 async function loadLookupCrossingsForSubdivision() {

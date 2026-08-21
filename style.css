@@ -72,6 +72,15 @@ input[type="text"]:focus {
 #subdivisionSearch {
   margin-top: 0;
 }
+
+#loadAllSubdivisionsBtn[hidden] {
+  display: none;
+}
+
+#loadAllSubdivisionsBtn {
+  display: block;
+  margin: 0 auto 10px auto;
+}
 /* Map icon link (Google Maps) - blue button */
 .map-icon-link {
   display: inline-flex;
@@ -367,7 +376,8 @@ input[type="text"]:focus {
 
 .railroad-filter-btn,
 #clearRailroadFilterBtn,
-#dotSearchBtn {
+#dotSearchBtn,
+#loadAllSubdivisionsBtn {
   border: 1px solid #0b63c8;
   background: #fff;
   color: #0b63c8;
@@ -380,7 +390,8 @@ input[type="text"]:focus {
 
 .railroad-filter-btn:hover,
 #clearRailroadFilterBtn:hover,
-#dotSearchBtn:hover {
+#dotSearchBtn:hover,
+#loadAllSubdivisionsBtn:hover {
   background: #e8f4fd;
 }
 
