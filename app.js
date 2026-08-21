@@ -37,10 +37,15 @@ function firstDefinedPropertyValue(obj, keys) {
   return "N/A";
 }
 
-function formatMapMarkerInfoText(props = {}) {
-  const milepost = firstDefinedPropertyValue(props, ["mile_post_num", "milepost", "MILEPOST", "mp", "mile_post"]);
-  const subdivision = firstDefinedPropertyValue(props, ["subdivision", "subdivision_name", "sub", "SUBDIVISION"]);
-  return `Milepost ${escHtml(milepost)} · Sub ${escHtml(subdivision)}`;
+const MAP_MILEPOST_KEYS = ["mile_post_num", "milepost", "MILEPOST", "mp", "mile_post"];
+const MAP_SUBDIVISION_KEYS = ["subdivision", "subdivision_name", "sub", "SUBDIVISION"];
+
+function formatMapMarkerInfoText(props = {}, escapeValues = false) {
+  const milepostValue = firstDefinedPropertyValue(props, MAP_MILEPOST_KEYS);
+  const subdivisionValue = firstDefinedPropertyValue(props, MAP_SUBDIVISION_KEYS);
+  const milepost = escapeValues ? escHtml(milepostValue) : milepostValue;
+  const subdivision = escapeValues ? escHtml(subdivisionValue) : subdivisionValue;
+  return `Milepost ${milepost} · Sub ${subdivision}`;
 }
 
 function mapIconSvg() {
@@ -1319,6 +1324,8 @@ function renderMapMarkers(rows, filter) {
     const lat = parseFloat(row.latitude);
     const lon = parseFloat(row.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
+    const popupMilepost = escHtml(firstDefinedPropertyValue(row, MAP_MILEPOST_KEYS));
+    const popupSubdivision = escHtml(firstDefinedPropertyValue(row, MAP_SUBDIVISION_KEYS));
 
     const marker = leaflet.circleMarker([lat, lon], {
       radius: 6,
@@ -1332,10 +1339,10 @@ function renderMapMarkers(rows, filter) {
     marker.bindPopup(
       `<strong>${escHtml(row.railroad || "Unknown")}</strong><br>` +
       `DOT #: ${escHtml(row.dot_number || "N/A")}<br>` +
-      `Milepost: ${escHtml(row.mile_post_num != null ? String(row.mile_post_num) : "N/A")}<br>` +
-      `Subdivision: ${escHtml(row.subdivision || "N/A")}`
+      `Milepost: ${popupMilepost}<br>` +
+      `Subdivision: ${popupSubdivision}`
     );
-    marker.bindTooltip(formatMapMarkerInfoText(row), { direction: "top", opacity: 0.9, offset: [0, -8] });
+    marker.bindTooltip(formatMapMarkerInfoText(row, true), { direction: "top", opacity: 0.9, offset: [0, -8] });
     marker.on("click", () => openMapDirections(lat, lon));
     mapMarkersLayer.addLayer(marker);
   });
