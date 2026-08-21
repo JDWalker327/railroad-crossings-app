@@ -677,6 +677,7 @@ if (typeof module !== "undefined") {
     getMapTableConfig,
     getMapFilterColor,
     getLeafletGlobal,
+    getTrackGeometry,
   };
 }
 
@@ -1078,7 +1079,54 @@ let mapClassIINames = [];
  * @returns {object|null}
  */
 function getTrackGeometry(_railroadKey) {
-  return null;
+  // Sample track GeoJSON for testing and demonstration.
+  // In production, replace with a real data source (API or hosted GeoJSON).
+  const sampleTracks = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { railroad_key: "up", subdivision: "Sunset" },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [-106.4850, 31.7619],
+            [-104.8214, 30.8968],
+            [-101.8313, 29.8386],
+            [-99.9018, 29.3627],
+            [-97.7431, 30.2672],
+          ],
+        },
+      },
+      {
+        type: "Feature",
+        properties: { railroad_key: "bnsf", subdivision: "Transcontinental" },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [-102.0779, 35.2220],
+            [-100.0000, 35.0000],
+            [-97.5164, 35.4676],
+            [-94.5156, 35.4853],
+          ],
+        },
+      },
+      {
+        type: "Feature",
+        properties: { railroad_key: "up", subdivision: "Mopac" },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [-97.7431, 30.2672],
+            [-97.1081, 31.5493],
+            [-96.3977, 33.2148],
+            [-95.9753, 35.3395],
+          ],
+        },
+      },
+    ],
+  };
+  return sampleTracks;
 }
 
 /**
@@ -1129,7 +1177,7 @@ async function loadMapCrossings(filter) {
   let query = supabaseClient
     .schema("public")
     .from(tableName)
-    .select("dot_number, railroad, subdivision, latitude, longitude")
+    .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
     .not("latitude", "is", null)
     .not("longitude", "is", null);
 
@@ -1178,8 +1226,10 @@ function renderMapMarkers(rows, filter) {
     const lon = parseFloat(row.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
 
+    const zoom = mapLeafletInstance.getZoom();
+    const markerRadius = zoom >= 10 ? 6 : zoom >= 7 ? 8 : 10;
     const marker = leaflet.circleMarker([lat, lon], {
-      radius: 6,
+      radius: markerRadius,
       fillColor: color,
       color: "#fff",
       weight: 1,
@@ -1190,6 +1240,7 @@ function renderMapMarkers(rows, filter) {
     marker.bindPopup(
       `<strong>${escHtml(row.railroad || "Unknown")}</strong><br>` +
       `DOT #: ${escHtml(row.dot_number || "N/A")}<br>` +
+      `Milepost: ${escHtml(row.mile_post_num != null ? String(row.mile_post_num) : "N/A")}<br>` +
       `Subdivision: ${escHtml(row.subdivision || "N/A")}`
     );
     mapMarkersLayer.addLayer(marker);
@@ -1198,7 +1249,9 @@ function renderMapMarkers(rows, filter) {
   // Track geometry layer — renders automatically once getTrackGeometry() returns data.
   const trackGeoJson = getTrackGeometry(filter.key);
   if (trackGeoJson) {
-    const trackStyle = { color, weight: 3, opacity: 0.8 };
+    const zoom = mapLeafletInstance.getZoom();
+    const trackWeight = zoom >= 10 ? 3 : zoom >= 7 ? 5 : 7;
+    const trackStyle = { color, weight: trackWeight, opacity: 0.8 };
     mapTrackLayer.addLayer(leaflet.geoJSON(trackGeoJson, { style: () => trackStyle }));
   }
 
