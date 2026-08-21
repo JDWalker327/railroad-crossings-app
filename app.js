@@ -1152,23 +1152,10 @@ function getTrackGeometry(_railroadKey) {
   const sampleTracks = {
     type: "FeatureCollection",
     features: [
-      {
-        type: "Feature",
-        properties: { railroad_key: "up", subdivision: "Sunset" },
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [-106.4850, 31.7619],
-            [-104.8214, 30.8968],
-            [-101.8313, 29.8386],
-            [-99.9018, 29.3627],
-            [-97.7431, 30.2672],
-          ],
-        },
-      },
-      // NOTE: Two sample segments removed — they were not real railroad lines:
+      // NOTE: Three sample segments removed — they were not real railroad lines:
       // 1. A fake east-to-west line through Oklahoma (approx. 35°N, -102 to -94°W).
       // 2. A fake north-south line from central Texas into Oklahoma (-97°W, 30–35°N).
+      // 3. A fake Austin/San Antonio ↔ El Paso corridor (Sunset Sub label, -106 to -97°W along ~30°N).
     ],
   };
   return sampleTracks;
