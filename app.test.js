@@ -46,6 +46,7 @@ async function run() {
     fetchAllSubdivisionRows,
     filterSubdivisionNames,
     isClassISubdivisionSearchEnabled,
+    shouldDeferClassISubdivisionLoad,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -64,16 +65,25 @@ async function run() {
   assert.equal(isClassISubdivisionSearchEnabled({ type: "other", key: "Regional Railroad" }), false);
 
   assert.deepEqual(
-    Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "et")),
+    Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "be")),
     ["Beta"]
   );
   assert.deepEqual(
     Array.from(filterSubdivisionNames(["Alpha", "Beta", "Gamma", "Delta"], "mm")),
-    ["Gamma"]
+    []
   );
   assert.deepEqual(
     Array.from(filterSubdivisionNames(["Alpha", "Beta"], "")),
     ["Alpha", "Beta"]
+  );
+
+  assert.equal(
+    shouldDeferClassISubdivisionLoad({ type: "classI", key: "up" }, false),
+    true
+  );
+  assert.equal(
+    shouldDeferClassISubdivisionLoad({ type: "classI", key: "up" }, true),
+    false
   );
 
   const pageSize = 12;
