@@ -122,6 +122,13 @@ The map filter bar lets you narrow visible crossings in two ways:
 
 The map automatically fits its view to the visible markers and shows a legend with the selected railroad's color when a filter is active.
 
+### Rendering reliability note
+
+A prior blank-map issue was caused by modal sizing timing during Leaflet initialization. The map now:
+- initializes with an OpenStreetMap tile layer and attribution,
+- defers `invalidateSize()` until after modal layout has painted, and
+- uses an explicit modal/map container height so tiles render reliably on open.
+
 ### Track lines
 
 When a railroad is selected, the map is also ready to render **track geometry** (polylines) in the same highlight color. Track GeoJSON data is not yet included in this repo; the extension point is the `getTrackGeometry(railroadKey)` function in `app.js`.

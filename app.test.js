@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function loadAppExports() {
+function loadAppExports(options = {}) {
   const source = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/app.js", "utf8");
   const sandbox = {
     console: { log() {}, error() {}, warn() {} },
@@ -32,10 +32,11 @@ function loadAppExports() {
         classList: { add() {}, remove() {} },
       }),
     },
-    window: {},
+    window: options.window || {},
     setTimeout,
     clearTimeout,
   };
+  if (options.globalLeaflet) sandbox.L = options.globalLeaflet;
 
   vm.runInNewContext(source, sandbox, { filename: "app.js" });
   return sandbox.module.exports;
@@ -50,6 +51,7 @@ async function run() {
     shouldDeferClassISubdivisionLoad,
     getMapTableConfig,
     getMapFilterColor,
+    getLeafletGlobal,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -148,6 +150,14 @@ async function run() {
   // getMapFilterColor – "all" and "other" types return DEFAULT_MAP_COLOR
   assert.equal(getMapFilterColor({ type: "all", key: "all" }), "#6b7280");
   assert.equal(getMapFilterColor({ type: "other", key: "Regional Railroad" }), "#6b7280");
+
+  // getLeafletGlobal – detects missing Leaflet and both window/global fallbacks
+  assert.equal(getLeafletGlobal(), null);
+  const mockLeaflet = { map() {} };
+  const { getLeafletGlobal: getLeafletFromWindow } = loadAppExports({ window: { L: mockLeaflet } });
+  assert.equal(getLeafletFromWindow(), mockLeaflet);
+  const { getLeafletGlobal: getLeafletFromGlobal } = loadAppExports({ globalLeaflet: mockLeaflet });
+  assert.equal(getLeafletFromGlobal(), mockLeaflet);
 
   console.log("map feature tests passed");
 }
