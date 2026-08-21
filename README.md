@@ -102,3 +102,51 @@ app.js       – Supabase queries and DOM rendering
 - **Lookup mode** – Search any UP crossing by DOT number or subdivision name
 - **Google Maps links** – Open crossing coordinates directly in Google Maps when lat/lon are available
 - **Responsive design** – Usable on screens from 320 px wide up to large desktop displays
+- **Crossings Map** – Interactive Leaflet map with railroad filter and crossing markers (see below)
+
+---
+
+## Map Feature
+
+Click the **🗺️ Map** button in the app toolbar to open the interactive crossings map.
+
+### Filtering by railroad
+
+The map filter bar lets you narrow visible crossings in two ways:
+
+| Control | What it does |
+|---|---|
+| **Class I tabs** (BNSF, CN, CPKC, CSX, NS, Union Pacific) | Shows only that railroad's crossings as colored circle markers. Each railroad has a unique color. |
+| **Class II dropdown** | Select any non-Class-I carrier from the dropdown to show its crossings. |
+| **Show All** button | Resets to all crossings (up to the 5 000-row fetch limit). |
+
+The map automatically fits its view to the visible markers and shows a legend with the selected railroad's color when a filter is active.
+
+### Rendering reliability note
+
+A prior blank-map issue was caused by modal sizing timing during Leaflet initialization. The map now:
+- initializes with an OpenStreetMap tile layer and attribution,
+- defers `invalidateSize()` until after modal layout has painted, and
+- uses an explicit modal/map container height so tiles render reliably on open.
+
+### Track lines
+
+When a railroad is selected, the map is also ready to render **track geometry** (polylines) in the same highlight color. Track GeoJSON data is not yet included in this repo; the extension point is the `getTrackGeometry(railroadKey)` function in `app.js`.
+
+**To add real track data:**
+1. Host (or bundle) a GeoJSON FeatureCollection with the shape below.
+2. Replace the stub in `getTrackGeometry` with a `fetch()` call or import.
+
+Expected GeoJSON shape:
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "LineString", "coordinates": [[-118.3, 34.1], [-117.9, 34.0]] },
+      "properties": { "railroad_key": "up", "subdivision": "Sunset" }
+    }
+  ]
+}
+```
