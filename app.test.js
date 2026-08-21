@@ -53,6 +53,8 @@ async function run() {
     getMapFilterColor,
     getLeafletGlobal,
     getTrackGeometry,
+    googleMapsDirectionsUrl,
+    shouldAutoShowMarkerInfo,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -177,6 +179,18 @@ async function run() {
   const trackGeo2 = getTrackGeometry("bnsf");
   assert.equal(trackGeo2.type, "FeatureCollection");
   assert.equal(trackGeo2.features.length, 3);
+
+  // map directions URL builder
+  assert.equal(
+    googleMapsDirectionsUrl(41.1234, -87.9876),
+    "https://www.google.com/maps/dir/?api=1&destination=41.1234,-87.9876"
+  );
+
+  // auto-info visibility helper
+  assert.equal(shouldAutoShowMarkerInfo(12, true, 0), true);
+  assert.equal(shouldAutoShowMarkerInfo(11, true, 0), false);
+  assert.equal(shouldAutoShowMarkerInfo(12, false, 0), false);
+  assert.equal(shouldAutoShowMarkerInfo(12, true, 40), false);
 
   console.log("map feature tests passed");
 }
