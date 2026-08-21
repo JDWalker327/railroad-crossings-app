@@ -66,8 +66,8 @@
       <input id="dotSearch" type="text" placeholder="e.g. 123456A">
 
       <label style="margin-top:10px;">Subdivision:</label>
-      <input id="subdivisionSearch" type="text" placeholder="Type a subdivision name…" aria-label="Search subdivisions" hidden autocomplete="off">
-      <div id="subdivisionResults" hidden></div>
+      <input id="subdivisionSearch" type="text" placeholder="Type a subdivision name…" aria-label="Search subdivisions" aria-controls="subdivisionResults" aria-expanded="false" hidden autocomplete="off">
+      <div id="subdivisionResults" role="list" hidden></div>
       <button id="loadAllSubdivisionsBtn" type="button" hidden>Load All Subdivisions</button>
       <select id="subdivisionSelect" disabled>
         <option value="">Loading subdivisions…</option>

@@ -366,6 +366,7 @@ function syncSubdivisionSearchMode(filter = activeRailroadFilter) {
   subdivisionResults.hidden = true;
   if (!enableSearch) {
     subdivisionSearch.value = "";
+    subdivisionSearch.setAttribute("aria-expanded", "false");
     subdivisionResults.innerHTML = "";
   }
 }
@@ -395,12 +396,17 @@ function renderSubdivisionAutocomplete(names) {
       msg.textContent = "No subdivisions found for that prefix.";
       subdivisionResults.appendChild(msg);
       subdivisionResults.hidden = false;
+      subdivisionSearch.setAttribute("aria-expanded", "true");
     } else {
       subdivisionResults.hidden = true;
+      subdivisionSearch.setAttribute("aria-expanded", "false");
     }
     return;
   }
+  const fragment = document.createDocumentFragment();
   names.forEach((name) => {
+    const item = document.createElement("div");
+    item.setAttribute("role", "listitem");
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "subdivision-result-btn";
@@ -414,13 +420,17 @@ function renderSubdivisionAutocomplete(names) {
     btn.appendChild(arrow);
     btn.addEventListener("click", () => {
       subdivisionSearch.value = name;
+      subdivisionSearch.setAttribute("aria-expanded", "false");
       subdivisionResults.hidden = true;
       subdivisionResults.innerHTML = "";
       selectSubdivision(name);
     });
-    subdivisionResults.appendChild(btn);
+    item.appendChild(btn);
+    fragment.appendChild(item);
   });
+  subdivisionResults.appendChild(fragment);
   subdivisionResults.hidden = false;
+  subdivisionSearch.setAttribute("aria-expanded", "true");
 }
 
 async function selectSubdivision(subdivision) {
