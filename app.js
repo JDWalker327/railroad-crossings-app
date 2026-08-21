@@ -45,7 +45,7 @@ function formatMapMarkerInfoText(props = {}, escapeValues = false) {
   const subdivisionValue = firstDefinedPropertyValue(props, MAP_SUBDIVISION_KEYS);
   const milepost = escapeValues ? escHtml(milepostValue) : milepostValue;
   const subdivision = escapeValues ? escHtml(subdivisionValue) : subdivisionValue;
-  return `Milepost ${milepost} · Sub ${subdivision}`;
+  return `Milepost ${milepost} · ${subdivision}`;
 }
 
 function mapIconSvg() {
@@ -1166,32 +1166,9 @@ function getTrackGeometry(_railroadKey) {
           ],
         },
       },
-      {
-        type: "Feature",
-        properties: { railroad_key: "bnsf", subdivision: "Transcontinental" },
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [-102.0779, 35.2220],
-            [-100.0000, 35.0000],
-            [-97.5164, 35.4676],
-            [-94.5156, 35.4853],
-          ],
-        },
-      },
-      {
-        type: "Feature",
-        properties: { railroad_key: "up", subdivision: "Mopac" },
-        geometry: {
-          type: "LineString",
-          coordinates: [
-            [-97.7431, 30.2672],
-            [-97.1081, 31.5493],
-            [-96.3977, 33.2148],
-            [-95.9753, 35.3395],
-          ],
-        },
-      },
+      // NOTE: Two sample segments removed — they were not real railroad lines:
+      // 1. A fake east-to-west line through Oklahoma (approx. 35°N, -102 to -94°W).
+      // 2. A fake north-south line from central Texas into Oklahoma (-97°W, 30–35°N).
     ],
   };
   return sampleTracks;

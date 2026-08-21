@@ -179,7 +179,7 @@ async function run() {
   // getTrackGeometry – result is the same regardless of key (sample data returns all features)
   const trackGeo2 = getTrackGeometry("bnsf");
   assert.equal(trackGeo2.type, "FeatureCollection");
-  assert.equal(trackGeo2.features.length, 3);
+  assert.equal(trackGeo2.features.length, 1);
 
   // map directions URL builder
   assert.equal(
@@ -196,15 +196,15 @@ async function run() {
   // map tooltip helper
   assert.equal(
     formatMapMarkerInfoText({ mile_post_num: 22.8, subdivision: "Sunset" }),
-    "Milepost 22.8 · Sub Sunset"
+    "Milepost 22.8 · Sunset"
   );
   assert.equal(
     formatMapMarkerInfoText({ milepost: "14.2", SUBDIVISION: "Mopac" }),
-    "Milepost 14.2 · Sub Mopac"
+    "Milepost 14.2 · Mopac"
   );
   assert.equal(
     formatMapMarkerInfoText({}),
-    "Milepost N/A · Sub N/A"
+    "Milepost N/A · N/A"
   );
 
   console.log("map feature tests passed");
