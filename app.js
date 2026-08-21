@@ -676,6 +676,7 @@ if (typeof module !== "undefined") {
     SUBDIVISION_PAGE_SIZE,
     getMapTableConfig,
     getMapFilterColor,
+    getLeafletGlobal,
   };
 }
 
@@ -1044,6 +1045,7 @@ const CLASS_I_COLORS = {
   up:   "#ca8a04",
 };
 const DEFAULT_MAP_COLOR = "#6b7280";
+const MAP_MODAL_RENDER_DELAY_MS = 40;
 
 let mapLeafletInstance = null;
 let mapMarkersLayer = null;
@@ -1112,6 +1114,12 @@ function getMapFilterColor(filter) {
   return DEFAULT_MAP_COLOR;
 }
 
+function getLeafletGlobal() {
+  if (typeof window !== "undefined" && window && window.L) return window.L;
+  if (typeof L !== "undefined") return L;
+  return null;
+}
+
 async function loadMapCrossings(filter) {
   const mapStatusEl = document.getElementById("mapStatus");
   if (mapStatusEl) mapStatusEl.textContent = "Loading crossings…";
@@ -1144,17 +1152,22 @@ async function loadMapCrossings(filter) {
 
 function renderMapMarkers(rows, filter) {
   if (!mapLeafletInstance) return;
+  const leaflet = getLeafletGlobal();
+  if (!leaflet) {
+    console.error("[map] Leaflet global (window.L) is missing while rendering map markers.");
+    return;
+  }
 
   if (mapMarkersLayer) {
     mapMarkersLayer.clearLayers();
   } else {
-    mapMarkersLayer = L.layerGroup().addTo(mapLeafletInstance);
+    mapMarkersLayer = leaflet.layerGroup().addTo(mapLeafletInstance);
   }
 
   if (mapTrackLayer) {
     mapTrackLayer.clearLayers();
   } else {
-    mapTrackLayer = L.layerGroup().addTo(mapLeafletInstance);
+    mapTrackLayer = leaflet.layerGroup().addTo(mapLeafletInstance);
   }
 
   const color = getMapFilterColor(filter);
@@ -1165,7 +1178,7 @@ function renderMapMarkers(rows, filter) {
     const lon = parseFloat(row.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
 
-    const marker = L.circleMarker([lat, lon], {
+    const marker = leaflet.circleMarker([lat, lon], {
       radius: 6,
       fillColor: color,
       color: "#fff",
@@ -1186,7 +1199,7 @@ function renderMapMarkers(rows, filter) {
   const trackGeoJson = getTrackGeometry(filter.key);
   if (trackGeoJson) {
     const trackStyle = { color, weight: 3, opacity: 0.8 };
-    mapTrackLayer.addLayer(L.geoJSON(trackGeoJson, { style: () => trackStyle }));
+    mapTrackLayer.addLayer(leaflet.geoJSON(trackGeoJson, { style: () => trackStyle }));
   }
 
   // Fit view to visible markers
@@ -1196,7 +1209,7 @@ function renderMapMarkers(rows, filter) {
         .filter((l) => typeof l.getLatLng === "function")
         .map((l) => l.getLatLng());
       if (latlngs.length > 0) {
-        mapLeafletInstance.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 10 });
+        mapLeafletInstance.fitBounds(leaflet.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 10 });
       }
     } catch (e) {
       // fitBounds errors are non-fatal
@@ -1278,13 +1291,45 @@ async function loadMapClassIINames() {
 function initMapLeaflet() {
   const container = document.getElementById("mapContainer");
   if (!container || mapLeafletInstance) return;
+  const leaflet = getLeafletGlobal();
+  if (!leaflet) {
+    console.error("[map] Leaflet library unavailable: expected window.L before opening map modal.");
+    return;
+  }
 
-  mapLeafletInstance = L.map("mapContainer").setView([39.5, -98.35], 4);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  }).addTo(mapLeafletInstance);
+  try {
+    mapLeafletInstance = leaflet.map("mapContainer").setView([39.5, -98.35], 4);
+  } catch (error) {
+    if (mapLeafletInstance && typeof mapLeafletInstance.remove === "function") {
+      mapLeafletInstance.remove();
+    }
+    mapLeafletInstance = null;
+    console.error("[map] Failed to initialize Leaflet map instance.", error);
+    return;
+  }
+
+  try {
+    const tileLayer = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    });
+    if (!tileLayer || typeof tileLayer.addTo !== "function") {
+      if (mapLeafletInstance && typeof mapLeafletInstance.remove === "function") {
+        mapLeafletInstance.remove();
+      }
+      mapLeafletInstance = null;
+      console.error("[map] Tile layer initialization failed: tileLayer was not created.");
+      return;
+    }
+    tileLayer.addTo(mapLeafletInstance);
+  } catch (error) {
+    if (mapLeafletInstance && typeof mapLeafletInstance.remove === "function") {
+      mapLeafletInstance.remove();
+    }
+    mapLeafletInstance = null;
+    console.error("[map] Tile layer initialization failed.", error);
+  }
 }
 
 function openMapModal() {
@@ -1308,7 +1353,16 @@ function openMapModal() {
   // before L.map() reads them.
   requestAnimationFrame(() => {
     initMapLeaflet();
-    loadMapCrossings(initialFilter).then((rows) => renderMapMarkers(rows, initialFilter));
+    if (!mapLeafletInstance) return;
+    // Wait one frame plus a short delay to ensure modal dimensions settle
+    // before invalidating size and fitting marker bounds.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (!mapLeafletInstance) return;
+        mapLeafletInstance.invalidateSize();
+        loadMapCrossings(initialFilter).then((rows) => renderMapMarkers(rows, initialFilter));
+      }, MAP_MODAL_RENDER_DELAY_MS);
+    });
   });
 }
 

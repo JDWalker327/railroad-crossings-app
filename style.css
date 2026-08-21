@@ -650,6 +650,7 @@ body.map-modal-open {
   background: #fff;
   width: 100%;
   max-width: 1200px;
+  height: calc(100vh - 24px);
   margin: 12px;
   border-radius: 10px;
   overflow: hidden;
@@ -794,7 +795,8 @@ body.map-modal-open {
 
 /* ── Map container ─────────────────────────────────────────── */
 .map-container {
-  flex: 1;
+  flex: 1 1 auto;
+  height: 100%;
   min-height: 400px;
 }
 
@@ -803,6 +805,7 @@ body.map-modal-open {
   .map-modal-inner {
     margin: 0;
     border-radius: 0;
+    height: 100vh;
   }
   .map-filter-bar {
     gap: 8px 10px;
