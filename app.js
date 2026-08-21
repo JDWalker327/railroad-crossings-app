@@ -1293,10 +1293,6 @@ function openMapModal() {
   modal.style.display = "flex";
   document.body.classList.add("map-modal-open");
 
-  // Leaflet must be initialized after the container is visible so it can
-  // measure the DOM dimensions correctly.
-  initMapLeaflet();
-
   // Pre-select the filter that matches the current main-app selection.
   const initialFilter =
     activeRailroadFilter.type !== "all"
@@ -1306,7 +1302,14 @@ function openMapModal() {
 
   buildMapClassITabs();
   loadMapClassIINames();
-  loadMapCrossings(initialFilter).then((rows) => renderMapMarkers(rows, initialFilter));
+
+  // Defer Leaflet initialization by one animation frame so the browser
+  // can perform a layout pass and the container has measured dimensions
+  // before L.map() reads them.
+  requestAnimationFrame(() => {
+    initMapLeaflet();
+    loadMapCrossings(initialFilter).then((rows) => renderMapMarkers(rows, initialFilter));
+  });
 }
 
 function closeMapModal() {
@@ -1360,10 +1363,14 @@ if (typeof module === "undefined") {
     mapModalEl.addEventListener("click", (e) => {
       if (e.target === mapModalEl) closeMapModal();
     });
-    mapModalEl.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeMapModal();
-    });
   }
+
+  // Escape key closes the map modal regardless of which element has focus.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.getElementById("mapModal")?.style.display !== "none") {
+      closeMapModal();
+    }
+  });
 
   const savedFilter = getSavedFavoriteRailroad();
   if (savedFilter) {
