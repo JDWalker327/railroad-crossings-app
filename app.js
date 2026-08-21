@@ -690,6 +690,7 @@ function renderLookupTable(rows, options = {}) {
         <th>Map</th>
         <th>DOT#</th>
         <th>Milepost</th>
+        <th>Linear Footage</th>
         <th>City</th>
         <th>State</th>
         <th>Road Name</th>
@@ -707,6 +708,7 @@ function renderLookupTable(rows, options = {}) {
         <td>${mapLinkHtml(row.latitude, row.longitude)}</td>
         <td>${escHtml(row.dot_number ?? row["dot-number"] ?? "")}</td>
         <td>${escHtml(row.mile_post_num ?? row.mile_post ?? row["mile-post"] ?? "")}</td>
+        <td>${escHtml(row.planned_footage ?? "")}</td>
         <td>${escHtml(row.city || "")}</td>
         <td>${escHtml(row.state || "")}</td>
         <td>${escHtml(row.road_name || "")}</td>
@@ -718,7 +720,7 @@ function renderLookupTable(rows, options = {}) {
     });
 
     if (!sortedRows.length) {
-      crossingsTableBody.innerHTML = '<tr><td colspan="9" class="empty-state-cell">No crossings found for this filter.</td></tr>';
+      crossingsTableBody.innerHTML = '<tr><td colspan="10" class="empty-state-cell">No crossings found for this filter.</td></tr>';
     }
     return;
   }
