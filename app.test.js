@@ -23,6 +23,7 @@ function loadAppExports() {
         value: "",
         appendChild() {},
         classList: { add() {}, remove() {}, toggle() {} },
+        querySelectorAll: () => [],
       }),
       createElement: () => ({
         value: "",
