@@ -52,6 +52,7 @@ async function run() {
     getMapTableConfig,
     getMapFilterColor,
     getLeafletGlobal,
+    getTrackGeometry,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -158,6 +159,24 @@ async function run() {
   assert.equal(getLeafletFromWindow(), mockLeaflet);
   const { getLeafletGlobal: getLeafletFromGlobal } = loadAppExports({ globalLeaflet: mockLeaflet });
   assert.equal(getLeafletFromGlobal(), mockLeaflet);
+
+  // getTrackGeometry – returns a FeatureCollection with LineString features
+  const trackGeo = getTrackGeometry("up");
+  assert.equal(trackGeo.type, "FeatureCollection");
+  assert.ok(Array.isArray(trackGeo.features));
+  assert.ok(trackGeo.features.length > 0);
+  trackGeo.features.forEach((f) => {
+    assert.equal(f.type, "Feature");
+    assert.equal(f.geometry.type, "LineString");
+    assert.ok(Array.isArray(f.geometry.coordinates));
+    assert.ok(f.properties.railroad_key);
+    assert.ok(f.properties.subdivision);
+  });
+
+  // getTrackGeometry – result is the same regardless of key (sample data)
+  const trackGeo2 = getTrackGeometry("bnsf");
+  assert.equal(trackGeo2.type, "FeatureCollection");
+  assert.equal(trackGeo2.features.length, trackGeo.features.length);
 
   console.log("map feature tests passed");
 }
