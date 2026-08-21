@@ -707,6 +707,7 @@ if (typeof module !== "undefined") {
     googleMapsDirectionsUrl,
     formatMapMarkerInfoText,
     shouldAutoShowMarkerInfo,
+    getFilteredRowsForMap,
   };
 }
 
@@ -1084,7 +1085,27 @@ let mapLeafletInstance = null;
 let mapMarkersLayer = null;
 let mapTrackLayer = null;
 let activeMapFilter = { type: "all", key: "all", label: "All Railroads" };
+let activeMapSubdivision = "";
+let allMapRows = [];
+let allMapSubdivisionNames = [];
 let mapClassIINames = [];
+
+/**
+ * Returns the subset of crossing rows whose subdivision matches the given
+ * subdivision string (case-insensitive, trimmed).  When subdivision is empty
+ * or not provided all rows are returned unchanged.
+ *
+ * @param {object[]} rows
+ * @param {string} subdivision
+ * @returns {object[]}
+ */
+function getFilteredRowsForMap(rows, subdivision) {
+  const sub = (subdivision || "").trim().toLowerCase();
+  if (!sub) return rows;
+  return rows.filter(
+    (row) => (firstDefinedPropertyValue(row, MAP_SUBDIVISION_KEYS) || "").trim().toLowerCase() === sub
+  );
+}
 
 function shouldAutoShowMarkerInfo(zoom, isInView, shownCount, maxCount = MAP_AUTO_INFO_MAX_MARKERS) {
   return zoom >= MAP_AUTO_INFO_ZOOM && isInView && shownCount < maxCount;
@@ -1349,11 +1370,58 @@ function renderMapMarkers(rows, filter) {
   }
 }
 
-async function applyMapFilter(filter) {
+async function applyMapFilter(filter, keepSubdivision = false) {
   activeMapFilter = filter;
+  if (!keepSubdivision) {
+    activeMapSubdivision = "";
+    const mapSubEl = document.getElementById("mapSubdivisionSearch");
+    if (mapSubEl) mapSubEl.value = "";
+    const mapSubResultsEl = document.getElementById("mapSubdivisionResults");
+    if (mapSubResultsEl) {
+      mapSubResultsEl.hidden = true;
+      mapSubResultsEl.innerHTML = "";
+    }
+  }
   buildMapClassITabs();
-  const rows = await loadMapCrossings(filter);
-  renderMapMarkers(rows, filter);
+  allMapRows = await loadMapCrossings(filter);
+  allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
+  renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), filter);
+}
+
+function renderMapSubdivisionAutocomplete(names) {
+  const resultsEl = document.getElementById("mapSubdivisionResults");
+  const searchEl = document.getElementById("mapSubdivisionSearch");
+  if (!resultsEl || !searchEl) return;
+  resultsEl.innerHTML = "";
+  if (!names.length) {
+    if (searchEl.value.trim()) {
+      const msg = document.createElement("div");
+      msg.className = "subdivision-results-label";
+      msg.textContent = "No subdivisions found.";
+      resultsEl.appendChild(msg);
+      resultsEl.hidden = false;
+    } else {
+      resultsEl.hidden = true;
+    }
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  names.forEach((name) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "subdivision-result-btn";
+    btn.textContent = name;
+    btn.addEventListener("click", () => {
+      searchEl.value = name;
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = "";
+      activeMapSubdivision = name;
+      renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), activeMapFilter);
+    });
+    fragment.appendChild(btn);
+  });
+  resultsEl.appendChild(fragment);
+  resultsEl.hidden = false;
 }
 
 function buildMapClassITabs() {
@@ -1479,7 +1547,11 @@ function openMapModal() {
       setTimeout(() => {
         if (!mapLeafletInstance) return;
         mapLeafletInstance.invalidateSize();
-        loadMapCrossings(initialFilter).then((rows) => renderMapMarkers(rows, initialFilter));
+        loadMapCrossings(initialFilter).then((rows) => {
+          allMapRows = rows;
+          allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
+          renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), initialFilter);
+        });
       }, MAP_MODAL_RENDER_DELAY_MS);
     });
   });
@@ -1528,6 +1600,38 @@ if (typeof module === "undefined") {
     mapClassIISelectEl.addEventListener("change", () => {
       const name = mapClassIISelectEl.value;
       if (name) applyMapFilter({ type: "other", key: name, label: name });
+    });
+  }
+
+  const mapSubdivisionSearchEl = document.getElementById("mapSubdivisionSearch");
+  if (mapSubdivisionSearchEl) {
+    mapSubdivisionSearchEl.addEventListener("input", () => {
+      const query = mapSubdivisionSearchEl.value.trim().toLowerCase();
+      const filtered = allMapSubdivisionNames.filter((n) => n.toLowerCase().includes(query));
+      renderMapSubdivisionAutocomplete(filtered);
+    });
+    mapSubdivisionSearchEl.addEventListener("blur", () => {
+      // Delay hiding so click events on autocomplete items can fire first.
+      setTimeout(() => {
+        const resultsEl = document.getElementById("mapSubdivisionResults");
+        if (resultsEl) {
+          resultsEl.hidden = true;
+          resultsEl.innerHTML = "";
+        }
+      }, 200);
+    });
+    mapSubdivisionSearchEl.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        const resultsEl = document.getElementById("mapSubdivisionResults");
+        if (resultsEl) {
+          resultsEl.hidden = true;
+          resultsEl.innerHTML = "";
+        }
+        if (!activeMapSubdivision) return;
+        activeMapSubdivision = "";
+        mapSubdivisionSearchEl.value = "";
+        renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), activeMapFilter);
+      }
     });
   }
 

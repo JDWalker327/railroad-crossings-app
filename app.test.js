@@ -56,6 +56,7 @@ async function run() {
     googleMapsDirectionsUrl,
     formatMapMarkerInfoText,
     shouldAutoShowMarkerInfo,
+    getFilteredRowsForMap,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -201,6 +202,33 @@ async function run() {
   );
 
   console.log("map feature tests passed");
+
+  // ── getFilteredRowsForMap ────────────────────────────────────────────────
+
+  const mapRows = [
+    { subdivision: "Sunset", latitude: 1, longitude: 1 },
+    { subdivision: "  sunset  ", latitude: 2, longitude: 2 },
+    { subdivision: "Mopac", latitude: 3, longitude: 3 },
+    { subdivision: null, latitude: 4, longitude: 4 },
+  ];
+
+  // Empty subdivision → all rows returned
+  assert.deepEqual(getFilteredRowsForMap(mapRows, ""), mapRows);
+  assert.deepEqual(getFilteredRowsForMap(mapRows, null), mapRows);
+  assert.deepEqual(getFilteredRowsForMap(mapRows, undefined), mapRows);
+
+  // Case-insensitive match, trims whitespace from both sides
+  const sunsetRows = getFilteredRowsForMap(mapRows, "sunset");
+  assert.equal(sunsetRows.length, 2);
+  assert.ok(sunsetRows.every((r) => (r.subdivision || "").trim().toLowerCase() === "sunset"));
+
+  // Match is exact (not partial)
+  assert.equal(getFilteredRowsForMap(mapRows, "sun").length, 0);
+
+  // No match → empty array
+  assert.equal(getFilteredRowsForMap(mapRows, "Unknown Sub").length, 0);
+
+  console.log("getFilteredRowsForMap tests passed");
 }
 
 run().catch((error) => {
