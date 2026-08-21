@@ -73,6 +73,18 @@ input[type="text"]:focus {
   margin-top: 0;
 }
 
+#subdivisionResults[hidden] {
+  display: none;
+}
+
+#subdivisionResults {
+  margin-top: 6px;
+}
+
+#subdivisionSelect[hidden] {
+  display: none;
+}
+
 #loadAllSubdivisionsBtn[hidden] {
   display: none;
 }

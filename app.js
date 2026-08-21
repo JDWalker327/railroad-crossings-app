@@ -203,6 +203,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
 const dotSearch = document.getElementById("dotSearch");
 const dotSearchBtn = document.getElementById("dotSearchBtn");
 const subdivisionSearch = document.getElementById("subdivisionSearch");
+const subdivisionResults = document.getElementById("subdivisionResults");
 const loadAllSubdivisionsBtn = document.getElementById("loadAllSubdivisionsBtn");
 const subdivisionSelect = document.getElementById("subdivisionSelect");
 const lookupResults = document.getElementById("lookupResults");
@@ -360,8 +361,13 @@ function syncSubdivisionSearchMode(filter = activeRailroadFilter) {
   subdivisionSearch.disabled = !enableSearch;
   loadAllSubdivisionsBtn.hidden = !showLoadAllButton;
   loadAllSubdivisionsBtn.disabled = !showLoadAllButton;
+  // For Class I, use the autocomplete results div instead of the select.
+  subdivisionSelect.hidden = enableSearch;
+  subdivisionResults.hidden = true;
   if (!enableSearch) {
     subdivisionSearch.value = "";
+    subdivisionSearch.setAttribute("aria-expanded", "false");
+    subdivisionResults.innerHTML = "";
   }
 }
 
@@ -371,11 +377,67 @@ function applySubdivisionSearchFilter() {
     ? filterSubdivisionNames(availableSubdivisionNames, subdivisionSearch.value)
     : [...availableSubdivisionNames];
 
-  renderSubdivisionOptions(filteredNames, previousSelection);
-
-  if (previousSelection && subdivisionSelect.value !== previousSelection) {
-    clearLookupUI();
+  if (isClassISubdivisionSearchEnabled()) {
+    renderSubdivisionAutocomplete(filteredNames);
+  } else {
+    renderSubdivisionOptions(filteredNames, previousSelection);
+    if (previousSelection && subdivisionSelect.value !== previousSelection) {
+      clearLookupUI();
+    }
   }
+}
+
+function renderSubdivisionAutocomplete(names) {
+  subdivisionResults.innerHTML = "";
+  if (!names || names.length === 0) {
+    if (subdivisionSearch.value.trim()) {
+      const msg = document.createElement("p");
+      msg.className = "subdivision-results-label";
+      msg.textContent = "No subdivisions found for that prefix.";
+      subdivisionResults.appendChild(msg);
+      subdivisionResults.hidden = false;
+      subdivisionSearch.setAttribute("aria-expanded", "true");
+    } else {
+      subdivisionResults.hidden = true;
+      subdivisionSearch.setAttribute("aria-expanded", "false");
+    }
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  names.forEach((name) => {
+    const item = document.createElement("div");
+    item.setAttribute("role", "listitem");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "subdivision-result-btn";
+    const span = document.createElement("span");
+    span.textContent = name;
+    const arrow = document.createElement("span");
+    arrow.className = "subdivision-result-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "›";
+    btn.appendChild(span);
+    btn.appendChild(arrow);
+    btn.addEventListener("click", () => {
+      subdivisionSearch.value = name;
+      subdivisionSearch.setAttribute("aria-expanded", "false");
+      subdivisionResults.hidden = true;
+      subdivisionResults.innerHTML = "";
+      selectSubdivision(name);
+    });
+    item.appendChild(btn);
+    fragment.appendChild(item);
+  });
+  subdivisionResults.appendChild(fragment);
+  subdivisionResults.hidden = false;
+  subdivisionSearch.setAttribute("aria-expanded", "true");
+}
+
+async function selectSubdivision(subdivision) {
+  activeMode = "lookup";
+  selectedLookup = { subdivision };
+  lookupResults.innerHTML = `<div style="opacity:0.8;">Loading crossings for <strong>${escHtml(subdivision)}</strong>…</div>`;
+  await loadLookupCrossingsForSubdivision();
 }
 
 function renderRailroadTabs() {
@@ -630,8 +692,8 @@ subdivisionSearch.addEventListener("input", async () => {
 
   if (!prefix) {
     availableSubdivisionNames = [];
-    subdivisionSelect.innerHTML = '<option value="">Type a prefix to search subdivisions…</option>';
-    subdivisionSelect.disabled = true;
+    subdivisionResults.hidden = true;
+    subdivisionResults.innerHTML = "";
     clearLookupUI();
     return;
   }
@@ -643,8 +705,8 @@ subdivisionSearch.addEventListener("input", async () => {
     return;
   }
 
-  subdivisionSelect.innerHTML = '<option value="">Searching subdivisions…</option>';
-  subdivisionSelect.disabled = true;
+  subdivisionResults.innerHTML = "<p class=\"subdivision-results-label\">Searching…</p>";
+  subdivisionResults.hidden = false;
 
   const snapshotFilter = activeRailroadFilter;
   const buildQuery = () => {
@@ -674,7 +736,7 @@ subdivisionSearch.addEventListener("input", async () => {
 
   if (error) {
     console.error(error);
-    subdivisionSelect.innerHTML = '<option value="">Error loading subdivisions</option>';
+    subdivisionResults.innerHTML = "<p class=\"subdivision-results-label\">Error loading subdivisions.</p>";
     return;
   }
 
@@ -682,10 +744,6 @@ subdivisionSearch.addEventListener("input", async () => {
   subdivisionPrefixCache.set(cacheKey, names);
   availableSubdivisionNames = names;
   applySubdivisionSearchFilter();
-  if (!names.length) {
-    subdivisionSelect.innerHTML = '<option value="">No subdivisions found for that prefix</option>';
-    subdivisionSelect.disabled = true;
-  }
 });
 
 loadAllSubdivisionsBtn.addEventListener("click", async () => {
