@@ -27,6 +27,27 @@ function googleMapsDirectionsUrl(lat, lon) {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
 }
 
+function firstDefinedPropertyValue(obj, keys) {
+  for (const key of keys) {
+    const value = obj && obj[key];
+    if (value != null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+  return "N/A";
+}
+
+const MAP_MILEPOST_KEYS = ["mile_post_num", "milepost", "MILEPOST", "mp", "mile_post"];
+const MAP_SUBDIVISION_KEYS = ["subdivision", "subdivision_name", "sub", "SUBDIVISION"];
+
+function formatMapMarkerInfoText(props = {}, escapeValues = false) {
+  const milepostValue = firstDefinedPropertyValue(props, MAP_MILEPOST_KEYS);
+  const subdivisionValue = firstDefinedPropertyValue(props, MAP_SUBDIVISION_KEYS);
+  const milepost = escapeValues ? escHtml(milepostValue) : milepostValue;
+  const subdivision = escapeValues ? escHtml(subdivisionValue) : subdivisionValue;
+  return `Milepost ${milepost} · Sub ${subdivision}`;
+}
+
 function mapIconSvg() {
   return `
     <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" focusable="false">
@@ -684,6 +705,7 @@ if (typeof module !== "undefined") {
     getLeafletGlobal,
     getTrackGeometry,
     googleMapsDirectionsUrl,
+    formatMapMarkerInfoText,
     shouldAutoShowMarkerInfo,
   };
 }
@@ -1055,7 +1077,7 @@ const CLASS_I_COLORS = {
 const DEFAULT_MAP_COLOR = "#6b7280";
 const MAP_MODAL_RENDER_DELAY_MS = 40;
 const MAP_PAGE_SIZE = 1000;
-const MAP_AUTO_INFO_ZOOM = 12;
+const MAP_AUTO_INFO_ZOOM = 14;
 const MAP_AUTO_INFO_MAX_MARKERS = 40;
 
 let mapLeafletInstance = null;
@@ -1079,7 +1101,7 @@ function openMapDirections(lat, lon) {
 function refreshMapMarkerPresentation() {
   if (!mapLeafletInstance || !mapMarkersLayer) return;
   const zoom = mapLeafletInstance.getZoom();
-  const markerRadius = zoom >= 10 ? 6 : zoom >= 7 ? 8 : 10;
+  const markerRadius = zoom >= 10 ? 4 : zoom >= 7 ? 5 : 6;
   const bounds = typeof mapLeafletInstance.getBounds === "function" ? mapLeafletInstance.getBounds() : null;
   let shownCount = 0;
 
@@ -1302,9 +1324,11 @@ function renderMapMarkers(rows, filter) {
     const lat = parseFloat(row.latitude);
     const lon = parseFloat(row.longitude);
     if (isNaN(lat) || isNaN(lon)) return;
+    const popupMilepost = escHtml(firstDefinedPropertyValue(row, MAP_MILEPOST_KEYS));
+    const popupSubdivision = escHtml(firstDefinedPropertyValue(row, MAP_SUBDIVISION_KEYS));
 
     const marker = leaflet.circleMarker([lat, lon], {
-      radius: 8,
+      radius: 6,
       fillColor: color,
       color: "#fff",
       weight: 1,
@@ -1315,13 +1339,10 @@ function renderMapMarkers(rows, filter) {
     marker.bindPopup(
       `<strong>${escHtml(row.railroad || "Unknown")}</strong><br>` +
       `DOT #: ${escHtml(row.dot_number || "N/A")}<br>` +
-      `Milepost: ${escHtml(row.mile_post_num != null ? String(row.mile_post_num) : "N/A")}<br>` +
-      `Subdivision: ${escHtml(row.subdivision || "N/A")}`
+      `Milepost: ${popupMilepost}<br>` +
+      `Subdivision: ${popupSubdivision}`
     );
-    marker.bindTooltip(
-      `${escHtml(row.dot_number || "N/A")} · ${escHtml(row.railroad || "Unknown")}`,
-      { direction: "top", opacity: 0.9, offset: [0, -8] }
-    );
+    marker.bindTooltip(formatMapMarkerInfoText(row, true), { direction: "top", opacity: 0.9, offset: [0, -8] });
     marker.on("click", () => openMapDirections(lat, lon));
     mapMarkersLayer.addLayer(marker);
   });
