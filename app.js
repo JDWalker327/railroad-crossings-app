@@ -1047,6 +1047,7 @@ const CLASS_I_COLORS = {
 };
 const DEFAULT_MAP_COLOR = "#6b7280";
 const MAP_MODAL_RENDER_DELAY_MS = 40;
+const MAP_PAGE_SIZE = 1000;
 
 let mapLeafletInstance = null;
 let mapMarkersLayer = null;
@@ -1168,26 +1169,57 @@ function getLeafletGlobal() {
   return null;
 }
 
+/**
+ * Fetches all map crossing rows in pages.
+ *
+ * @param {() => any} buildQuery Returns a fresh Supabase select query builder.
+ * @param {number} pageSize
+ * @returns {Promise<{ data: object[]|null, error: any }>}
+ */
+async function fetchAllMapCrossingRows(buildQuery, pageSize = MAP_PAGE_SIZE) {
+  const allRows = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+    if (error) return { data: null, error };
+
+    const rows = data || [];
+    allRows.push(...rows);
+    if (rows.length < pageSize) return { data: allRows, error: null };
+
+    from += pageSize;
+  }
+}
+
 async function loadMapCrossings(filter) {
   const mapStatusEl = document.getElementById("mapStatus");
   if (mapStatusEl) mapStatusEl.textContent = "Loading crossings…";
 
   const { tableName, aliasFilter, nameFilter } = getMapTableConfig(filter);
 
-  let query = supabaseClient
-    .schema("public")
-    .from(tableName)
-    .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
-    .not("latitude", "is", null)
-    .not("longitude", "is", null);
+  const buildQuery = () => {
+    let query = supabaseClient
+      .schema("public")
+      .from(tableName)
+      .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      // Use a deterministic multi-column ordering for stable pagination.
+      .order("dot_number", { ascending: true })
+      .order("railroad", { ascending: true })
+      .order("subdivision", { ascending: true })
+      .order("mile_post_num", { ascending: true });
 
-  if (aliasFilter && aliasFilter.length > 0) {
-    query = query.in("railroad_abreviation", aliasFilter);
-  } else if (nameFilter) {
-    query = query.ilike("railroad", nameFilter);
-  }
+    if (aliasFilter && aliasFilter.length > 0) {
+      query = query.in("railroad_abreviation", aliasFilter);
+    } else if (nameFilter) {
+      query = query.ilike("railroad", nameFilter);
+    }
+    return query;
+  };
 
-  const { data, error } = await query.limit(5000);
+  const { data, error } = await fetchAllMapCrossingRows(buildQuery);
 
   if (mapStatusEl) {
     mapStatusEl.textContent = error
