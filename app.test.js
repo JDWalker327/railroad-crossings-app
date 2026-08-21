@@ -54,6 +54,7 @@ async function run() {
     getLeafletGlobal,
     getTrackGeometry,
     googleMapsDirectionsUrl,
+    formatMapMarkerInfoText,
     shouldAutoShowMarkerInfo,
   } = loadAppExports();
 
@@ -187,10 +188,24 @@ async function run() {
   );
 
   // auto-info visibility helper
-  assert.equal(shouldAutoShowMarkerInfo(12, true, 0), true);
-  assert.equal(shouldAutoShowMarkerInfo(11, true, 0), false);
-  assert.equal(shouldAutoShowMarkerInfo(12, false, 0), false);
-  assert.equal(shouldAutoShowMarkerInfo(12, true, 40), false);
+  assert.equal(shouldAutoShowMarkerInfo(14, true, 0), true);
+  assert.equal(shouldAutoShowMarkerInfo(13, true, 0), false);
+  assert.equal(shouldAutoShowMarkerInfo(14, false, 0), false);
+  assert.equal(shouldAutoShowMarkerInfo(14, true, 40), false);
+
+  // map tooltip helper
+  assert.equal(
+    formatMapMarkerInfoText({ mile_post_num: 22.8, subdivision: "Sunset" }),
+    "Milepost 22.8 · Sub Sunset"
+  );
+  assert.equal(
+    formatMapMarkerInfoText({ milepost: "14.2", SUBDIVISION: "Mopac" }),
+    "Milepost 14.2 · Sub Mopac"
+  );
+  assert.equal(
+    formatMapMarkerInfoText({}),
+    "Milepost N/A · Sub N/A"
+  );
 
   console.log("map feature tests passed");
 }
