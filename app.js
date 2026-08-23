@@ -153,6 +153,234 @@ const paywallCloseBtn = document.getElementById("paywallCloseBtn");
 const paywallSubscribeBtn = document.getElementById("paywallSubscribeBtn");
 const paywallRestoreBtn = document.getElementById("paywallRestoreBtn");
 const paywallStatus = document.getElementById("paywallStatus");
+const installSection = document.getElementById("installSection");
+const installPromptText = document.getElementById("installPromptText");
+const installAppBtn = document.getElementById("installAppBtn");
+const installDismissBtn = document.getElementById("installDismissBtn");
+const installHelpBtn = document.getElementById("installHelpBtn");
+const installHelpPanel = document.getElementById("installHelpPanel");
+const installFallbackText = document.getElementById("installFallbackText");
+const installStatus = document.getElementById("installStatus");
+
+const INSTALL_BANNER_DISMISSED_KEY = "install_banner_dismissed";
+let deferredInstallPromptEvent = null;
+let isInstallHelpExpanded = false;
+let isInstallBannerDismissed = false;
+
+function getPersistedInstallBannerDismissed(store = (typeof localStorage !== "undefined" ? localStorage : null)) {
+  if (!store || typeof store.getItem !== "function") return false;
+  try {
+    return store.getItem(INSTALL_BANNER_DISMISSED_KEY) === "1";
+  } catch (error) {
+    console.warn("Unable to read install banner dismissal:", error);
+    return false;
+  }
+}
+
+function persistInstallBannerDismissed(value, store = (typeof localStorage !== "undefined" ? localStorage : null)) {
+  if (!store || typeof store.setItem !== "function") return;
+  try {
+    store.setItem(INSTALL_BANNER_DISMISSED_KEY, value ? "1" : "0");
+  } catch (error) {
+    console.warn("Unable to persist install banner dismissal:", error);
+  }
+}
+
+function getInstallContext(env = {}) {
+  const win = Object.prototype.hasOwnProperty.call(env, "window")
+    ? env.window
+    : (typeof window !== "undefined" ? window : null);
+  const nav = Object.prototype.hasOwnProperty.call(env, "navigator")
+    ? env.navigator
+    : (typeof navigator !== "undefined" ? navigator : null);
+  const userAgent = String(env.userAgent ?? nav?.userAgent ?? "");
+  const maxTouchPoints = Number(env.maxTouchPoints ?? nav?.maxTouchPoints ?? 0);
+  const isIOS =
+    /iphone|ipad|ipod/.test(userAgent.toLowerCase()) ||
+    (userAgent.includes("Macintosh") && maxTouchPoints > 1);
+  const isStandalone =
+    !!nav?.standalone ||
+    !!(win && typeof win.matchMedia === "function" && win.matchMedia("(display-mode: standalone)").matches);
+
+  return { isIOS, isStandalone };
+}
+
+function getInstallUiState({ hasDeferredPrompt = false, isIOS = false, isStandalone = false, isDismissed = false } = {}) {
+  if (isStandalone || isDismissed) {
+    return {
+      showSection: false,
+      showInstallButton: false,
+      showDismissButton: false,
+      showHelpButton: false,
+      primaryMessage: "",
+      helpButtonLabel: "How",
+      fallbackMessage: "",
+      autoExpandHelp: false,
+    };
+  }
+
+  return {
+    showSection: true,
+    showInstallButton: true,
+    showDismissButton: true,
+    showHelpButton: true,
+    primaryMessage: "Install this app for faster access: use your browser menu and tap ‘Add to Home Screen’.",
+    helpButtonLabel: "How",
+    fallbackMessage: hasDeferredPrompt
+      ? ""
+      : "Don’t see Install? Open the browser menu and choose ‘Add to Home Screen’. On iPhone, use Safari → Share → Add to Home Screen.",
+    autoExpandHelp: isIOS && !hasDeferredPrompt,
+  };
+}
+
+function getInstallHelpContent({ isIOS = false } = {}) {
+  return {
+    sections: [
+      {
+        title: "Install on Android",
+        steps: [
+          "Open this app in Chrome (or Edge).",
+          "Tap the browser menu (⋮).",
+          "Tap Install app or Add to Home screen.",
+          "Confirm Install.",
+        ],
+      },
+      {
+        title: "Install on iPhone",
+        steps: [
+          "Open this app in Safari.",
+          "Tap the Share button.",
+          "Scroll and tap Add to Home Screen.",
+          "Tap Add.",
+        ],
+      },
+    ],
+    defaultSectionIndex: isIOS ? 1 : 0,
+  };
+}
+
+function setInstallStatus(message = "") {
+  if (installStatus) {
+    installStatus.textContent = message;
+  }
+}
+
+function renderInstallHelpPanel(content) {
+  if (!installHelpPanel || !content) return;
+  const sections = (content.sections || [])
+    .map((section) => {
+      const stepsHtml = (section.steps || [])
+        .map((step) => `<li>${escHtml(step)}</li>`)
+        .join("");
+      return `
+        <h3 class="install-help-title">${escHtml(section.title || "Install this app")}</h3>
+        <ol class="install-help-list">${stepsHtml}</ol>
+      `;
+    })
+    .join("");
+  installHelpPanel.innerHTML = sections;
+}
+
+function refreshInstallUi() {
+  if (!installSection) return;
+
+  const context = getInstallContext();
+  const uiState = getInstallUiState({
+    hasDeferredPrompt: !!deferredInstallPromptEvent,
+    isIOS: context.isIOS,
+    isStandalone: context.isStandalone,
+    isDismissed: isInstallBannerDismissed,
+  });
+
+  installSection.hidden = !uiState.showSection;
+  if (installPromptText) {
+    installPromptText.textContent = uiState.primaryMessage;
+  }
+  if (installAppBtn) {
+    installAppBtn.hidden = !uiState.showInstallButton;
+    installAppBtn.textContent = "Install";
+  }
+  if (installDismissBtn) {
+    installDismissBtn.hidden = !uiState.showDismissButton;
+    installDismissBtn.textContent = "Not now";
+  }
+  if (installHelpBtn) {
+    installHelpBtn.hidden = !uiState.showHelpButton;
+    installHelpBtn.textContent = uiState.helpButtonLabel;
+  }
+  if (installFallbackText) {
+    installFallbackText.textContent = uiState.fallbackMessage;
+  }
+
+  renderInstallHelpPanel(getInstallHelpContent({ isIOS: context.isIOS }));
+  const shouldShowHelp = uiState.autoExpandHelp || isInstallHelpExpanded;
+  if (installHelpPanel) {
+    installHelpPanel.hidden = !shouldShowHelp;
+  }
+}
+
+function toggleInstallHelp(forceExpanded) {
+  if (!installHelpPanel) return;
+  const shouldExpand = typeof forceExpanded === "boolean"
+    ? forceExpanded
+    : installHelpPanel.hidden;
+  isInstallHelpExpanded = shouldExpand;
+  refreshInstallUi();
+}
+
+async function handleInstallButtonClick() {
+  if (!deferredInstallPromptEvent) {
+    toggleInstallHelp(true);
+    setInstallStatus("Install prompt unavailable. Use the manual steps below.");
+    return;
+  }
+
+  const promptEvent = deferredInstallPromptEvent;
+  await promptEvent.prompt();
+  deferredInstallPromptEvent = null;
+  const userChoice = await promptEvent.userChoice;
+
+  if (userChoice?.outcome === "accepted") {
+    setInstallStatus("Install prompt accepted. The app should appear on your home screen shortly.");
+  } else {
+    setInstallStatus("Install prompt dismissed. You can still install later from the help steps.");
+  }
+
+  refreshInstallUi();
+}
+
+function dismissInstallBanner() {
+  isInstallBannerDismissed = true;
+  isInstallHelpExpanded = false;
+  setInstallStatus("");
+  persistInstallBannerDismissed(true);
+  refreshInstallUi();
+}
+
+function registerServiceWorker() {
+  if (typeof window === "undefined" || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return Promise.resolve(null);
+  }
+
+  const register = () =>
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+      console.error("Service worker registration failed:", error);
+    });
+
+  if (typeof document !== "undefined" && document.readyState === "complete") {
+    return register();
+  }
+
+  if (typeof window.addEventListener === "function") {
+    return new Promise((resolve) => {
+      window.addEventListener("load", () => {
+        resolve(register());
+      }, { once: true });
+    });
+  }
+
+  return register();
+}
 
 function openPaywall() {
   paywallModal.style.display = "flex";
@@ -698,6 +926,11 @@ if (typeof module !== "undefined") {
     fetchAllSubdivisionRows,
     filterSubdivisionNames,
     isClassISubdivisionSearchEnabled,
+    getInstallContext,
+    getInstallUiState,
+    getInstallHelpContent,
+    getPersistedInstallBannerDismissed,
+    persistInstallBannerDismissed,
     shouldDeferClassISubdivisionLoad,
     SUBDIVISION_PAGE_SIZE,
     getMapTableConfig,
@@ -1587,6 +1820,46 @@ function closeMapModal() {
 }
 
 if (typeof module === "undefined") {
+  registerServiceWorker();
+  isInstallBannerDismissed = getPersistedInstallBannerDismissed();
+  refreshInstallUi();
+
+  if (installAppBtn) {
+    installAppBtn.addEventListener("click", () => {
+      handleInstallButtonClick().catch((error) => {
+        console.error("Install prompt failed:", error);
+        setInstallStatus("Install could not be started. Please use the manual install steps.");
+        refreshInstallUi();
+      });
+    });
+  }
+
+  if (installHelpBtn) {
+    installHelpBtn.addEventListener("click", () => {
+      toggleInstallHelp();
+    });
+  }
+
+  if (installDismissBtn) {
+    installDismissBtn.addEventListener("click", dismissInstallBanner);
+  }
+
+  if (typeof window !== "undefined" && window && typeof window.addEventListener === "function") {
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredInstallPromptEvent = event;
+      setInstallStatus("");
+      refreshInstallUi();
+    });
+
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPromptEvent = null;
+      isInstallHelpExpanded = false;
+      setInstallStatus("App installed successfully.");
+      refreshInstallUi();
+    });
+  }
+
   incrementVisitCount();
   initRevenueCat();
 

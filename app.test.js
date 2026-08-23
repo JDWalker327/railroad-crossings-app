@@ -42,11 +42,20 @@ function loadAppExports(options = {}) {
   return sandbox.module.exports;
 }
 
+function toPlainValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 async function run() {
   const {
     collectSubdivisionNames,
     fetchAllSubdivisionRows,
     filterSubdivisionNames,
+    getInstallContext,
+    getInstallUiState,
+    getInstallHelpContent,
+    getPersistedInstallBannerDismissed,
+    persistInstallBannerDismissed,
     isClassISubdivisionSearchEnabled,
     shouldDeferClassISubdivisionLoad,
     getMapTableConfig,
@@ -95,6 +104,133 @@ async function run() {
     shouldDeferClassISubdivisionLoad({ type: "classI", key: "up" }, true),
     false
   );
+
+  assert.deepEqual(
+    toPlainValue(getInstallContext({
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+      window: { matchMedia: () => ({ matches: false }) },
+      navigator: { standalone: false },
+    })),
+    { isIOS: true, isStandalone: false }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallContext({
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      window: { matchMedia: () => ({ matches: true }) },
+      navigator: { standalone: false },
+    })),
+    { isIOS: false, isStandalone: true }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallContext({
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)",
+      maxTouchPoints: 5,
+      window: { matchMedia: () => ({ matches: false }) },
+      navigator: { standalone: false },
+    })),
+    { isIOS: true, isStandalone: false }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallUiState({ hasDeferredPrompt: true, isIOS: false, isStandalone: false })),
+    {
+      showSection: true,
+      showInstallButton: true,
+      showDismissButton: true,
+      showHelpButton: true,
+      primaryMessage: "Install this app for faster access: use your browser menu and tap ‘Add to Home Screen’.",
+      helpButtonLabel: "How",
+      fallbackMessage: "",
+      autoExpandHelp: false,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallUiState({ hasDeferredPrompt: false, isIOS: true, isStandalone: false })),
+    {
+      showSection: true,
+      showInstallButton: true,
+      showDismissButton: true,
+      showHelpButton: true,
+      primaryMessage: "Install this app for faster access: use your browser menu and tap ‘Add to Home Screen’.",
+      helpButtonLabel: "How",
+      fallbackMessage: "Don’t see Install? Open the browser menu and choose ‘Add to Home Screen’. On iPhone, use Safari → Share → Add to Home Screen.",
+      autoExpandHelp: true,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallUiState({ hasDeferredPrompt: false, isIOS: false, isStandalone: false, isDismissed: true })),
+    {
+      showSection: false,
+      showInstallButton: false,
+      showDismissButton: false,
+      showHelpButton: false,
+      primaryMessage: "",
+      helpButtonLabel: "How",
+      fallbackMessage: "",
+      autoExpandHelp: false,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallHelpContent({ isIOS: false })),
+    {
+      sections: [
+        {
+          title: "Install on Android",
+          steps: [
+            "Open this app in Chrome (or Edge).",
+            "Tap the browser menu (⋮).",
+            "Tap Install app or Add to Home screen.",
+            "Confirm Install.",
+          ],
+        },
+        {
+          title: "Install on iPhone",
+          steps: [
+            "Open this app in Safari.",
+            "Tap the Share button.",
+            "Scroll and tap Add to Home Screen.",
+            "Tap Add.",
+          ],
+        },
+      ],
+      defaultSectionIndex: 0,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallHelpContent({ isIOS: true })),
+    {
+      sections: [
+        {
+          title: "Install on Android",
+          steps: [
+            "Open this app in Chrome (or Edge).",
+            "Tap the browser menu (⋮).",
+            "Tap Install app or Add to Home screen.",
+            "Confirm Install.",
+          ],
+        },
+        {
+          title: "Install on iPhone",
+          steps: [
+            "Open this app in Safari.",
+            "Tap the Share button.",
+            "Scroll and tap Add to Home Screen.",
+            "Tap Add.",
+          ],
+        },
+      ],
+      defaultSectionIndex: 1,
+    }
+  );
+  const fakeStore = {
+    value: "0",
+    getItem() { return this.value; },
+    setItem(_key, next) { this.value = next; },
+  };
+  assert.equal(getPersistedInstallBannerDismissed(fakeStore), false);
+  persistInstallBannerDismissed(true, fakeStore);
+  assert.equal(getPersistedInstallBannerDismissed(fakeStore), true);
+  persistInstallBannerDismissed(false, fakeStore);
+  assert.equal(getPersistedInstallBannerDismissed(fakeStore), false);
 
   const pageSize = 12;
   const total = 29;
