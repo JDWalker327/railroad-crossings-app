@@ -6,8 +6,9 @@ A mobile-friendly dashboard for browsing nationwide railroad crossings and looki
 
 The app now ships with a web app manifest, app icons, and a service worker so it can be installed directly from the browser while native app-store approvals are pending.
 
-- **Android / Chromium browsers** – when Chrome or Edge fires the install prompt, the app shows an **Install App** button. If the prompt is unavailable, users can still open the browser menu and choose **Install app** or **Add to Home Screen**.
-- **iPhone / iPad (Safari)** – the app shows concise instructions to use **Share → Add to Home Screen** when it detects iOS Safari outside standalone mode.
+- The app now shows a dismissible install banner with **Install**, **Not now**, and **How** actions.
+- If install prompting is unavailable, the banner still provides fallback guidance: open the browser menu and choose **Add to Home Screen** (or in iPhone Safari use **Share → Add to Home Screen**).
+- The **How** panel includes step-by-step instructions for both **Install on Android** and **Install on iPhone**.
 - **Already installed users** – once launched from the home screen in standalone mode, the install prompt/help banner stays hidden.
 
 ### Build / run notes for PWA behavior

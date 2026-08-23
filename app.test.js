@@ -54,6 +54,8 @@ async function run() {
     getInstallContext,
     getInstallUiState,
     getInstallHelpContent,
+    getPersistedInstallBannerDismissed,
+    persistInstallBannerDismissed,
     isClassISubdivisionSearchEnabled,
     shouldDeferClassISubdivisionLoad,
     getMapTableConfig,
@@ -133,9 +135,11 @@ async function run() {
     {
       showSection: true,
       showInstallButton: true,
+      showDismissButton: true,
       showHelpButton: true,
-      primaryMessage: "Install the app for a full-screen home-screen experience while store approvals are pending.",
-      helpButtonLabel: "Manual Install Help",
+      primaryMessage: "Install this app for faster access: use your browser menu and tap ‘Add to Home Screen’.",
+      helpButtonLabel: "How",
+      fallbackMessage: "",
       autoExpandHelp: false,
     }
   );
@@ -143,35 +147,90 @@ async function run() {
     toPlainValue(getInstallUiState({ hasDeferredPrompt: false, isIOS: true, isStandalone: false })),
     {
       showSection: true,
-      showInstallButton: false,
+      showInstallButton: true,
+      showDismissButton: true,
       showHelpButton: true,
-      primaryMessage: "On iPhone or iPad, open this site in Safari and tap Share → Add to Home Screen.",
-      helpButtonLabel: "iPhone Install Steps",
+      primaryMessage: "Install this app for faster access: use your browser menu and tap ‘Add to Home Screen’.",
+      helpButtonLabel: "How",
+      fallbackMessage: "Don’t see Install? Open the browser menu and choose ‘Add to Home Screen’. On iPhone, use Safari → Share → Add to Home Screen.",
       autoExpandHelp: true,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallUiState({ hasDeferredPrompt: false, isIOS: false, isStandalone: false, isDismissed: true })),
+    {
+      showSection: false,
+      showInstallButton: false,
+      showDismissButton: false,
+      showHelpButton: false,
+      primaryMessage: "",
+      helpButtonLabel: "How",
+      fallbackMessage: "",
+      autoExpandHelp: false,
     }
   );
   assert.deepEqual(
     toPlainValue(getInstallHelpContent({ isIOS: false })),
     {
-      title: "Install from your browser",
-      steps: [
-        "In Chrome or Edge, use the Install App button when it appears.",
-        "If the prompt is unavailable, open the browser menu.",
-        "Choose Install app or Add to Home Screen.",
+      sections: [
+        {
+          title: "Install on Android",
+          steps: [
+            "Open this app in Chrome (or Edge).",
+            "Tap the browser menu (⋮).",
+            "Tap Install app or Add to Home screen.",
+            "Confirm Install.",
+          ],
+        },
+        {
+          title: "Install on iPhone",
+          steps: [
+            "Open this app in Safari.",
+            "Tap the Share button.",
+            "Scroll and tap Add to Home Screen.",
+            "Tap Add.",
+          ],
+        },
       ],
+      defaultSectionIndex: 0,
     }
   );
   assert.deepEqual(
     toPlainValue(getInstallHelpContent({ isIOS: true })),
     {
-      title: "Install on iPhone or iPad",
-      steps: [
-        "Open this site in Safari.",
-        "Tap the Share button in the browser toolbar.",
-        "Choose Add to Home Screen, then tap Add.",
+      sections: [
+        {
+          title: "Install on Android",
+          steps: [
+            "Open this app in Chrome (or Edge).",
+            "Tap the browser menu (⋮).",
+            "Tap Install app or Add to Home screen.",
+            "Confirm Install.",
+          ],
+        },
+        {
+          title: "Install on iPhone",
+          steps: [
+            "Open this app in Safari.",
+            "Tap the Share button.",
+            "Scroll and tap Add to Home Screen.",
+            "Tap Add.",
+          ],
+        },
       ],
+      defaultSectionIndex: 1,
     }
   );
+  const fakeStore = {
+    value: "0",
+    getItem() { return this.value; },
+    setItem(_key, next) { this.value = next; },
+  };
+  assert.equal(getPersistedInstallBannerDismissed(fakeStore), false);
+  persistInstallBannerDismissed(true, fakeStore);
+  assert.equal(getPersistedInstallBannerDismissed(fakeStore), true);
+  persistInstallBannerDismissed(false, fakeStore);
+  assert.equal(getPersistedInstallBannerDismissed(fakeStore), false);
 
   const pageSize = 12;
   const total = 29;
