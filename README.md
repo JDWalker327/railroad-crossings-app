@@ -2,6 +2,26 @@
 
 A mobile-friendly dashboard for browsing nationwide railroad crossings and looking up Union Pacific crossings, backed by [Supabase](https://supabase.com/).
 
+## PWA install support
+
+The app now ships with a web app manifest, app icons, and a service worker so it can be installed directly from the browser while native app-store approvals are pending.
+
+- **Android / Chromium browsers** – when Chrome or Edge fires the install prompt, the app shows an **Install App** button. If the prompt is unavailable, users can still open the browser menu and choose **Install app** or **Add to Home Screen**.
+- **iPhone / iPad (Safari)** – the app shows concise instructions to use **Share → Add to Home Screen** when it detects iOS Safari outside standalone mode.
+- **Already installed users** – once launched from the home screen in standalone mode, the install prompt/help banner stays hidden.
+
+### Build / run notes for PWA behavior
+
+- The site is still plain HTML + CSS + JavaScript with no build step.
+- The service worker only registers on `http://localhost` or HTTPS origins, so use a local static server (`python3 -m http.server 8080`, `npx serve .`, Vercel, or GitHub Pages). It will not register from `file://`.
+- Cached assets are limited to the app shell and icons. Supabase/API requests are not aggressively cached, so live data behavior stays unchanged.
+
+### Limitations versus store apps
+
+- Browser install is not the same as App Store / Play Store distribution or discovery.
+- iOS installation must be started from Safari and has more platform limits than a native Capacitor build.
+- Browser-installed PWAs may have reduced background execution, push/notification support, and device integration compared with store apps.
+
 ## Viewing the App
 
 ### Option 1 – Live (GitHub Pages)
@@ -94,6 +114,8 @@ On mobile, the header controls stack vertically and all buttons/inputs are sized
 index.html   – Page markup
 style.css    – All styles, including responsive breakpoints
 app.js       – Supabase queries and DOM rendering
+sw.js        – Service worker for app-shell caching
+manifest.webmanifest – PWA install metadata
 ```
 
 ## Features
