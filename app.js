@@ -251,7 +251,7 @@ function renderInstallHelpPanel(content) {
     .map((step) => `<li>${escHtml(step)}</li>`)
     .join("");
   installHelpPanel.innerHTML = `
-    <p class="install-help-title"><strong>${escHtml(content.title || "Install this app")}</strong></p>
+    <h3 class="install-help-title">${escHtml(content.title || "Install this app")}</h3>
     <ol class="install-help-list">${stepsHtml}</ol>
   `;
 }
@@ -300,9 +300,10 @@ async function handleInstallButtonClick() {
     return;
   }
 
-  deferredInstallPromptEvent.prompt();
-  const userChoice = await deferredInstallPromptEvent.userChoice;
+  const promptEvent = deferredInstallPromptEvent;
+  await promptEvent.prompt();
   deferredInstallPromptEvent = null;
+  const userChoice = await promptEvent.userChoice;
 
   if (userChoice?.outcome === "accepted") {
     setInstallStatus("Install prompt accepted. The app should appear on your home screen shortly.");
@@ -328,8 +329,11 @@ function registerServiceWorker() {
   }
 
   if (typeof window.addEventListener === "function") {
-    window.addEventListener("load", register, { once: true });
-    return Promise.resolve(null);
+    return new Promise((resolve) => {
+      window.addEventListener("load", () => {
+        resolve(register());
+      }, { once: true });
+    });
   }
 
   return register();

@@ -8,30 +8,35 @@ const APP_SHELL_URLS = [
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./icons/maskable-192.png",
+  "./icons/maskable-512.png",
   "./icons/apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_URLS))
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL_URLS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-          return null;
-        })
-      )
-    )
+    Promise.all([
+      caches.keys().then((cacheNames) =>
+        Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              return caches.delete(cacheName);
+            }
+            return null;
+          })
+        )
+      ),
+      self.clients.claim(),
+    ])
   );
-  self.clients.claim();
 });
 
 function isAppShellAsset(url) {
@@ -59,7 +64,7 @@ self.addEventListener("fetch", (event) => {
       try {
         const response = await fetch(request);
         if (response.ok) {
-          cache.put(request, response.clone());
+          await cache.put(request, response.clone());
         }
         return response;
       } catch (error) {
@@ -74,17 +79,17 @@ self.addEventListener("fetch", (event) => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     const cachedResponse = await cache.match(request);
+    // Stale-while-revalidate: return the cached shell asset immediately while a
+    // background fetch refreshes the cache for the next visit.
     const networkResponsePromise = fetch(request)
-      .then((response) => {
+      .then(async (response) => {
         if (response.ok) {
-          cache.put(request, response.clone());
+          await cache.put(request, response.clone());
         }
         return response;
       })
       .catch(() => null);
-
     if (cachedResponse) {
-      networkResponsePromise.catch(() => null);
       return cachedResponse;
     }
 

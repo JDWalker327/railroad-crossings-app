@@ -120,6 +120,15 @@ async function run() {
     { isIOS: false, isStandalone: true }
   );
   assert.deepEqual(
+    toPlainValue(getInstallContext({
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)",
+      maxTouchPoints: 5,
+      window: { matchMedia: () => ({ matches: false }) },
+      navigator: { standalone: false },
+    })),
+    { isIOS: true, isStandalone: false }
+  );
+  assert.deepEqual(
     toPlainValue(getInstallUiState({ hasDeferredPrompt: true, isIOS: false, isStandalone: false })),
     {
       showSection: true,
@@ -149,6 +158,17 @@ async function run() {
         "In Chrome or Edge, use the Install App button when it appears.",
         "If the prompt is unavailable, open the browser menu.",
         "Choose Install app or Add to Home Screen.",
+      ],
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallHelpContent({ isIOS: true })),
+    {
+      title: "Install on iPhone or iPad",
+      steps: [
+        "Open this site in Safari.",
+        "Tap the Share button in the browser toolbar.",
+        "Choose Add to Home Screen, then tap Add.",
       ],
     }
   );
