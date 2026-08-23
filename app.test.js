@@ -42,11 +42,18 @@ function loadAppExports(options = {}) {
   return sandbox.module.exports;
 }
 
+function toPlainValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 async function run() {
   const {
     collectSubdivisionNames,
     fetchAllSubdivisionRows,
     filterSubdivisionNames,
+    getInstallContext,
+    getInstallUiState,
+    getInstallHelpContent,
     isClassISubdivisionSearchEnabled,
     shouldDeferClassISubdivisionLoad,
     getMapTableConfig,
@@ -94,6 +101,56 @@ async function run() {
   assert.equal(
     shouldDeferClassISubdivisionLoad({ type: "classI", key: "up" }, true),
     false
+  );
+
+  assert.deepEqual(
+    toPlainValue(getInstallContext({
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+      window: { matchMedia: () => ({ matches: false }) },
+      navigator: { standalone: false },
+    })),
+    { isIOS: true, isStandalone: false }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallContext({
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      window: { matchMedia: () => ({ matches: true }) },
+      navigator: { standalone: false },
+    })),
+    { isIOS: false, isStandalone: true }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallUiState({ hasDeferredPrompt: true, isIOS: false, isStandalone: false })),
+    {
+      showSection: true,
+      showInstallButton: true,
+      showHelpButton: true,
+      primaryMessage: "Install the app for a full-screen home-screen experience while store approvals are pending.",
+      helpButtonLabel: "Manual Install Help",
+      autoExpandHelp: false,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallUiState({ hasDeferredPrompt: false, isIOS: true, isStandalone: false })),
+    {
+      showSection: true,
+      showInstallButton: false,
+      showHelpButton: true,
+      primaryMessage: "On iPhone or iPad, open this site in Safari and tap Share → Add to Home Screen.",
+      helpButtonLabel: "iPhone Install Steps",
+      autoExpandHelp: true,
+    }
+  );
+  assert.deepEqual(
+    toPlainValue(getInstallHelpContent({ isIOS: false })),
+    {
+      title: "Install from your browser",
+      steps: [
+        "In Chrome or Edge, use the Install App button when it appears.",
+        "If the prompt is unavailable, open the browser menu.",
+        "Choose Install app or Add to Home Screen.",
+      ],
+    }
   );
 
   const pageSize = 12;

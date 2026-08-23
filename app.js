@@ -153,6 +153,187 @@ const paywallCloseBtn = document.getElementById("paywallCloseBtn");
 const paywallSubscribeBtn = document.getElementById("paywallSubscribeBtn");
 const paywallRestoreBtn = document.getElementById("paywallRestoreBtn");
 const paywallStatus = document.getElementById("paywallStatus");
+const installSection = document.getElementById("installSection");
+const installPromptText = document.getElementById("installPromptText");
+const installAppBtn = document.getElementById("installAppBtn");
+const installHelpBtn = document.getElementById("installHelpBtn");
+const installHelpPanel = document.getElementById("installHelpPanel");
+const installStatus = document.getElementById("installStatus");
+
+let deferredInstallPromptEvent = null;
+let isInstallHelpExpanded = false;
+
+function getInstallContext(env = {}) {
+  const win = Object.prototype.hasOwnProperty.call(env, "window")
+    ? env.window
+    : (typeof window !== "undefined" ? window : null);
+  const nav = Object.prototype.hasOwnProperty.call(env, "navigator")
+    ? env.navigator
+    : (typeof navigator !== "undefined" ? navigator : null);
+  const userAgent = String(env.userAgent ?? nav?.userAgent ?? "");
+  const maxTouchPoints = Number(env.maxTouchPoints ?? nav?.maxTouchPoints ?? 0);
+  const isIOS =
+    /iphone|ipad|ipod/.test(userAgent.toLowerCase()) ||
+    (userAgent.includes("Macintosh") && maxTouchPoints > 1);
+  const isStandalone =
+    !!nav?.standalone ||
+    !!(win && typeof win.matchMedia === "function" && win.matchMedia("(display-mode: standalone)").matches);
+
+  return { isIOS, isStandalone };
+}
+
+function getInstallUiState({ hasDeferredPrompt = false, isIOS = false, isStandalone = false } = {}) {
+  if (isStandalone) {
+    return {
+      showSection: false,
+      showInstallButton: false,
+      showHelpButton: false,
+      primaryMessage: "",
+      helpButtonLabel: "How to Install",
+      autoExpandHelp: false,
+    };
+  }
+
+  if (isIOS) {
+    return {
+      showSection: true,
+      showInstallButton: false,
+      showHelpButton: true,
+      primaryMessage: "On iPhone or iPad, open this site in Safari and tap Share → Add to Home Screen.",
+      helpButtonLabel: "iPhone Install Steps",
+      autoExpandHelp: true,
+    };
+  }
+
+  return {
+    showSection: true,
+    showInstallButton: hasDeferredPrompt,
+    showHelpButton: true,
+    primaryMessage: hasDeferredPrompt
+      ? "Install the app for a full-screen home-screen experience while store approvals are pending."
+      : "If the install prompt does not appear, you can still install from your browser menu.",
+    helpButtonLabel: hasDeferredPrompt ? "Manual Install Help" : "How to Install",
+    autoExpandHelp: false,
+  };
+}
+
+function getInstallHelpContent({ isIOS = false } = {}) {
+  if (isIOS) {
+    return {
+      title: "Install on iPhone or iPad",
+      steps: [
+        "Open this site in Safari.",
+        "Tap the Share button in the browser toolbar.",
+        "Choose Add to Home Screen, then tap Add.",
+      ],
+    };
+  }
+
+  return {
+    title: "Install from your browser",
+    steps: [
+      "In Chrome or Edge, use the Install App button when it appears.",
+      "If the prompt is unavailable, open the browser menu.",
+      "Choose Install app or Add to Home Screen.",
+    ],
+  };
+}
+
+function setInstallStatus(message = "") {
+  if (installStatus) {
+    installStatus.textContent = message;
+  }
+}
+
+function renderInstallHelpPanel(content) {
+  if (!installHelpPanel || !content) return;
+  const stepsHtml = (content.steps || [])
+    .map((step) => `<li>${escHtml(step)}</li>`)
+    .join("");
+  installHelpPanel.innerHTML = `
+    <p class="install-help-title"><strong>${escHtml(content.title || "Install this app")}</strong></p>
+    <ol class="install-help-list">${stepsHtml}</ol>
+  `;
+}
+
+function refreshInstallUi() {
+  if (!installSection) return;
+
+  const context = getInstallContext();
+  const uiState = getInstallUiState({
+    hasDeferredPrompt: !!deferredInstallPromptEvent,
+    isIOS: context.isIOS,
+    isStandalone: context.isStandalone,
+  });
+
+  installSection.hidden = !uiState.showSection;
+  if (installPromptText) {
+    installPromptText.textContent = uiState.primaryMessage;
+  }
+  if (installAppBtn) {
+    installAppBtn.hidden = !uiState.showInstallButton;
+  }
+  if (installHelpBtn) {
+    installHelpBtn.hidden = !uiState.showHelpButton;
+    installHelpBtn.textContent = uiState.helpButtonLabel;
+  }
+
+  renderInstallHelpPanel(getInstallHelpContent({ isIOS: context.isIOS }));
+  const shouldShowHelp = uiState.autoExpandHelp || isInstallHelpExpanded;
+  if (installHelpPanel) {
+    installHelpPanel.hidden = !shouldShowHelp;
+  }
+}
+
+function toggleInstallHelp(forceExpanded) {
+  if (!installHelpPanel) return;
+  const shouldExpand = typeof forceExpanded === "boolean"
+    ? forceExpanded
+    : installHelpPanel.hidden;
+  isInstallHelpExpanded = shouldExpand;
+  refreshInstallUi();
+}
+
+async function handleInstallButtonClick() {
+  if (!deferredInstallPromptEvent) {
+    toggleInstallHelp(true);
+    return;
+  }
+
+  deferredInstallPromptEvent.prompt();
+  const userChoice = await deferredInstallPromptEvent.userChoice;
+  deferredInstallPromptEvent = null;
+
+  if (userChoice?.outcome === "accepted") {
+    setInstallStatus("Install prompt accepted. The app should appear on your home screen shortly.");
+  } else {
+    setInstallStatus("Install prompt dismissed. You can still install later from the help steps.");
+  }
+
+  refreshInstallUi();
+}
+
+function registerServiceWorker() {
+  if (typeof window === "undefined" || typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return Promise.resolve(null);
+  }
+
+  const register = () =>
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+      console.error("Service worker registration failed:", error);
+    });
+
+  if (typeof document !== "undefined" && document.readyState === "complete") {
+    return register();
+  }
+
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("load", register, { once: true });
+    return Promise.resolve(null);
+  }
+
+  return register();
+}
 
 function openPaywall() {
   paywallModal.style.display = "flex";
@@ -698,6 +879,9 @@ if (typeof module !== "undefined") {
     fetchAllSubdivisionRows,
     filterSubdivisionNames,
     isClassISubdivisionSearchEnabled,
+    getInstallContext,
+    getInstallUiState,
+    getInstallHelpContent,
     shouldDeferClassISubdivisionLoad,
     SUBDIVISION_PAGE_SIZE,
     getMapTableConfig,
@@ -1587,6 +1771,41 @@ function closeMapModal() {
 }
 
 if (typeof module === "undefined") {
+  registerServiceWorker();
+  refreshInstallUi();
+
+  if (installAppBtn) {
+    installAppBtn.addEventListener("click", () => {
+      handleInstallButtonClick().catch((error) => {
+        console.error("Install prompt failed:", error);
+        setInstallStatus("Install could not be started. Please use the manual install steps.");
+        refreshInstallUi();
+      });
+    });
+  }
+
+  if (installHelpBtn) {
+    installHelpBtn.addEventListener("click", () => {
+      toggleInstallHelp();
+    });
+  }
+
+  if (typeof window !== "undefined" && window && typeof window.addEventListener === "function") {
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredInstallPromptEvent = event;
+      setInstallStatus("");
+      refreshInstallUi();
+    });
+
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPromptEvent = null;
+      isInstallHelpExpanded = false;
+      setInstallStatus("App installed successfully.");
+      refreshInstallUi();
+    });
+  }
+
   incrementVisitCount();
   initRevenueCat();
 
