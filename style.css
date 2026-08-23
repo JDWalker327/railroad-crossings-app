@@ -618,6 +618,7 @@ input[type="text"]:focus {
 }
 
 .install-app-btn,
+.install-dismiss-btn,
 .install-help-btn {
   border: none;
   border-radius: 999px;
@@ -635,6 +636,19 @@ input[type="text"]:focus {
   background: #fff;
   color: #9a3412;
   border: 1px solid #fdba74;
+}
+
+.install-dismiss-btn {
+  background: #fff;
+  color: #7c2d12;
+  border: 1px solid #fed7aa;
+}
+
+.install-fallback-text {
+  min-height: 20px;
+  margin: 12px 0 0;
+  color: #9a3412;
+  font-size: 14px;
 }
 
 .install-help-panel {
@@ -679,6 +693,7 @@ input[type="text"]:focus {
   }
 
   .install-app-btn,
+  .install-dismiss-btn,
   .install-help-btn {
     width: 100%;
     min-height: 44px;
