@@ -117,8 +117,8 @@ async function incrementVisitCount() {
 }
 
 const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
-const RC_ENTITLEMENT = "Railroad Crossings Pro";
-const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
+const RC_ENTITLEMENT = "premium";
+const RC_PRODUCT_ID = "railroad_crossings_monthly";
 
 // ── RevenueCat SDK safe accessor ────────────────────────────────────────────
 //
