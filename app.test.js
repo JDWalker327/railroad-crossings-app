@@ -9,7 +9,10 @@ function loadAppExports(options = {}) {
     module: { exports: {} },
     exports: {},
     supabase: { createClient: () => ({ rpc: async () => ({}), schema: () => ({ from: () => ({}) }) }) },
-    Purchases: { configure() {}, getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }) },
+    Purchases: options.purchases || {
+      configure() {},
+      getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }),
+    },
     localStorage: { getItem: () => "test-user", setItem() {} },
     crypto: { randomUUID: () => "uuid" },
     document: {
@@ -22,6 +25,7 @@ function loadAppExports(options = {}) {
         hidden: false,
         value: "",
         appendChild() {},
+        remove() {},
         classList: { add() {}, remove() {}, toggle() {} },
         querySelectorAll: () => [],
       }),
@@ -66,6 +70,11 @@ async function run() {
     formatMapMarkerInfoText,
     shouldAutoShowMarkerInfo,
     getFilteredRowsForMap,
+    hasActiveEntitlement,
+    getIsPro,
+    checkEntitlements,
+    initRevenueCat,
+    RC_ENTITLEMENT,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -365,6 +374,82 @@ async function run() {
   assert.equal(getFilteredRowsForMap(mapRows, "Unknown Sub").length, 0);
 
   console.log("getFilteredRowsForMap tests passed");
+
+  // ── RevenueCat monetization flow ─────────────────────────────────────────
+
+  // Default free state: bypass removed, isPro starts false without any
+  // entitlement check having run yet.
+  assert.equal(getIsPro(), false);
+  const appSource = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/app.js", "utf8");
+  assert.equal(appSource.includes("TEMP: testing branch paywall bypass"), false);
+  assert.equal(appSource.includes("let isPro = true;"), false);
+
+  // hasActiveEntitlement gracefully handles missing objects/keys.
+  assert.equal(hasActiveEntitlement(undefined), false);
+  assert.equal(hasActiveEntitlement(null), false);
+  assert.equal(hasActiveEntitlement({}), false);
+  assert.equal(hasActiveEntitlement({ entitlements: {} }), false);
+  assert.equal(hasActiveEntitlement({ entitlements: { active: {} } }), false);
+  assert.equal(
+    hasActiveEntitlement({ entitlements: { active: { [RC_ENTITLEMENT]: {} } } }),
+    true
+  );
+
+  // No active entitlement → checkEntitlements keeps the user locked/free.
+  await checkEntitlements();
+  assert.equal(getIsPro(), false);
+
+  // Active entitlement → checkEntitlements unlocks Pro.
+  const {
+    getIsPro: getIsProWithEntitlement,
+    checkEntitlements: checkEntitlementsWithEntitlement,
+  } = loadAppExports({
+    purchases: {
+      configure() {},
+      getSharedInstance: () => ({
+        getCustomerInfo: async () => ({
+          entitlements: { active: { [RC_ENTITLEMENT]: { isActive: true } } },
+        }),
+      }),
+    },
+  });
+  await checkEntitlementsWithEntitlement();
+  assert.equal(getIsProWithEntitlement(), true);
+
+  // Errors while checking entitlements preserve the locked/free state.
+  const { getIsPro: getIsProAfterError, checkEntitlements: checkEntitlementsWithError } =
+    loadAppExports({
+      purchases: {
+        configure() {},
+        getSharedInstance: () => ({
+          getCustomerInfo: async () => {
+            throw new Error("network error");
+          },
+        }),
+      },
+    });
+  await checkEntitlementsWithError();
+  assert.equal(getIsProAfterError(), false);
+
+  // initRevenueCat always calls checkEntitlements and updates isPro, even if
+  // Purchases.configure throws.
+  const { getIsPro: getIsProAfterInit, initRevenueCat: initRevenueCatWithEntitlement } =
+    loadAppExports({
+      purchases: {
+        configure() {
+          throw new Error("configure failed");
+        },
+        getSharedInstance: () => ({
+          getCustomerInfo: async () => ({
+            entitlements: { active: { [RC_ENTITLEMENT]: { isActive: true } } },
+          }),
+        }),
+      },
+    });
+  await initRevenueCatWithEntitlement();
+  assert.equal(getIsProAfterInit(), true);
+
+  console.log("RevenueCat monetization tests passed");
 }
 
 run().catch((error) => {
