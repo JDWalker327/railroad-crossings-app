@@ -232,6 +232,26 @@ input[type="text"]:focus {
   margin-bottom: 20px;
 }
 
+.paywall-email-label {
+  display: block;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.paywall-email-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
 .paywall-subscribe-btn {
   display: block;
   width: 100%;
@@ -252,6 +272,29 @@ input[type="text"]:focus {
 }
 
 .paywall-subscribe-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.paywall-manage-btn {
+  display: block;
+  width: 100%;
+  padding: 11px;
+  font-size: 15px;
+  background: transparent;
+  color: #0078d4;
+  border: 1px solid #0078d4;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background-color 0.15s;
+}
+
+.paywall-manage-btn:hover {
+  background-color: #e8f4fd;
+}
+
+.paywall-manage-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
