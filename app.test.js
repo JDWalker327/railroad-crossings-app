@@ -407,11 +407,24 @@ async function run() {
     indexSource,
     /<script src="https:\/\/unpkg\.com\/@revenuecat\/purchases-js@1\/dist\/Purchases\.umd\.js"><\/script>/
   );
+  // RevenueCat Web Billing uses Paddle to render its checkout elements, so
+  // Paddle.js must be present before the RevenueCat SDK script.
+  assert.match(
+    indexSource,
+    /<script src="https:\/\/cdn\.paddle\.com\/paddle\/v2\/paddle\.js"><\/script>/
+  );
   assert.equal(indexSource.includes("web.billing.purchases.dev"), false);
+  const paddleScriptIndex = indexSource.indexOf("cdn.paddle.com");
   const revenueCatScriptIndex = indexSource.indexOf("@revenuecat/purchases-js");
+  const appScriptIndex = indexSource.indexOf('src="app.js"');
+  assert.ok(paddleScriptIndex !== -1, "Paddle script tag must be present");
   assert.ok(revenueCatScriptIndex !== -1, "RevenueCat SDK script tag must be present");
   assert.ok(
-    revenueCatScriptIndex < indexSource.indexOf('src="app.js"'),
+    paddleScriptIndex < revenueCatScriptIndex,
+    "Paddle must load before the RevenueCat SDK"
+  );
+  assert.ok(
+    revenueCatScriptIndex < appScriptIndex,
     "RevenueCat SDK must load before app.js"
   );
 
@@ -499,6 +512,30 @@ async function run() {
   // When the SDK is present, the capability flag reflects that too.
   const { isPurchasesSdkAvailable: isPurchasesSdkAvailableWhenPresent } = loadAppExports();
   assert.equal(isPurchasesSdkAvailableWhenPresent, true);
+
+  // The real RevenueCat Web Billing UMD bundle assigns
+  // window.Purchases.Purchases (not window.Purchases itself) as the SDK
+  // class with static configure()/getSharedInstance() methods. Guard against
+  // regressing to "RC.configure is not a function" by unwrapping that shape.
+  const {
+    getIsPro: getIsProNestedSdk,
+    isPurchasesSdkAvailable: isPurchasesSdkAvailableNested,
+    initRevenueCat: initRevenueCatNestedSdk,
+  } = loadAppExports({
+    purchases: {
+      Purchases: {
+        configure() {},
+        getSharedInstance: () => ({
+          getCustomerInfo: async () => ({
+            entitlements: { active: { [RC_ENTITLEMENT]: { isActive: true } } },
+          }),
+        }),
+      },
+    },
+  });
+  assert.equal(isPurchasesSdkAvailableNested, true);
+  await assert.doesNotReject(() => initRevenueCatNestedSdk());
+  assert.equal(getIsProNestedSdk(), true);
 
   console.log("RevenueCat monetization tests passed");
 

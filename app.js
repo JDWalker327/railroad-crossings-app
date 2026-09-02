@@ -130,7 +130,21 @@ const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
 // global, which throws a ReferenceError when the identifier was never
 // declared.
 function getPurchasesSdk() {
-  return typeof window !== "undefined" ? window.Purchases : undefined;
+  if (typeof window === "undefined") return undefined;
+  const sdk = window.Purchases;
+  if (!sdk) return undefined;
+  // The official RevenueCat Web Billing UMD bundle exposes its API as
+  // window.Purchases.Purchases (a namespace object wrapping the SDK class)
+  // rather than window.Purchases itself. Unwrap it defensively so RC.configure
+  // / RC.getSharedInstance keep working regardless of which shape loads
+  // (e.g. in tests, a flat mock is assigned directly to window.Purchases).
+  if (typeof sdk.configure === "function" && typeof sdk.getSharedInstance === "function") {
+    return sdk;
+  }
+  if (sdk.Purchases && typeof sdk.Purchases.configure === "function") {
+    return sdk.Purchases;
+  }
+  return sdk;
 }
 
 const RC = getPurchasesSdk();
