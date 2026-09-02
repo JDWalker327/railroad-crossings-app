@@ -537,6 +537,41 @@ async function run() {
   await assert.doesNotReject(() => initRevenueCatNestedSdk());
   assert.equal(getIsProNestedSdk(), true);
 
+  // getPurchasesSdk() must also detect and support the logIn() method
+  // (used for the user-authentication flow) when unwrapping the SDK. A
+  // nested window.Purchases.Purchases shape that only exposes logIn (no
+  // configure/getSharedInstance) should still be unwrapped rather than
+  // falling through to the outer namespace object.
+  const { getPurchasesSdk: getPurchasesSdkLogInOnly } = loadAppExports({
+    purchases: {
+      Purchases: {
+        logIn: async (userId) => ({ customerInfo: {}, created: false }),
+      },
+    },
+  });
+  const unwrappedLogInOnlySdk = getPurchasesSdkLogInOnly();
+  assert.equal(typeof unwrappedLogInOnlySdk.logIn, "function");
+
+  // The realistic nested shape (configure/getSharedInstance/logIn all on
+  // window.Purchases.Purchases) must unwrap to an object exposing logIn.
+  const { getPurchasesSdk: getPurchasesSdkNested } = loadAppExports({
+    purchases: {
+      Purchases: {
+        configure() {},
+        getSharedInstance: () => ({
+          getCustomerInfo: async () => ({ entitlements: { active: {} } }),
+          logIn: async (userId) => ({ customerInfo: {}, created: false }),
+        }),
+        logIn: async (userId) => ({ customerInfo: {}, created: false }),
+      },
+    },
+  });
+  const unwrappedNestedSdk = getPurchasesSdkNested();
+  assert.equal(typeof unwrappedNestedSdk.configure, "function");
+  assert.equal(typeof unwrappedNestedSdk.getSharedInstance, "function");
+  assert.equal(typeof unwrappedNestedSdk.logIn, "function");
+  assert.equal(typeof unwrappedNestedSdk.getSharedInstance().logIn, "function");
+
   console.log("RevenueCat monetization tests passed");
 
   // ── Stripe billing (checkout + portal) ────────────────────────────────────

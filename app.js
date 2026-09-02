@@ -129,6 +129,20 @@ const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
 // the SDK through this accessor instead of referencing the bare `Purchases`
 // global, which throws a ReferenceError when the identifier was never
 // declared.
+
+// A candidate object "looks like" the Purchases SDK if it exposes any of the
+// static methods app.js relies on: configure()/getSharedInstance() to
+// bootstrap the SDK, and logIn() (used by the user-authentication flow to
+// associate the anonymous App User ID with a signed-in user's identity).
+function isPurchasesSdkShape(candidate) {
+  return (
+    !!candidate &&
+    (typeof candidate.configure === "function" ||
+      typeof candidate.getSharedInstance === "function" ||
+      typeof candidate.logIn === "function")
+  );
+}
+
 function getPurchasesSdk() {
   if (typeof window === "undefined") return undefined;
   const sdk = window.Purchases;
@@ -136,12 +150,13 @@ function getPurchasesSdk() {
   // The official RevenueCat Web Billing UMD bundle exposes its API as
   // window.Purchases.Purchases (a namespace object wrapping the SDK class)
   // rather than window.Purchases itself. Unwrap it defensively so RC.configure
-  // / RC.getSharedInstance keep working regardless of which shape loads
-  // (e.g. in tests, a flat mock is assigned directly to window.Purchases).
+  // / RC.getSharedInstance / RC.logIn keep working regardless of which shape
+  // loads (e.g. in tests, a flat mock is assigned directly to
+  // window.Purchases).
   if (typeof sdk.configure === "function" && typeof sdk.getSharedInstance === "function") {
     return sdk;
   }
-  if (sdk.Purchases && typeof sdk.Purchases.configure === "function") {
+  if (isPurchasesSdkShape(sdk.Purchases)) {
     return sdk.Purchases;
   }
   return sdk;
@@ -1162,6 +1177,7 @@ if (typeof module !== "undefined") {
     checkEntitlements,
     initRevenueCat,
     isPurchasesSdkAvailable,
+    getPurchasesSdk,
     RC_ENTITLEMENT,
     RC_PRODUCT_ID,
     isValidEmail,
