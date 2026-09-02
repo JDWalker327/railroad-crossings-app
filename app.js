@@ -120,6 +120,25 @@ const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
 const RC_ENTITLEMENT = "Railroad Crossings Pro";
 const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
 
+// ── RevenueCat SDK safe accessor ────────────────────────────────────────────
+//
+// The RevenueCat Web Billing SDK is loaded from a CDN via a <script> tag
+// before app.js, so window.Purchases should already be set by the time this
+// file runs. If that script failed to load (blocked/slow CDN, offline,
+// ad-blocker, etc.) window.Purchases will simply be undefined. Always read
+// the SDK through this accessor instead of referencing the bare `Purchases`
+// global, which throws a ReferenceError when the identifier was never
+// declared.
+function getPurchasesSdk() {
+  return typeof window !== "undefined" ? window.Purchases : undefined;
+}
+
+const RC = getPurchasesSdk();
+
+// Capability flag computed once at startup so billing UI can be gated
+// (disabled/hidden) instead of crashing when the SDK isn't available.
+const isPurchasesSdkAvailable = !!RC;
+
 // Production default: users are locked/free until entitlement is confirmed.
 let isPro = false;
 
@@ -164,39 +183,61 @@ function persistUserEmail(email, store = (typeof localStorage !== "undefined" ? 
 }
 
 async function initRevenueCat() {
-  try {
-    const storedEmail = getStoredUserEmail();
-    let userId;
-    if (isValidEmail(storedEmail)) {
-      // Prefer the email once known so RevenueCat's App User ID matches the
-      // Stripe customer email used for checkout/billing-portal.
-      userId = storedEmail.trim().toLowerCase();
-    } else {
-      userId = localStorage.getItem("rc_user_id");
-      if (!userId) {
-        userId = crypto.randomUUID();
-        localStorage.setItem("rc_user_id", userId);
+  if (!RC) {
+    // No-op gracefully: the SDK never loaded, so there's nothing to
+    // configure. Skip straight to the conservative locked/free entitlement
+    // check below rather than throwing a ReferenceError on a bare
+    // `Purchases` reference.
+    console.warn(
+      "RevenueCat init skipped: RevenueCat Web Billing SDK (window.Purchases) is not loaded."
+    );
+  } else {
+    try {
+      const storedEmail = getStoredUserEmail();
+      let userId;
+      if (isValidEmail(storedEmail)) {
+        // Prefer the email once known so RevenueCat's App User ID matches the
+        // Stripe customer email used for checkout/billing-portal.
+        userId = storedEmail.trim().toLowerCase();
+      } else {
+        userId = localStorage.getItem("rc_user_id");
+        if (!userId) {
+          userId = crypto.randomUUID();
+          localStorage.setItem("rc_user_id", userId);
+        }
       }
+      RC.configure(RC_API_KEY, userId);
+    } catch (e) {
+      console.error("RevenueCat init error:", e);
     }
-    Purchases.configure(RC_API_KEY, userId);
-  } catch (e) {
-    console.error("RevenueCat init error:", e);
   }
 
-  // Always check entitlements (even if configure failed above) so isPro
-  // reflects the conservative locked/free default, then refresh the UI.
+  // Always check entitlements (even if configure failed/was skipped above)
+  // so isPro reflects the conservative locked/free default, then refresh
+  // the UI and billing capability gating.
   await checkEntitlements();
+  refreshBillingCapabilityUi();
   if (typeof renderActiveResults === "function") {
     renderActiveResults();
   }
 }
 
 async function checkEntitlements() {
+  if (!RC) {
+    // Safe default: no SDK means no confirmed entitlement. Never throw —
+    // the app must stay usable (in its locked/free state) without it.
+    console.warn(
+      "RevenueCat entitlement check skipped: RevenueCat Web Billing SDK (window.Purchases) is not loaded."
+    );
+    isPro = false;
+    return;
+  }
+
   try {
-    const customerInfo = await Purchases.getSharedInstance().getCustomerInfo();
+    const customerInfo = await RC.getSharedInstance().getCustomerInfo();
     isPro = hasActiveEntitlement(customerInfo);
   } catch (e) {
-    console.error("Error checking entitlements:", e);
+    console.error("RevenueCat error checking entitlements:", e);
     // Preserve locked/free state on error — never accidentally unlock.
     isPro = false;
   }
@@ -484,12 +525,30 @@ function registerServiceWorker() {
   return register();
 }
 
+// User-facing message shown whenever a billing action is gated off because
+// the RevenueCat Web Billing SDK never loaded.
+const PURCHASES_UNAVAILABLE_MESSAGE =
+  "Subscription service is unavailable right now. Please refresh the page and try again.";
+
+// Disable/annotate the purchase-dependent paywall actions (Subscribe,
+// Restore) when the SDK capability isn't available, so the buttons never
+// trigger an unsafe SDK call. The Manage Subscription button stays enabled
+// since it only talks to our own server (see requestStripeBillingPortalUrl)
+// and already fails gracefully on its own.
+function refreshBillingCapabilityUi() {
+  if (!isPurchasesSdkAvailable) {
+    if (paywallSubscribeBtn) paywallSubscribeBtn.disabled = true;
+    if (paywallRestoreBtn) paywallRestoreBtn.disabled = true;
+  }
+}
+
 function openPaywall() {
   paywallModal.style.display = "flex";
-  paywallStatus.textContent = "";
+  paywallStatus.textContent = isPurchasesSdkAvailable ? "" : PURCHASES_UNAVAILABLE_MESSAGE;
   if (paywallEmailInput && !paywallEmailInput.value) {
     paywallEmailInput.value = getStoredUserEmail();
   }
+  refreshBillingCapabilityUi();
 }
 
 function closePaywall() {
@@ -503,22 +562,21 @@ paywallModal.addEventListener("click", (e) => {
 });
 
 paywallSubscribeBtn.addEventListener("click", async () => {
-  const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
-  if (!isValidEmail(email)) {
-    paywallStatus.textContent = "Please enter a valid email address to subscribe.";
-    return;
-  }
-
   // Guard against the RevenueCat Web Billing SDK failing to load (e.g. a
   // blocked/slow CDN request) so we never throw "Purchases is not defined"
   // and leave the user with a generic, undiagnosable failure.
-  if (typeof window.Purchases === "undefined") {
+  if (!isPurchasesSdkAvailable) {
     console.error(
-      "Purchase error: RevenueCat Web Billing SDK (window.Purchases) is not loaded."
+      "RevenueCat purchase blocked: Web Billing SDK (window.Purchases) is not loaded."
     );
-    paywallStatus.textContent =
-      "Subscription service is unavailable right now. Please refresh the page and try again.";
-    paywallSubscribeBtn.disabled = false;
+    paywallStatus.textContent = PURCHASES_UNAVAILABLE_MESSAGE;
+    paywallSubscribeBtn.disabled = true;
+    return;
+  }
+
+  const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
+  if (!isValidEmail(email)) {
+    paywallStatus.textContent = "Please enter a valid email address to subscribe.";
     return;
   }
 
@@ -529,7 +587,7 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     // Keep RevenueCat's App User ID aligned with the Stripe customer email
     // used for checkout, so entitlements sync back to the same app user.
     try {
-      await Purchases.getSharedInstance().logIn(email);
+      await RC.getSharedInstance().logIn(email);
     } catch (loginError) {
       console.warn("RevenueCat logIn before checkout failed:", loginError);
     }
@@ -558,7 +616,10 @@ if (paywallManageBtn) {
       const portalUrl = await requestStripeBillingPortalUrl(email);
       window.location.href = portalUrl;
     } catch (e) {
-      console.error("Error opening billing portal:", e);
+      // requestStripeUrl() already turns network/parse/server failures into
+      // a friendly Error (e.g. "Billing portal is not configured..."), so
+      // this never surfaces a raw stack trace to the user.
+      console.error("Billing portal error:", e);
       paywallStatus.textContent = e.message || "Unable to open the billing portal. Please try again.";
       paywallManageBtn.disabled = false;
     }
@@ -566,10 +627,19 @@ if (paywallManageBtn) {
 }
 
 paywallRestoreBtn.addEventListener("click", async () => {
+  if (!isPurchasesSdkAvailable) {
+    console.error(
+      "RevenueCat restore blocked: Web Billing SDK (window.Purchases) is not loaded."
+    );
+    paywallStatus.textContent = PURCHASES_UNAVAILABLE_MESSAGE;
+    paywallRestoreBtn.disabled = true;
+    return;
+  }
+
   paywallStatus.textContent = "Restoring…";
   paywallRestoreBtn.disabled = true;
   try {
-    const customerInfo = await Purchases.getSharedInstance().restorePurchases();
+    const customerInfo = await RC.getSharedInstance().restorePurchases();
     isPro = hasActiveEntitlement(customerInfo);
     if (isPro) {
       closePaywall();
@@ -578,7 +648,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
       paywallStatus.textContent = "No active subscription found.";
     }
   } catch (e) {
-    console.error("Restore error:", e);
+    console.error("RevenueCat restore error:", e);
     paywallStatus.textContent = "Restore failed. Please try again.";
   } finally {
     paywallRestoreBtn.disabled = false;
@@ -1077,6 +1147,7 @@ if (typeof module !== "undefined") {
     getIsPro,
     checkEntitlements,
     initRevenueCat,
+    isPurchasesSdkAvailable,
     RC_ENTITLEMENT,
     RC_PRODUCT_ID,
     isValidEmail,
