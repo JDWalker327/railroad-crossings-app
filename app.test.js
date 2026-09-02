@@ -537,6 +537,44 @@ async function run() {
   await assert.doesNotReject(() => initRevenueCatNestedSdk());
   assert.equal(getIsProNestedSdk(), true);
 
+  // isRevenueCatConfigured gates the Subscribe button's logIn() call (see
+  // "RC.getSharedInstance(...).logIn is not a function" regression): it must
+  // start false and flip to true only once RC.configure() has completed
+  // successfully, so the click handler never invokes logIn() before the SDK
+  // instance actually supports it.
+  const configuredExports = loadAppExports({
+    purchases: {
+      configure() {},
+      getSharedInstance: () => ({
+        getCustomerInfo: async () => ({ entitlements: { active: {} } }),
+        logIn: async () => {},
+      }),
+    },
+  });
+  assert.equal(configuredExports.isRevenueCatConfigured, false);
+  await configuredExports.initRevenueCat();
+  assert.equal(configuredExports.isRevenueCatConfigured, true);
+
+  // If RC.configure() throws, isRevenueCatConfigured must stay false even
+  // though initRevenueCat() still completes checkEntitlements successfully.
+  const configureThrowsExports = loadAppExports({
+    purchases: {
+      configure() {
+        throw new Error("configure failed");
+      },
+      getSharedInstance: () => ({
+        getCustomerInfo: async () => ({ entitlements: { active: {} } }),
+      }),
+    },
+  });
+  await configureThrowsExports.initRevenueCat();
+  assert.equal(configureThrowsExports.isRevenueCatConfigured, false);
+
+  // When the SDK never loads, isRevenueCatConfigured must remain false.
+  const noSdkExports = loadAppExports({ purchases: null });
+  await noSdkExports.initRevenueCat();
+  assert.equal(noSdkExports.isRevenueCatConfigured, false);
+
   console.log("RevenueCat monetization tests passed");
 
   // ── Stripe billing (checkout + portal) ────────────────────────────────────
