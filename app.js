@@ -120,8 +120,16 @@ const RC_API_KEY = "test_vezqxpsVQsJhojZTVPszjBzzPdX";
 const RC_ENTITLEMENT = "Railroad Crossings Pro";
 const RC_PRODUCT_ID = "com.railroadcrossings.monthly";
 
-// TEMP: testing branch paywall bypass
-let isPro = true;
+// Production default: users are locked/free until entitlement is confirmed.
+let isPro = false;
+
+function hasActiveEntitlement(customerInfo) {
+  return !!customerInfo?.entitlements?.active?.[RC_ENTITLEMENT];
+}
+
+function getIsPro() {
+  return isPro;
+}
 
 async function initRevenueCat() {
   try {
@@ -131,18 +139,25 @@ async function initRevenueCat() {
       localStorage.setItem("rc_user_id", userId);
     }
     Purchases.configure(RC_API_KEY, userId);
-    await checkEntitlements();
   } catch (e) {
     console.error("RevenueCat init error:", e);
+  }
+
+  // Always check entitlements (even if configure failed above) so isPro
+  // reflects the conservative locked/free default, then refresh the UI.
+  await checkEntitlements();
+  if (typeof renderActiveResults === "function") {
+    renderActiveResults();
   }
 }
 
 async function checkEntitlements() {
   try {
     const customerInfo = await Purchases.getSharedInstance().getCustomerInfo();
-    isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
+    isPro = hasActiveEntitlement(customerInfo);
   } catch (e) {
     console.error("Error checking entitlements:", e);
+    // Preserve locked/free state on error — never accidentally unlock.
     isPro = false;
   }
 }
@@ -414,7 +429,7 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     }
 
     const { customerInfo } = await Purchases.getSharedInstance().purchasePackage(pkg);
-    isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
+    isPro = hasActiveEntitlement(customerInfo);
     if (isPro) {
       closePaywall();
       renderActiveResults();
@@ -438,7 +453,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
   paywallRestoreBtn.disabled = true;
   try {
     const customerInfo = await Purchases.getSharedInstance().restorePurchases();
-    isPro = !!customerInfo.entitlements.active[RC_ENTITLEMENT];
+    isPro = hasActiveEntitlement(customerInfo);
     if (isPro) {
       closePaywall();
       renderActiveResults();
@@ -941,6 +956,12 @@ if (typeof module !== "undefined") {
     formatMapMarkerInfoText,
     shouldAutoShowMarkerInfo,
     getFilteredRowsForMap,
+    hasActiveEntitlement,
+    getIsPro,
+    checkEntitlements,
+    initRevenueCat,
+    RC_ENTITLEMENT,
+    RC_PRODUCT_ID,
   };
 }
 
