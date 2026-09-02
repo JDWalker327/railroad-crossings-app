@@ -569,7 +569,6 @@ const PURCHASES_UNAVAILABLE_MESSAGE =
 // and already fails gracefully on its own.
 function refreshBillingCapabilityUi() {
   if (!isPurchasesSdkAvailable) {
-    if (paywallSubscribeBtn) paywallSubscribeBtn.disabled = true;
     if (paywallRestoreBtn) paywallRestoreBtn.disabled = true;
   }
 }
@@ -593,52 +592,10 @@ paywallModal.addEventListener("click", (e) => {
   if (e.target === paywallModal) closePaywall();
 });
 
-paywallSubscribeBtn.addEventListener("click", async () => {
-  // Guard against the RevenueCat Web Billing SDK failing to load (e.g. a
-  // blocked/slow CDN request) so we never throw "Purchases is not defined"
-  // and leave the user with a generic, undiagnosable failure.
-  if (!isPurchasesSdkAvailable) {
-    console.error(
-      "RevenueCat purchase blocked: Web Billing SDK (window.Purchases) is not loaded."
-    );
-    paywallStatus.textContent = PURCHASES_UNAVAILABLE_MESSAGE;
-    paywallSubscribeBtn.disabled = true;
-    return;
-  }
-
+paywallSubscribeBtn.addEventListener("click", () => {
   const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
-  if (!isValidEmail(email)) {
-    paywallStatus.textContent = "Please enter a valid email address to subscribe.";
-    return;
-  }
-
-  persistUserEmail(email);
-  paywallStatus.textContent = "Redirecting to secure checkout…";
-  paywallSubscribeBtn.disabled = true;
-  try {
-    // Keep RevenueCat's App User ID aligned with the Stripe customer email
-    // used for checkout, so entitlements sync back to the same app user.
-    // changeUser is only available once RC.configure() has completed. The
-    // Web Billing SDK does not provide a logIn() method (that's a
-    // cross-platform iOS/Android API), so changeUser() is used instead.
-    if (isRevenueCatConfigured) {
-      try {
-        await RC.getSharedInstance().changeUser(email);
-      } catch (changeUserError) {
-        console.warn(
-          "RevenueCat changeUser before checkout failed:",
-          changeUserError
-        );
-      }
-    }
-
-    const checkoutUrl = await requestStripeCheckoutUrl(email);
-    window.location.href = checkoutUrl;
-  } catch (e) {
-    console.error("Purchase error:", e);
-    paywallStatus.textContent = e.message || "Unable to start checkout. Please try again.";
-    paywallSubscribeBtn.disabled = false;
-  }
+  if (email) persistUserEmail(email);
+  window.location.href = "https://pay.rev.cat/ovpvigulhionjfpq/";
 });
 
 if (paywallManageBtn) {
@@ -1195,6 +1152,7 @@ if (typeof module !== "undefined") {
     persistUserEmail,
     requestStripeCheckoutUrl,
     requestStripeBillingPortalUrl,
+    refreshBillingCapabilityUi,
   };
   // isRevenueCatConfigured is mutated after initRevenueCat() runs (once
   // RC.configure() completes), so expose it as a live getter rather than a
