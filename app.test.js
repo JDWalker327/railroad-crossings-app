@@ -13,8 +13,9 @@ function loadAppExports(options = {}) {
       configure() {},
       getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }),
     },
-    localStorage: { getItem: () => "test-user", setItem() {} },
+    localStorage: options.localStorage || { getItem: () => "test-user", setItem() {} },
     crypto: { randomUUID: () => "uuid" },
+    fetch: options.fetch,
     document: {
       getElementById: () => ({
         addEventListener() {},
@@ -75,6 +76,11 @@ async function run() {
     checkEntitlements,
     initRevenueCat,
     RC_ENTITLEMENT,
+    isValidEmail,
+    getStoredUserEmail,
+    persistUserEmail,
+    requestStripeCheckoutUrl,
+    requestStripeBillingPortalUrl,
   } = loadAppExports();
 
   const names = collectSubdivisionNames([
@@ -450,6 +456,75 @@ async function run() {
   assert.equal(getIsProAfterInit(), true);
 
   console.log("RevenueCat monetization tests passed");
+
+  // ── Stripe billing (checkout + portal) ────────────────────────────────────
+
+  assert.equal(isValidEmail("user@example.com"), true);
+  assert.equal(isValidEmail("not-an-email"), false);
+  assert.equal(isValidEmail(""), false);
+  assert.equal(isValidEmail(null), false);
+
+  function createMemoryStore(initial = {}) {
+    const data = { ...initial };
+    return {
+      getItem: (key) => (Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null),
+      setItem: (key, value) => {
+        data[key] = value;
+      },
+    };
+  }
+
+  const emptyStore = createMemoryStore();
+  assert.equal(getStoredUserEmail(emptyStore), "");
+  persistUserEmail("User@Example.com", emptyStore);
+  assert.equal(getStoredUserEmail(emptyStore), "user@example.com");
+
+  // requestStripeCheckoutUrl returns the session URL on success and posts
+  // the email as the JSON request body.
+  const checkoutUrl = await requestStripeCheckoutUrl("user@example.com", async (url, init) => {
+    assert.equal(url, "/api/create-checkout-session");
+    assert.equal(init.method, "POST");
+    assert.deepEqual(JSON.parse(init.body), { email: "user@example.com" });
+    return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/session/abc" }) };
+  });
+  assert.equal(checkoutUrl, "https://checkout.stripe.com/session/abc");
+
+  // requestStripeCheckoutUrl surfaces server-provided error messages.
+  await assert.rejects(
+    requestStripeCheckoutUrl("user@example.com", async () => ({
+      ok: false,
+      json: async () => ({ error: "Subscription checkout is not configured." }),
+    })),
+    /Subscription checkout is not configured/
+  );
+
+  // requestStripeBillingPortalUrl returns the portal URL on success.
+  const portalUrl = await requestStripeBillingPortalUrl("user@example.com", async (url) => {
+    assert.equal(url, "/api/create-portal-session");
+    return { ok: true, json: async () => ({ url: "https://billing.stripe.com/session/xyz" }) };
+  });
+  assert.equal(portalUrl, "https://billing.stripe.com/session/xyz");
+
+  // A 200 response missing a redirect URL is still treated as an error.
+  await assert.rejects(
+    requestStripeBillingPortalUrl("user@example.com", async () => ({ ok: true, json: async () => ({}) })),
+    /did not return a redirect URL/
+  );
+
+  // initRevenueCat prefers a stored, valid email as the RevenueCat App User
+  // ID so Stripe/RevenueCat identities stay aligned.
+  const configuredUserIds = [];
+  const { initRevenueCat: initRevenueCatWithEmail } = loadAppExports({
+    localStorage: createMemoryStore({ user_email: "pro@example.com" }),
+    purchases: {
+      configure: (_apiKey, userId) => configuredUserIds.push(userId),
+      getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }),
+    },
+  });
+  await initRevenueCatWithEmail();
+  assert.deepEqual(configuredUserIds, ["pro@example.com"]);
+
+  console.log("Stripe billing tests passed");
 }
 
 run().catch((error) => {

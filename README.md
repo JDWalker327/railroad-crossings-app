@@ -117,7 +117,53 @@ style.css    – All styles, including responsive breakpoints
 app.js       – Supabase queries and DOM rendering
 sw.js        – Service worker for app-shell caching
 manifest.webmanifest – PWA install metadata
+api/         – Node/Vercel serverless functions for Stripe billing (see below)
 ```
+
+## Stripe billing setup
+
+The app itself (`index.html`/`app.js`) is static and hosted on GitHub Pages, which cannot run server code. The **Subscribe** and **Manage Subscription** buttons call a small serverless API under `api/` that must be deployed to a Node-capable host such as [Vercel](https://vercel.com) (Vercel auto-detects any `api/*.js` file as a serverless function and can also serve the static files, so you can point your domain at Vercel instead of/alongside GitHub Pages).
+
+### How it fits with RevenueCat
+
+- RevenueCat remains the **source of truth for entitlements** — `app.js` still calls `Purchases.getSharedInstance().getCustomerInfo()` to decide whether to unlock Pro features. Nothing in this repo changes that.
+- The user's **email address** is used as the single identifier tying everything together: it's sent to Stripe as the Checkout customer email, stored as `metadata.app_user_id` on the Stripe subscription/customer, and used as the RevenueCat App User ID (`Purchases.configure(...)` / `Purchases.logIn(...)`).
+- In the RevenueCat dashboard, make sure the Stripe integration is connected (**Project Settings → Integrations → Stripe**) so RevenueCat picks up subscription events for that customer automatically.
+
+### Required environment variables
+
+Set these on your serverless host (e.g. Vercel → Project → Settings → Environment Variables). **Never commit real values** — a local `.env` is git-ignored for convenience.
+
+| Variable | Used by | Description |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | server only | Stripe secret key (`sk_live_...` / `sk_test_...`). Never sent to the browser. |
+| `STRIPE_PRICE_MONTHLY` | server only | Price ID (`price_...`) for the $2.99/month plan. If the price already has a default trial configured in Stripe, that trial is used as-is; otherwise the checkout session applies a 14-day trial automatically. |
+| `STRIPE_WEBHOOK_SECRET` | server only | Signing secret (`whsec_...`) for verifying `api/stripe-webhook`. |
+| `APP_URL` | server only | Base URL of the deployed app (e.g. `https://yourdomain.com`, or `http://localhost:3000` for local dev), used to build Stripe Checkout/Billing Portal success/cancel/return URLs. |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | reserved | Stripe publishable key, safe to expose client-side. Not required today since checkout/portal are fully redirect-based (no Stripe.js on the client), but reserved for future use — do not put the secret key here. |
+
+### API endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/create-checkout-session` | POST `{ "email": "user@example.com" }` | Creates a Stripe Checkout session for the monthly plan and returns `{ "url": "..." }` to redirect to. |
+| `/api/create-portal-session` | POST `{ "email": "user@example.com" }` | Looks up the Stripe customer by email and returns `{ "url": "..." }` for the Billing Portal. |
+| `/api/stripe-webhook` | POST (Stripe-signed) | Verifies and logs subscription lifecycle events for local diagnostics. RevenueCat's own Stripe integration remains responsible for entitlement sync. |
+
+All endpoints validate the email and return a JSON `{ "error": "..." }` with a 4xx/5xx status on invalid input, missing configuration, or Stripe failures — the frontend surfaces these messages in the paywall's status area.
+
+### Local testing
+
+1. Install dependencies: `npm install`
+2. Run the app with a tool that can also serve the `api/` functions locally, e.g. [Vercel CLI](https://vercel.com/docs/cli): `npx vercel dev`
+3. Create a `.env` file (git-ignored) with the variables above, using Stripe **test mode** keys and a **test** price ID.
+4. Forward Stripe webhook events to your local server with the [Stripe CLI](https://stripe.com/docs/stripe-cli):
+   ```bash
+   stripe listen --forward-to localhost:3000/api/stripe-webhook
+   ```
+   Copy the `whsec_...` value it prints into `STRIPE_WEBHOOK_SECRET`.
+5. Open the app, click **Subscribe**, enter an email and a [Stripe test card](https://stripe.com/docs/testing) (e.g. `4242 4242 4242 4242`), and confirm you're redirected back to `APP_URL`.
+6. Click **Manage Subscription** with the same email to confirm the Billing Portal opens.
 
 ## Features
 

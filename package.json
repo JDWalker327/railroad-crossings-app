@@ -1,0 +1,12 @@
+{
+  "name": "railroad-crossings-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Railroad crossings dashboard PWA with a Node/Vercel serverless API for Stripe billing.",
+  "scripts": {
+    "test": "node app.test.js"
+  },
+  "dependencies": {
+    "stripe": "^16.12.0"
+  }
+}

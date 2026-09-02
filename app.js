@@ -131,12 +131,52 @@ function getIsPro() {
   return isPro;
 }
 
+// ── Email identity (Stripe customer ↔ RevenueCat App User ID mapping) ─────
+//
+// Stripe checkout/billing-portal and RevenueCat both need a stable
+// identifier per user. This app has no account system, so the user's email
+// address (entered once at subscribe time) is used as that identifier for
+// both systems.
+const USER_EMAIL_STORAGE_KEY = "user_email";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(email) {
+  return typeof email === "string" && EMAIL_PATTERN.test(email.trim());
+}
+
+function getStoredUserEmail(store = (typeof localStorage !== "undefined" ? localStorage : null)) {
+  if (!store || typeof store.getItem !== "function") return "";
+  try {
+    return store.getItem(USER_EMAIL_STORAGE_KEY) || "";
+  } catch (error) {
+    console.warn("Unable to read stored user email:", error);
+    return "";
+  }
+}
+
+function persistUserEmail(email, store = (typeof localStorage !== "undefined" ? localStorage : null)) {
+  if (!store || typeof store.setItem !== "function") return;
+  try {
+    store.setItem(USER_EMAIL_STORAGE_KEY, email.trim().toLowerCase());
+  } catch (error) {
+    console.warn("Unable to persist user email:", error);
+  }
+}
+
 async function initRevenueCat() {
   try {
-    let userId = localStorage.getItem("rc_user_id");
-    if (!userId) {
-      userId = crypto.randomUUID();
-      localStorage.setItem("rc_user_id", userId);
+    const storedEmail = getStoredUserEmail();
+    let userId;
+    if (isValidEmail(storedEmail)) {
+      // Prefer the email once known so RevenueCat's App User ID matches the
+      // Stripe customer email used for checkout/billing-portal.
+      userId = storedEmail.trim().toLowerCase();
+    } else {
+      userId = localStorage.getItem("rc_user_id");
+      if (!userId) {
+        userId = crypto.randomUUID();
+        localStorage.setItem("rc_user_id", userId);
+      }
     }
     Purchases.configure(RC_API_KEY, userId);
   } catch (e) {
@@ -162,10 +202,57 @@ async function checkEntitlements() {
   }
 }
 
+// ── Stripe checkout / billing portal ───────────────────────────────────────
+//
+// These call the server-side endpoints under /api (Stripe secret key stays
+// server-side only) and return the Stripe-hosted redirect URL. See README
+// for required env vars and local testing instructions.
+
+async function requestStripeUrl(endpoint, email, fetchImpl = (typeof fetch !== "undefined" ? fetch : null)) {
+  if (typeof fetchImpl !== "function") {
+    throw new Error("Network requests are not available in this environment.");
+  }
+
+  let response;
+  try {
+    response = await fetchImpl(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch (error) {
+    throw new Error("Unable to reach the server. Please check your connection and try again.");
+  }
+
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (error) {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error || "The server returned an unexpected error. Please try again.");
+  }
+  if (!data?.url) {
+    throw new Error("The server did not return a redirect URL. Please try again.");
+  }
+  return data.url;
+}
+
+async function requestStripeCheckoutUrl(email, fetchImpl) {
+  return requestStripeUrl("/api/create-checkout-session", email, fetchImpl);
+}
+
+async function requestStripeBillingPortalUrl(email, fetchImpl) {
+  return requestStripeUrl("/api/create-portal-session", email, fetchImpl);
+}
 
 const paywallModal = document.getElementById("paywallModal");
 const paywallCloseBtn = document.getElementById("paywallCloseBtn");
 const paywallSubscribeBtn = document.getElementById("paywallSubscribeBtn");
+const paywallManageBtn = document.getElementById("paywallManageBtn");
+const paywallEmailInput = document.getElementById("paywallEmailInput");
 const paywallRestoreBtn = document.getElementById("paywallRestoreBtn");
 const paywallStatus = document.getElementById("paywallStatus");
 const installSection = document.getElementById("installSection");
@@ -400,6 +487,9 @@ function registerServiceWorker() {
 function openPaywall() {
   paywallModal.style.display = "flex";
   paywallStatus.textContent = "";
+  if (paywallEmailInput && !paywallEmailInput.value) {
+    paywallEmailInput.value = getStoredUserEmail();
+  }
 }
 
 function closePaywall() {
@@ -413,40 +503,54 @@ paywallModal.addEventListener("click", (e) => {
 });
 
 paywallSubscribeBtn.addEventListener("click", async () => {
-  paywallStatus.textContent = "Loading…";
+  const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
+  if (!isValidEmail(email)) {
+    paywallStatus.textContent = "Please enter a valid email address to subscribe.";
+    return;
+  }
+
+  persistUserEmail(email);
+  paywallStatus.textContent = "Redirecting to secure checkout…";
   paywallSubscribeBtn.disabled = true;
   try {
-    const offerings = await Purchases.getSharedInstance().getOfferings();
-    const pkg =
-      offerings.current?.availablePackages.find(
-        (p) => p.rcBillingProduct?.identifier === RC_PRODUCT_ID
-      ) || offerings.current?.availablePackages[0];
-
-    if (!pkg) {
-      paywallStatus.textContent = "No subscription package found.";
-      paywallSubscribeBtn.disabled = false;
-      return;
+    // Keep RevenueCat's App User ID aligned with the Stripe customer email
+    // used for checkout, so entitlements sync back to the same app user.
+    try {
+      await Purchases.getSharedInstance().logIn(email);
+    } catch (loginError) {
+      console.warn("RevenueCat logIn before checkout failed:", loginError);
     }
 
-    const { customerInfo } = await Purchases.getSharedInstance().purchasePackage(pkg);
-    isPro = hasActiveEntitlement(customerInfo);
-    if (isPro) {
-      closePaywall();
-      renderActiveResults();
-    } else {
-      paywallStatus.textContent = "Purchase complete but entitlement not found. Please restore purchases.";
-    }
+    const checkoutUrl = await requestStripeCheckoutUrl(email);
+    window.location.href = checkoutUrl;
   } catch (e) {
-    if (e.code !== "PURCHASE_CANCELLED") {
-      console.error("Purchase error:", e);
-      paywallStatus.textContent = "Purchase failed. Please try again.";
-    } else {
-      paywallStatus.textContent = "";
-    }
-  } finally {
+    console.error("Error starting checkout:", e);
+    paywallStatus.textContent = e.message || "Unable to start checkout. Please try again.";
     paywallSubscribeBtn.disabled = false;
   }
 });
+
+if (paywallManageBtn) {
+  paywallManageBtn.addEventListener("click", async () => {
+    const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
+    if (!isValidEmail(email)) {
+      paywallStatus.textContent = "Please enter the email you subscribed with to manage your subscription.";
+      return;
+    }
+
+    persistUserEmail(email);
+    paywallStatus.textContent = "Opening billing portal…";
+    paywallManageBtn.disabled = true;
+    try {
+      const portalUrl = await requestStripeBillingPortalUrl(email);
+      window.location.href = portalUrl;
+    } catch (e) {
+      console.error("Error opening billing portal:", e);
+      paywallStatus.textContent = e.message || "Unable to open the billing portal. Please try again.";
+      paywallManageBtn.disabled = false;
+    }
+  });
+}
 
 paywallRestoreBtn.addEventListener("click", async () => {
   paywallStatus.textContent = "Restoring…";
@@ -962,6 +1066,11 @@ if (typeof module !== "undefined") {
     initRevenueCat,
     RC_ENTITLEMENT,
     RC_PRODUCT_ID,
+    isValidEmail,
+    getStoredUserEmail,
+    persistUserEmail,
+    requestStripeCheckoutUrl,
+    requestStripeBillingPortalUrl,
   };
 }
 
