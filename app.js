@@ -509,6 +509,19 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     return;
   }
 
+  // Guard against the RevenueCat Web Billing SDK failing to load (e.g. a
+  // blocked/slow CDN request) so we never throw "Purchases is not defined"
+  // and leave the user with a generic, undiagnosable failure.
+  if (typeof window.Purchases === "undefined") {
+    console.error(
+      "Purchase error: RevenueCat Web Billing SDK (window.Purchases) is not loaded."
+    );
+    paywallStatus.textContent =
+      "Subscription service is unavailable right now. Please refresh the page and try again.";
+    paywallSubscribeBtn.disabled = false;
+    return;
+  }
+
   persistUserEmail(email);
   paywallStatus.textContent = "Redirecting to secure checkout…";
   paywallSubscribeBtn.disabled = true;
@@ -524,7 +537,7 @@ paywallSubscribeBtn.addEventListener("click", async () => {
     const checkoutUrl = await requestStripeCheckoutUrl(email);
     window.location.href = checkoutUrl;
   } catch (e) {
-    console.error("Error starting checkout:", e);
+    console.error("Purchase error:", e);
     paywallStatus.textContent = e.message || "Unable to start checkout. Please try again.";
     paywallSubscribeBtn.disabled = false;
   }
