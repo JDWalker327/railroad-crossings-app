@@ -172,6 +172,16 @@ const isChangeUserCapable = !!(RC && typeof RC.getSharedInstance === "function")
 // Production default: users are locked/free until entitlement is confirmed.
 let isPro = false;
 
+// TODO(paywall): TEMPORARY bypass — the RevenueCat subscribe/checkout link is
+// currently returning a 404, so the paywall lockout is disabled here to keep
+// the app usable while that link is fixed. This does NOT change isPro/
+// getIsPro() (entitlement checks below still run normally); it only stops
+// renderLookupTable() from hiding data behind the paywall banner. Once the
+// checkout URL is fixed, remove this constant and its use in
+// renderLookupTable() (`isRailroadMode || isPro || PAYWALL_DISABLED`) to
+// re-enable the paywall.
+const PAYWALL_DISABLED = true;
+
 function hasActiveEntitlement(customerInfo) {
   return !!customerInfo?.entitlements?.active?.[RC_ENTITLEMENT];
 }
@@ -1142,6 +1152,7 @@ if (typeof module !== "undefined") {
     getFilteredRowsForMap,
     hasActiveEntitlement,
     getIsPro,
+    PAYWALL_DISABLED,
     checkEntitlements,
     initRevenueCat,
     isPurchasesSdkAvailable,
@@ -1335,7 +1346,7 @@ function renderLookupTable(rows, options = {}) {
 
   const sortedRows = sortRowsByMilepost(rows || []);
 
-  if (isRailroadMode || isPro) {
+  if (isRailroadMode || isPro || PAYWALL_DISABLED) {
     crossingsTableHead.innerHTML = `
       <tr>
         <th>Map</th>
