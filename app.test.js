@@ -400,8 +400,18 @@ async function run() {
   assert.equal(appSource.includes("TEMP: testing branch paywall bypass"), false);
   assert.equal(appSource.includes("let isPro = true;"), false);
   assert.match(indexSource, /<link rel="manifest" href="\/manifest\.webmanifest">/);
+  // The RevenueCat Web SDK is loaded from the official @revenuecat/purchases-js
+  // CDN build (not the old web.billing.purchases.dev endpoint, which fails
+  // DNS resolution with ERR_NAME_NOT_RESOLVED).
+  assert.match(
+    indexSource,
+    /<script src="https:\/\/unpkg\.com\/@revenuecat\/purchases-js@1\/dist\/Purchases\.umd\.js"><\/script>/
+  );
+  assert.equal(indexSource.includes("web.billing.purchases.dev"), false);
+  const revenueCatScriptIndex = indexSource.indexOf("@revenuecat/purchases-js");
+  assert.ok(revenueCatScriptIndex !== -1, "RevenueCat SDK script tag must be present");
   assert.ok(
-    indexSource.indexOf("web-billing-sdk.min.js") < indexSource.indexOf('src="app.js"'),
+    revenueCatScriptIndex < indexSource.indexOf('src="app.js"'),
     "RevenueCat SDK must load before app.js"
   );
 
