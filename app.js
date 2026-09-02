@@ -153,6 +153,16 @@ const RC = getPurchasesSdk();
 // (disabled/hidden) instead of crashing when the SDK isn't available.
 const isPurchasesSdkAvailable = !!RC;
 
+// logIn (used to link the Stripe/email identity before checkout — see
+// handlePaywallSubscribe) lives on the *instance* returned by
+// RC.getSharedInstance(), not on the SDK class itself, so it can't be
+// confirmed structurally without invoking the SDK (which may require
+// configure() to have run first). This flag just confirms the resolved SDK
+// shape exposes getSharedInstance at all, i.e. that attempting
+// RC.getSharedInstance().logIn(...) is meaningful rather than guaranteed to
+// throw "getSharedInstance is not a function".
+const isLogInCapable = !!(RC && typeof RC.getSharedInstance === "function");
+
 // Production default: users are locked/free until entitlement is confirmed.
 let isPro = false;
 
