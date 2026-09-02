@@ -103,6 +103,7 @@ async function run() {
     getFilteredRowsForMap,
     hasActiveEntitlement,
     getIsPro,
+    PAYWALL_DISABLED,
     checkEntitlements,
     initRevenueCat,
     RC_ENTITLEMENT,
@@ -414,12 +415,17 @@ async function run() {
   // ── RevenueCat monetization flow ─────────────────────────────────────────
 
   // Default free state: bypass removed, isPro starts false without any
-  // entitlement check having run yet.
+  // entitlement check having run yet. Entitlement tracking itself is
+  // unaffected by the temporary paywall-lockout bypass below.
   assert.equal(getIsPro(), false);
   const appSource = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/app.js", "utf8");
   const indexSource = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/index.html", "utf8");
   assert.equal(appSource.includes("TEMP: testing branch paywall bypass"), false);
   assert.equal(appSource.includes("let isPro = true;"), false);
+  // TEMP: the paywall lockout (not entitlement tracking) is intentionally
+  // disabled while the RevenueCat checkout link is being fixed. See the
+  // PAYWALL_DISABLED TODO comment in app.js for the rollback instructions.
+  assert.equal(PAYWALL_DISABLED, true);
   assert.match(indexSource, /<link rel="manifest" href="\/manifest\.webmanifest">/);
   // The RevenueCat Web SDK is loaded from the official @revenuecat/purchases-js
   // CDN build (not the old web.billing.purchases.dev endpoint, which fails
