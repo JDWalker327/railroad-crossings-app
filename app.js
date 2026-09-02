@@ -153,21 +153,21 @@ const RC = getPurchasesSdk();
 // (disabled/hidden) instead of crashing when the SDK isn't available.
 const isPurchasesSdkAvailable = !!RC;
 
-// Tracks whether RC.configure() has completed successfully. logIn() is only
-// available on the instance returned by RC.getSharedInstance() once
-// configure() has run, so the Subscribe flow gates its logIn() call on this
-// flag instead of assuming the SDK is ready as soon as the page loads.
+// Tracks whether RC.configure() has completed successfully. changeUser() is
+// only available on the instance returned by RC.getSharedInstance() once
+// configure() has run, so the Subscribe flow gates its changeUser() call on
+// this flag instead of assuming the SDK is ready as soon as the page loads.
 let isRevenueCatConfigured = false;
 
-// logIn (used to link the Stripe/email identity before checkout — see
+// changeUser (used to link the Stripe/email identity before checkout — see
 // handlePaywallSubscribe) lives on the *instance* returned by
 // RC.getSharedInstance(), not on the SDK class itself, so it can't be
 // confirmed structurally without invoking the SDK (which may require
 // configure() to have run first). This flag just confirms the resolved SDK
 // shape exposes getSharedInstance at all, i.e. that attempting
-// RC.getSharedInstance().logIn(...) is meaningful rather than guaranteed to
-// throw "getSharedInstance is not a function".
-const isLogInCapable = !!(RC && typeof RC.getSharedInstance === "function");
+// RC.getSharedInstance().changeUser(...) is meaningful rather than
+// guaranteed to throw "getSharedInstance is not a function".
+const isChangeUserCapable = !!(RC && typeof RC.getSharedInstance === "function");
 
 // Production default: users are locked/free until entitlement is confirmed.
 let isPro = false;
@@ -618,12 +618,17 @@ paywallSubscribeBtn.addEventListener("click", async () => {
   try {
     // Keep RevenueCat's App User ID aligned with the Stripe customer email
     // used for checkout, so entitlements sync back to the same app user.
-    // logIn is only available once RC.configure() has completed.
+    // changeUser is only available once RC.configure() has completed. The
+    // Web Billing SDK does not provide a logIn() method (that's a
+    // cross-platform iOS/Android API), so changeUser() is used instead.
     if (isRevenueCatConfigured) {
       try {
-        await RC.getSharedInstance().logIn(email);
-      } catch (loginError) {
-        console.warn("RevenueCat logIn before checkout failed:", loginError);
+        await RC.getSharedInstance().changeUser(email);
+      } catch (changeUserError) {
+        console.warn(
+          "RevenueCat changeUser before checkout failed:",
+          changeUserError
+        );
       }
     }
 

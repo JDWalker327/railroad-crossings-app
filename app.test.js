@@ -17,6 +17,11 @@ function loadAppExports(options = {}) {
       getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }),
     };
   }
+  if (!windowObj.location) windowObj.location = { href: "" };
+  // Per-id element registry so tests can retrieve the same element instance
+  // that app.js wired up with addEventListener (e.g. to simulate a click on
+  // paywallSubscribeBtn) via the returned exports' `__elements` map.
+  const elementRegistry = {};
   const sandbox = {
     console: { log() {}, error() {}, warn() {} },
     module: { exports: {} },
@@ -26,19 +31,27 @@ function loadAppExports(options = {}) {
     crypto: { randomUUID: () => "uuid" },
     fetch: options.fetch,
     document: {
-      getElementById: () => ({
-        addEventListener() {},
-        style: {},
-        textContent: "",
-        innerHTML: "",
-        disabled: false,
-        hidden: false,
-        value: "",
-        appendChild() {},
-        remove() {},
-        classList: { add() {}, remove() {}, toggle() {} },
-        querySelectorAll: () => [],
-      }),
+      getElementById: (id) => {
+        if (!elementRegistry[id]) {
+          elementRegistry[id] = {
+            _listeners: {},
+            addEventListener(type, handler) {
+              this._listeners[type] = handler;
+            },
+            style: {},
+            textContent: "",
+            innerHTML: "",
+            disabled: false,
+            hidden: false,
+            value: "",
+            appendChild() {},
+            remove() {},
+            classList: { add() {}, remove() {}, toggle() {} },
+            querySelectorAll: () => [],
+          };
+        }
+        return elementRegistry[id];
+      },
       createElement: () => ({
         value: "",
         textContent: "",
@@ -53,6 +66,14 @@ function loadAppExports(options = {}) {
   if (options.globalLeaflet) sandbox.L = options.globalLeaflet;
 
   vm.runInNewContext(source, sandbox, { filename: "app.js" });
+  Object.defineProperty(sandbox.module.exports, "__elements", {
+    value: elementRegistry,
+    enumerable: false,
+  });
+  Object.defineProperty(sandbox.module.exports, "__window", {
+    value: windowObj,
+    enumerable: false,
+  });
   return sandbox.module.exports;
 }
 
@@ -537,17 +558,18 @@ async function run() {
   await assert.doesNotReject(() => initRevenueCatNestedSdk());
   assert.equal(getIsProNestedSdk(), true);
 
-  // isRevenueCatConfigured gates the Subscribe button's logIn() call (see
-  // "RC.getSharedInstance(...).logIn is not a function" regression): it must
-  // start false and flip to true only once RC.configure() has completed
-  // successfully, so the click handler never invokes logIn() before the SDK
-  // instance actually supports it.
+  // isRevenueCatConfigured gates the Subscribe button's changeUser() call
+  // (see "RC.getSharedInstance(...).logIn is not a function" regression,
+  // since the Web Billing SDK only provides changeUser()/identifyUser(), not
+  // logIn()): it must start false and flip to true only once RC.configure()
+  // has completed successfully, so the click handler never invokes
+  // changeUser() before the SDK instance actually supports it.
   const configuredExports = loadAppExports({
     purchases: {
       configure() {},
       getSharedInstance: () => ({
         getCustomerInfo: async () => ({ entitlements: { active: {} } }),
-        logIn: async () => {},
+        changeUser: async () => {},
       }),
     },
   });
@@ -574,6 +596,61 @@ async function run() {
   const noSdkExports = loadAppExports({ purchases: null });
   await noSdkExports.initRevenueCat();
   assert.equal(noSdkExports.isRevenueCatConfigured, false);
+
+  // Subscribe flow: changeUser() (not logIn(), which the Web Billing SDK
+  // does not implement) must be called with the checkout email once
+  // RC.configure() has completed, and checkout must still proceed with the
+  // Stripe redirect URL.
+  const changeUserCalls = [];
+  const subscribeFlowExports = loadAppExports({
+    purchases: {
+      configure() {},
+      getSharedInstance: () => ({
+        getCustomerInfo: async () => ({ entitlements: { active: {} } }),
+        changeUser: async (email) => {
+          changeUserCalls.push(email);
+        },
+      }),
+    },
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({ url: "https://checkout.stripe.com/session/123" }),
+    }),
+  });
+  await subscribeFlowExports.initRevenueCat();
+  assert.equal(subscribeFlowExports.isRevenueCatConfigured, true);
+  subscribeFlowExports.__elements.paywallEmailInput.value = "user@example.com";
+  await subscribeFlowExports.__elements.paywallSubscribeBtn._listeners.click();
+  assert.deepEqual(changeUserCalls, ["user@example.com"]);
+  assert.equal(
+    subscribeFlowExports.__window.location.href,
+    "https://checkout.stripe.com/session/123"
+  );
+
+  // If changeUser() rejects, the error must be caught gracefully and
+  // checkout must still proceed (matching the previous logIn() behavior).
+  const changeUserThrowsExports = loadAppExports({
+    purchases: {
+      configure() {},
+      getSharedInstance: () => ({
+        getCustomerInfo: async () => ({ entitlements: { active: {} } }),
+        changeUser: async () => {
+          throw new Error("changeUser failed");
+        },
+      }),
+    },
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({ url: "https://checkout.stripe.com/session/456" }),
+    }),
+  });
+  await changeUserThrowsExports.initRevenueCat();
+  changeUserThrowsExports.__elements.paywallEmailInput.value = "user@example.com";
+  await changeUserThrowsExports.__elements.paywallSubscribeBtn._listeners.click();
+  assert.equal(
+    changeUserThrowsExports.__window.location.href,
+    "https://checkout.stripe.com/session/456"
+  );
 
   console.log("RevenueCat monetization tests passed");
 
