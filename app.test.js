@@ -4,15 +4,24 @@ const vm = require("node:vm");
 
 function loadAppExports(options = {}) {
   const source = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/app.js", "utf8");
+  // app.js reads the RevenueCat Web Billing SDK off window.Purchases (never
+  // a bare `Purchases` global), matching how it's loaded via a <script> tag
+  // in index.html. Pass `purchases: null` to simulate the SDK failing to
+  // load (window.Purchases left undefined).
+  const windowObj = { ...(options.window || {}) };
+  if (Object.prototype.hasOwnProperty.call(options, "purchases")) {
+    if (options.purchases) windowObj.Purchases = options.purchases;
+  } else if (!("Purchases" in windowObj)) {
+    windowObj.Purchases = {
+      configure() {},
+      getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }),
+    };
+  }
   const sandbox = {
     console: { log() {}, error() {}, warn() {} },
     module: { exports: {} },
     exports: {},
     supabase: { createClient: () => ({ rpc: async () => ({}), schema: () => ({ from: () => ({}) }) }) },
-    Purchases: options.purchases || {
-      configure() {},
-      getSharedInstance: () => ({ getCustomerInfo: async () => ({ entitlements: { active: {} } }) }),
-    },
     localStorage: options.localStorage || { getItem: () => "test-user", setItem() {} },
     crypto: { randomUUID: () => "uuid" },
     fetch: options.fetch,
@@ -37,7 +46,7 @@ function loadAppExports(options = {}) {
         classList: { add() {}, remove() {} },
       }),
     },
-    window: options.window || {},
+    window: windowObj,
     setTimeout,
     clearTimeout,
   };
@@ -454,6 +463,26 @@ async function run() {
     });
   await initRevenueCatWithEntitlement();
   assert.equal(getIsProAfterInit(), true);
+
+  // When the RevenueCat Web Billing SDK never loads (window.Purchases is
+  // undefined), checkEntitlements/initRevenueCat must not throw a
+  // ReferenceError — they should stay locked/free and report the SDK as
+  // unavailable via isPurchasesSdkAvailable.
+  const {
+    getIsPro: getIsProNoSdk,
+    checkEntitlements: checkEntitlementsNoSdk,
+    initRevenueCat: initRevenueCatNoSdk,
+    isPurchasesSdkAvailable: isPurchasesSdkAvailableWhenMissing,
+  } = loadAppExports({ purchases: null });
+  assert.equal(isPurchasesSdkAvailableWhenMissing, false);
+  await assert.doesNotReject(() => checkEntitlementsNoSdk());
+  assert.equal(getIsProNoSdk(), false);
+  await assert.doesNotReject(() => initRevenueCatNoSdk());
+  assert.equal(getIsProNoSdk(), false);
+
+  // When the SDK is present, the capability flag reflects that too.
+  const { isPurchasesSdkAvailable: isPurchasesSdkAvailableWhenPresent } = loadAppExports();
+  assert.equal(isPurchasesSdkAvailableWhenPresent, true);
 
   console.log("RevenueCat monetization tests passed");
 
