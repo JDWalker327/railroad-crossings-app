@@ -396,8 +396,14 @@ async function run() {
   // entitlement check having run yet.
   assert.equal(getIsPro(), false);
   const appSource = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/app.js", "utf8");
+  const indexSource = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/index.html", "utf8");
   assert.equal(appSource.includes("TEMP: testing branch paywall bypass"), false);
   assert.equal(appSource.includes("let isPro = true;"), false);
+  assert.match(indexSource, /<link rel="manifest" href="\/manifest\.webmanifest">/);
+  assert.ok(
+    indexSource.indexOf("web-billing-sdk.min.js") < indexSource.indexOf('src="app.js"'),
+    "RevenueCat SDK must load before app.js"
+  );
 
   // hasActiveEntitlement gracefully handles missing objects/keys.
   assert.equal(hasActiveEntitlement(undefined), false);
