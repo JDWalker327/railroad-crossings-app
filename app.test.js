@@ -597,59 +597,36 @@ async function run() {
   await noSdkExports.initRevenueCat();
   assert.equal(noSdkExports.isRevenueCatConfigured, false);
 
-  // Subscribe flow: changeUser() (not logIn(), which the Web Billing SDK
-  // does not implement) must be called with the checkout email once
-  // RC.configure() has completed, and checkout must still proceed with the
-  // Stripe redirect URL.
-  const changeUserCalls = [];
+  // Subscribe flow: clicking the Subscribe button always redirects straight
+  // to the RevenueCat-hosted payment link, persisting any entered email
+  // first, without depending on the Web Billing SDK or a Stripe checkout
+  // session request.
+  const subscribeFlowStore = createMemoryStore();
   const subscribeFlowExports = loadAppExports({
-    purchases: {
-      configure() {},
-      getSharedInstance: () => ({
-        getCustomerInfo: async () => ({ entitlements: { active: {} } }),
-        changeUser: async (email) => {
-          changeUserCalls.push(email);
-        },
-      }),
-    },
-    fetch: async () => ({
-      ok: true,
-      json: async () => ({ url: "https://checkout.stripe.com/session/123" }),
-    }),
+    purchases: null,
+    localStorage: subscribeFlowStore,
   });
-  await subscribeFlowExports.initRevenueCat();
-  assert.equal(subscribeFlowExports.isRevenueCatConfigured, true);
   subscribeFlowExports.__elements.paywallEmailInput.value = "user@example.com";
-  await subscribeFlowExports.__elements.paywallSubscribeBtn._listeners.click();
-  assert.deepEqual(changeUserCalls, ["user@example.com"]);
+  subscribeFlowExports.__elements.paywallSubscribeBtn._listeners.click();
+  assert.equal(
+    subscribeFlowExports.__elements.paywallSubscribeBtn.disabled,
+    false
+  );
   assert.equal(
     subscribeFlowExports.__window.location.href,
-    "https://checkout.stripe.com/session/123"
+    "https://pay.rev.cat/ovpvigulhionjfpq/"
+  );
+  assert.equal(
+    subscribeFlowExports.getStoredUserEmail(),
+    "user@example.com"
   );
 
-  // If changeUser() rejects, the error must be caught gracefully and
-  // checkout must still proceed (matching the previous logIn() behavior).
-  const changeUserThrowsExports = loadAppExports({
-    purchases: {
-      configure() {},
-      getSharedInstance: () => ({
-        getCustomerInfo: async () => ({ entitlements: { active: {} } }),
-        changeUser: async () => {
-          throw new Error("changeUser failed");
-        },
-      }),
-    },
-    fetch: async () => ({
-      ok: true,
-      json: async () => ({ url: "https://checkout.stripe.com/session/456" }),
-    }),
-  });
-  await changeUserThrowsExports.initRevenueCat();
-  changeUserThrowsExports.__elements.paywallEmailInput.value = "user@example.com";
-  await changeUserThrowsExports.__elements.paywallSubscribeBtn._listeners.click();
+  // Even without the SDK loaded, refreshBillingCapabilityUi() must never
+  // disable the Subscribe button (only the Restore button).
+  subscribeFlowExports.refreshBillingCapabilityUi();
   assert.equal(
-    changeUserThrowsExports.__window.location.href,
-    "https://checkout.stripe.com/session/456"
+    subscribeFlowExports.__elements.paywallSubscribeBtn.disabled,
+    false
   );
 
   console.log("RevenueCat monetization tests passed");
