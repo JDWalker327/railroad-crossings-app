@@ -172,15 +172,9 @@ const isChangeUserCapable = !!(RC && typeof RC.getSharedInstance === "function")
 // Production default: users are locked/free until entitlement is confirmed.
 let isPro = false;
 
-// TODO(paywall): TEMPORARY bypass — the RevenueCat subscribe/checkout link is
-// currently returning a 404, so the paywall lockout is disabled here to keep
-// the app usable while that link is fixed. This does NOT change isPro/
-// getIsPro() (entitlement checks below still run normally); it only stops
-// renderLookupTable() from hiding data behind the paywall banner. Once the
-// checkout URL is fixed, remove this constant and its use in
-// renderLookupTable() (`isRailroadMode || isPro || PAYWALL_DISABLED`) to
-// re-enable the paywall.
-const PAYWALL_DISABLED = true;
+// The RevenueCat subscribe/checkout link now includes the user's email as
+// the App User ID, so the paywall lockout is active again.
+const PAYWALL_DISABLED = false;
 
 function hasActiveEntitlement(customerInfo) {
   return !!customerInfo?.entitlements?.active?.[RC_ENTITLEMENT];
@@ -604,8 +598,13 @@ paywallModal.addEventListener("click", (e) => {
 
 paywallSubscribeBtn.addEventListener("click", () => {
   const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
-  if (email) persistUserEmail(email);
-  window.location.href = "https://pay.rev.cat/ovpvigulhionjfpq/";
+  if (!isValidEmail(email)) {
+    paywallStatus.textContent = "Please enter a valid email address to subscribe.";
+    return;
+  }
+  persistUserEmail(email);
+  const uid = encodeURIComponent(email.toLowerCase());
+  window.location.href = `https://pay.rev.cat/ovpvigulhionjfpq/${uid}`;
 });
 
 if (paywallManageBtn) {
