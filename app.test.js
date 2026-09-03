@@ -422,10 +422,9 @@ async function run() {
   const indexSource = fs.readFileSync("/home/runner/work/railroad-crossings-app/railroad-crossings-app/index.html", "utf8");
   assert.equal(appSource.includes("TEMP: testing branch paywall bypass"), false);
   assert.equal(appSource.includes("let isPro = true;"), false);
-  // TEMP: the paywall lockout (not entitlement tracking) is intentionally
-  // disabled while the RevenueCat checkout link is being fixed. See the
-  // PAYWALL_DISABLED TODO comment in app.js for the rollback instructions.
-  assert.equal(PAYWALL_DISABLED, true);
+  // The paywall lockout is active again now that the RevenueCat checkout
+  // link includes the user's email as the App User ID.
+  assert.equal(PAYWALL_DISABLED, false);
   assert.match(indexSource, /<link rel="manifest" href="\/manifest\.webmanifest">/);
   // The RevenueCat Web SDK is loaded from the official @revenuecat/purchases-js
   // CDN build (not the old web.billing.purchases.dev endpoint, which fails
@@ -603,16 +602,32 @@ async function run() {
   await noSdkExports.initRevenueCat();
   assert.equal(noSdkExports.isRevenueCatConfigured, false);
 
-  // Subscribe flow: clicking the Subscribe button always redirects straight
-  // to the RevenueCat-hosted payment link, persisting any entered email
-  // first, without depending on the Web Billing SDK or a Stripe checkout
-  // session request.
+  // Subscribe flow: clicking Subscribe with an invalid email shows a
+  // validation message and does not redirect or persist anything.
+  const invalidEmailStore = createMemoryStore();
+  const invalidEmailExports = loadAppExports({
+    purchases: null,
+    localStorage: invalidEmailStore,
+  });
+  invalidEmailExports.__elements.paywallEmailInput.value = "not-an-email";
+  invalidEmailExports.__elements.paywallSubscribeBtn._listeners.click();
+  assert.equal(
+    invalidEmailExports.__elements.paywallStatus.textContent,
+    "Please enter a valid email address to subscribe."
+  );
+  assert.equal(invalidEmailExports.__window.location.href, "");
+  assert.equal(invalidEmailExports.getStoredUserEmail(), "");
+
+  // Subscribe flow: clicking the Subscribe button with a valid email
+  // persists the email and redirects to the RevenueCat-hosted payment link
+  // with the lowercased, URL-encoded email as the App User ID, without
+  // depending on the Web Billing SDK or a Stripe checkout session request.
   const subscribeFlowStore = createMemoryStore();
   const subscribeFlowExports = loadAppExports({
     purchases: null,
     localStorage: subscribeFlowStore,
   });
-  subscribeFlowExports.__elements.paywallEmailInput.value = "user@example.com";
+  subscribeFlowExports.__elements.paywallEmailInput.value = "User@Example.com";
   subscribeFlowExports.__elements.paywallSubscribeBtn._listeners.click();
   assert.equal(
     subscribeFlowExports.__elements.paywallSubscribeBtn.disabled,
@@ -620,7 +635,7 @@ async function run() {
   );
   assert.equal(
     subscribeFlowExports.__window.location.href,
-    "https://pay.rev.cat/ovpvigulhionjfpq/"
+    "https://pay.rev.cat/ovpvigulhionjfpq/user%40example.com"
   );
   assert.equal(
     subscribeFlowExports.getStoredUserEmail(),
