@@ -52,6 +52,7 @@
       <h2 id="activeRailroadLabel" class="active-railroad-label"></h2>
       <button id="changeRailroadBtn" class="change-railroad-btn" type="button">🏠 Change Railroad</button>
       <button id="mapBtn" class="map-btn" type="button">🗺️ Map</button>
+      <button id="nearestBtn" class="map-btn" type="button">📍 Nearest Crossings</button>
     </div>
 
     <section id="railroadBrowserPanel" class="mode-panel railroad-browser-panel" hidden>
@@ -129,6 +130,20 @@
     </div>
 
   </div><!-- end #appContent -->
+
+  <!-- Nearest crossings modal -->
+  <div id="nearestModal" class="map-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="nearestModalTitle">
+    <div class="map-modal-inner">
+      <div class="map-modal-header">
+        <h2 id="nearestModalTitle" class="map-modal-title">Nearest Crossings</h2>
+        <button id="nearestCloseBtn" class="map-close-btn" aria-label="Close nearest crossings">&times;</button>
+      </div>
+      <div id="nearestStatusBar" class="map-status-bar">
+        <span id="nearestStatus" aria-live="polite">Getting your location...</span>
+      </div>
+      <div id="nearestResults" class="nearest-results"></div>
+    </div>
+  </div>
 
   <!-- Map modal -->
   <div id="mapModal" class="map-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="mapModalTitle">
