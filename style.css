@@ -961,3 +961,54 @@ body.map-modal-open {
     max-width: 100%;
   }
 }
+
+/* Nearest crossings modal */
+.nearest-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+}
+.nearest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nearest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+}
+.nearest-item-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.nearest-rank {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.nearest-railroad { font-weight: 600; color: #111827; font-size: 0.95rem; }
+.nearest-meta { font-size: 0.78rem; color: #6b7280; margin-top: 2px; word-break: break-word; }
+.nearest-item-side { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.nearest-distance { font-weight: 600; color: #1a73e8; font-size: 0.85rem; white-space: nowrap; }
+.nearest-dir-btn {
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.nearest-dir-btn:hover { background: #1557b0; }
