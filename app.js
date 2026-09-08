@@ -184,6 +184,43 @@ function getIsPro() {
   return isPro;
 }
 
+// ── 14-day free trial (stamped on first launch on this device) ──────────────
+// While the trial is active the lookup table shows full details, exactly
+// like a subscribed Pro user. After it expires the paywall gate re-engages
+// until the user enters their email and subscribes. The stamp lives in
+// localStorage, so clearing site data restarts the trial.
+const TRIAL_START_KEY = "trial_start_date";
+const TRIAL_LENGTH_MS = 14 * 24 * 60 * 60 * 1000;
+
+function getTrialStartTime(store = (typeof localStorage !== "undefined" ? localStorage : null)) {
+  if (!store || typeof store.getItem !== "function") return null;
+  try {
+    const raw = store.getItem(TRIAL_START_KEY);
+    if (!raw) return null;
+    const time = new Date(raw).getTime();
+    return isNaN(time) ? null : time;
+  } catch (error) {
+    console.warn("Trial start read failed:", error);
+    return null;
+  }
+}
+
+function stampTrialStart(store = (typeof localStorage !== "undefined" ? localStorage : null)) {
+  if (!store || typeof store.getItem !== "function" || typeof store.setItem !== "function") return;
+  try {
+    if (!store.getItem(TRIAL_START_KEY)) {
+      store.setItem(TRIAL_START_KEY, new Date().toISOString());
+    }
+  } catch (error) {
+    console.warn("Trial start write failed:", error);
+  }
+}
+
+function isTrialActive() {
+  const start = getTrialStartTime();
+  return start !== null && Date.now() - start < TRIAL_LENGTH_MS;
+}
+
 // ── Email identity (Stripe customer ↔ RevenueCat App User ID mapping) ─────
 //
 // Stripe checkout/billing-portal and RevenueCat both need a stable
@@ -247,6 +284,9 @@ async function initRevenueCat() {
       console.error("RevenueCat init error:", e);
     }
   }
+
+  // Stamp the 14-day trial start on first launch (no-op afterwards).
+  stampTrialStart();
 
   // Always check entitlements (even if configure failed/was skipped above)
   // so isPro reflects the conservative locked/free default, then refresh
@@ -1345,7 +1385,7 @@ function renderLookupTable(rows, options = {}) {
 
   const sortedRows = sortRowsByMilepost(rows || []);
 
-  if (isRailroadMode || isPro || PAYWALL_DISABLED) {
+  if (isRailroadMode || isPro || PAYWALL_DISABLED || isTrialActive()) {
     crossingsTableHead.innerHTML = `
       <tr>
         <th>Map</th>
