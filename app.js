@@ -1712,8 +1712,13 @@ function getMapCrossingsCacheKey(filter) {
   return (filter && filter.type) + ":" + (filter && filter.key);
 }
 
-async function loadMapCrossings(filter) {
-  const cached = mapCrossingsCache.get(getMapCrossingsCacheKey(filter));
+async function loadMapCrossings(filter, bounds) {
+  const cacheKey =
+    getMapCrossingsCacheKey(filter) +
+    (bounds
+      ? "|" + bounds.south.toFixed(1) + "," + bounds.north.toFixed(1) + "," + bounds.west.toFixed(1) + "," + bounds.east.toFixed(1)
+      : "");
+  const cached = mapCrossingsCache.get(cacheKey);
   if (cached) return cached;
 
   const mapStatusEl = document.getElementById("mapStatus");
@@ -1728,6 +1733,10 @@ async function loadMapCrossings(filter) {
       .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
       .not("latitude", "is", null)
       .not("longitude", "is", null)
+      .gte("latitude", bounds.south)
+      .lte("latitude", bounds.north)
+      .gte("longitude", bounds.west)
+      .lte("longitude", bounds.east)
       // Use a deterministic multi-column ordering for stable pagination.
       .order("dot_number", { ascending: true })
       .order("railroad", { ascending: true })
@@ -1750,7 +1759,7 @@ async function loadMapCrossings(filter) {
       : `${(data || []).length} crossing(s) shown · zoom to ${MAP_AUTO_INFO_ZOOM}+ for quick info · click a marker for directions`;
   }
 
-  if (!error) mapCrossingsCache.set(getMapCrossingsCacheKey(filter), data || []);
+  if (!error) mapCrossingsCache.set(cacheKey, data || []);
 
   return error ? [] : (data || []);
 }
@@ -1877,7 +1886,10 @@ async function applyMapFilter(filter, keepSubdivision = false) {
     updateClearSubdivisionBtn();
   }
   buildMapClassITabs();
-  allMapRows = await loadMapCrossings(filter);
+  const rawBounds = currentMapViewBounds();
+  const filterBounds = rawBounds ? paddedBounds(rawBounds, 0.25) : null;
+  activeMapLoadedBounds = filterBounds;
+  allMapRows = await loadMapCrossings(filter, filterBounds);
   allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
   renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), filter);
 }
@@ -2016,6 +2028,7 @@ function initShowMyLocation() {
       (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
+        rememberMyLocation(lat, lon);
         if (userLocationMarker) {
           userLocationMarker.setLatLng([lat, lon]);
         } else {
@@ -2135,6 +2148,7 @@ function renderNearestCrossings() {
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const myLat = pos.coords.latitude;
     const myLon = pos.coords.longitude;
+    rememberMyLocation(myLat, myLon);
     statusEl.textContent = "Searching crossings near you...";
     try {
       const rows = await loadNearestCrossingsNear(myLat, myLon);
@@ -2229,7 +2243,10 @@ function initMapLeaflet() {
       return;
     }
     tileLayer.addTo(mapLeafletInstance);
-    mapLeafletInstance.on("zoomend moveend", refreshMapMarkerPresentation);
+    mapLeafletInstance.on("zoomend moveend", () => {
+      refreshMapMarkerPresentation();
+      scheduleMapBoundsRefill();
+    });
   } catch (error) {
     if (mapLeafletInstance && typeof mapLeafletInstance.remove === "function") {
       mapLeafletInstance.remove();
@@ -2237,6 +2254,128 @@ function initMapLeaflet() {
     mapLeafletInstance = null;
     console.error("[map] Tile layer initialization failed.", error);
   }
+}
+
+const MAP_HOME_RADIUS_DEG = 0.75;
+const MAP_HOME_ZOOM = 11;
+let lastKnownLocation = null;
+let activeMapLoadedBounds = null;
+let mapRefillTimer = null;
+
+function rememberMyLocation(lat, lon) {
+  lastKnownLocation = { lat: lat, lon: lon };
+  try {
+    localStorage.setItem("lastKnownLat", String(lat));
+    localStorage.setItem("lastKnownLon", String(lon));
+  } catch (e) {}
+}
+
+function loadStoredLocation() {
+  try {
+    const lat = parseFloat(localStorage.getItem("lastKnownLat"));
+    const lon = parseFloat(localStorage.getItem("lastKnownLon"));
+    if (!isNaN(lat) && !isNaN(lon)) {
+      lastKnownLocation = { lat: lat, lon: lon };
+    }
+  } catch (e) {}
+}
+
+function requestMyLocation() {
+  return new Promise((resolve) => {
+    if (!("geolocation" in navigator)) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        rememberMyLocation(loc.lat, loc.lon);
+        resolve(loc);
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 120000 }
+    );
+  });
+}
+
+function locationBox(loc, radiusDeg) {
+  return {
+    south: loc.lat - radiusDeg,
+    north: loc.lat + radiusDeg,
+    west: loc.lon - radiusDeg,
+    east: loc.lon + radiusDeg
+  };
+}
+
+function paddedBounds(bounds, padDeg) {
+  return {
+    south: bounds.south - padDeg,
+    north: bounds.north + padDeg,
+    west: bounds.west - padDeg,
+    east: bounds.east + padDeg
+  };
+}
+
+function currentMapViewBounds() {
+  if (!mapLeafletInstance || typeof mapLeafletInstance.getBounds !== "function") return null;
+  try {
+    const b = mapLeafletInstance.getBounds();
+    return { south: b.getSouth(), north: b.getNorth(), west: b.getWest(), east: b.getEast() };
+  } catch (e) {
+    return null;
+  }
+}
+
+function mapBoundsCover(loaded, view) {
+  return (
+    !!loaded &&
+    !!view &&
+    loaded.south <= view.south &&
+    loaded.north >= view.north &&
+    loaded.west <= view.west &&
+    loaded.east >= view.east
+  );
+}
+
+async function applyMapCrossingsForFilter(filter, bounds) {
+  activeMapLoadedBounds = bounds;
+  const rows = await loadMapCrossings(filter, bounds);
+  allMapRows = rows;
+  allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
+  renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), filter);
+}
+
+async function refreshMapCrossingsForBounds() {
+  if (!mapLeafletInstance) return;
+  const rawBounds = currentMapViewBounds();
+  if (!rawBounds) return;
+  await applyMapCrossingsForFilter(activeMapFilter, paddedBounds(rawBounds, 0.25));
+}
+
+function scheduleMapBoundsRefill() {
+  const view = currentMapViewBounds();
+  if (!view) return;
+  if (mapBoundsCover(activeMapLoadedBounds, view)) return;
+  clearTimeout(mapRefillTimer);
+  mapRefillTimer = setTimeout(refreshMapCrossingsForBounds, 700);
+}
+
+function showUserLocationMarker(lat, lon) {
+  const leaflet = getLeafletGlobal();
+  if (!leaflet || !mapLeafletInstance) return;
+  if (userLocationMarker) {
+    userLocationMarker.setLatLng([lat, lon]);
+    return;
+  }
+  userLocationMarker = leaflet.circleMarker([lat, lon], {
+    radius: 8,
+    fillColor: "#1a73e8",
+    fillOpacity: 0.9,
+    color: "#fff",
+    weight: 3,
+    opacity: 1
+  }).addTo(mapLeafletInstance);
+  userLocationMarker.bindPopup("<strong>Your location</strong>");
 }
 
 function openMapModal() {
@@ -2268,11 +2407,20 @@ function openMapModal() {
       setTimeout(() => {
         if (!mapLeafletInstance) return;
         mapLeafletInstance.invalidateSize();
-        loadMapCrossings(initialFilter).then((rows) => {
-          allMapRows = rows;
-          allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
-          renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), initialFilter);
-        });
+        const openNearMyLocation = async () => {
+          if (!lastKnownLocation) loadStoredLocation();
+          const mapStatusEl = document.getElementById("mapStatus");
+          if (!lastKnownLocation && mapStatusEl) mapStatusEl.textContent = "Finding your location...";
+          const loc = lastKnownLocation || (await requestMyLocation());
+          if (mapLeafletInstance && loc) {
+            mapLeafletInstance.setView([loc.lat, loc.lon], MAP_HOME_ZOOM);
+            showUserLocationMarker(loc.lat, loc.lon);
+            await applyMapCrossingsForFilter(initialFilter, locationBox(loc, MAP_HOME_RADIUS_DEG));
+          } else {
+            await applyMapCrossingsForFilter(initialFilter, null);
+          }
+        };
+        openNearMyLocation();
       }, MAP_MODAL_RENDER_DELAY_MS);
     });
   });
