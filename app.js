@@ -2036,6 +2036,125 @@ function initShowMyLocation() {
   container.appendChild(btn);
 }
 
+let nearestCrossingsCache = null;
+
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 3958.8;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.pow(Math.sin(dLon / 2), 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+async function loadAllCrossingsForNearest() {
+  if (nearestCrossingsCache) return nearestCrossingsCache;
+  const buildQuery = () => supabaseClient
+    .schema("public")
+    .from("railroads")
+    .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .order("dot_number", { ascending: true })
+    .order("railroad", { ascending: true })
+    .order("subdivision", { ascending: true })
+    .order("mile_post_num", { ascending: true });
+  const { data, error } = await fetchAllMapCrossingRows(buildQuery);
+  if (error) throw error;
+  nearestCrossingsCache = data || [];
+  return nearestCrossingsCache;
+}
+
+function openNearestModal() {
+  const modal = document.getElementById("nearestModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  document.body.classList.add("map-modal-open");
+  renderNearestCrossings();
+}
+
+function closeNearestModal() {
+  const modal = document.getElementById("nearestModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  document.body.classList.remove("map-modal-open");
+}
+
+function renderNearestCrossings() {
+  const statusEl = document.getElementById("nearestStatus");
+  const resultsEl = document.getElementById("nearestResults");
+  if (!statusEl || !resultsEl) return;
+
+  if (!("geolocation" in navigator)) {
+    statusEl.textContent = "Location is not supported on this device.";
+    return;
+  }
+
+  statusEl.textContent = "Getting your location...";
+  resultsEl.innerHTML = "";
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const myLat = pos.coords.latitude;
+    const myLon = pos.coords.longitude;
+    statusEl.textContent = "Loading crossings...";
+    try {
+      const rows = await loadAllCrossingsForNearest();
+      const nearest = rows
+        .filter((r) => hasLatLon(r.latitude, r.longitude))
+        .map((r) => {
+          const lat = parseFloat(r.latitude);
+          const lon = parseFloat(r.longitude);
+          return { row: r, lat, lon, miles: haversineMiles(myLat, myLon, lat, lon) };
+        })
+        .sort((a, b) => a.miles - b.miles)
+        .slice(0, 25);
+
+      if (!nearest.length) {
+        statusEl.textContent = "No crossings with coordinates found.";
+        return;
+      }
+
+      const listHtml = nearest.map((item, idx) => {
+        const railroad = escHtml(String(item.row.railroad || "Unknown railroad"));
+        const subdivision = escHtml(firstDefinedPropertyValue(item.row, MAP_SUBDIVISION_KEYS) || "");
+        const milepost = escHtml(firstDefinedPropertyValue(item.row, MAP_MILEPOST_KEYS) || "");
+        const dot = escHtml(String(item.row.dot_number || ""));
+        const dist = item.miles < 0.1 ? "&lt; 0.1 mi" : item.miles.toFixed(1) + " mi";
+        const subLine = [
+          subdivision ? "Subdivision: " + subdivision : "",
+          milepost ? "Milepost: " + milepost : "",
+          dot ? "DOT: " + dot : ""
+        ].filter(Boolean).join(" &middot; ");
+        return "<li class=\"nearest-item\">" +
+          "<div class=\"nearest-item-main\"><span class=\"nearest-rank\">" + (idx + 1) + "</span>" +
+          "<div><div class=\"nearest-railroad\">" + railroad + "</div>" +
+          (subLine ? "<div class=\"nearest-meta\">" + subLine + "</div>" : "") +
+          "</div></div>" +
+          "<div class=\"nearest-item-side\"><span class=\"nearest-distance\">" + dist + "</span>" +
+          "<button type=\"button\" class=\"nearest-dir-btn\" data-lat=\"" + item.lat + "\" data-lon=\"" + item.lon + "\">Directions</button></div>" +
+          "</li>";
+      }).join("");
+      resultsEl.innerHTML = "<ul class=\"nearest-list\">" + listHtml + "</ul>";
+      statusEl.textContent = nearest.length + " closest crossings to you - any railroad, Class I or II - tap Directions for Google Maps";
+
+      resultsEl.querySelectorAll(".nearest-dir-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          openMapDirections(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lon));
+        });
+      });
+    } catch (err) {
+      statusEl.textContent = "Could not load crossings: " + (err && err.message ? err.message : "unknown error");
+    }
+  }, (err) => {
+    const reasons = {
+      1: "Location permission denied - enable it in your browser settings to find nearby crossings.",
+      2: "Location unavailable right now. Try again.",
+      3: "Location request timed out. Try again."
+    };
+    statusEl.textContent = reasons[err.code] || "Could not get your location.";
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+}
+
 function initMapLeaflet() {
   const container = document.getElementById("mapContainer");
   if (!container || mapLeafletInstance) return;
@@ -2183,6 +2302,15 @@ if (typeof module === "undefined") {
   buildPickerButtons();
 
   // Wire up Map button and modal events
+  const nearestBtnEl = document.getElementById("nearestBtn");
+  if (nearestBtnEl) {
+    nearestBtnEl.addEventListener("click", openNearestModal);
+  }
+  const nearestCloseBtnEl = document.getElementById("nearestCloseBtn");
+  if (nearestCloseBtnEl) {
+    nearestCloseBtnEl.addEventListener("click", closeNearestModal);
+  }
+
   const mapBtnEl = document.getElementById("mapBtn");
   if (mapBtnEl) mapBtnEl.addEventListener("click", openMapModal);
 
@@ -2238,6 +2366,10 @@ if (typeof module === "undefined") {
 
   // Escape key closes the map modal regardless of which element has focus.
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.getElementById("nearestModal")?.style.display !== "none") {
+      closeNearestModal();
+    }
+
     if (e.key === "Escape" && document.getElementById("mapModal")?.style.display !== "none") {
       closeMapModal();
     }
