@@ -1958,6 +1958,84 @@ async function loadMapClassIINames() {
   });
 }
 
+let showMyLocationInitDone = false;
+let userLocationMarker = null;
+
+function initShowMyLocation() {
+  if (showMyLocationInitDone) return;
+  showMyLocationInitDone = true;
+  if (!mapLeafletInstance) return;
+  const leaflet = getLeafletGlobal();
+  if (!leaflet) return;
+
+  const container = mapLeafletInstance.getContainer();
+  if (!container) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = "My Location";
+  btn.setAttribute("aria-label", "Show your location on the map");
+  btn.style.position = "absolute";
+  btn.style.bottom = "25px";
+  btn.style.right = "10px";
+  btn.style.zIndex = "800";
+  btn.style.background = "#1a73e8";
+  btn.style.color = "#fff";
+  btn.style.fontSize = "13px";
+  btn.style.fontWeight = "600";
+  btn.style.padding = "6px 12px";
+  btn.style.border = "none";
+  btn.style.borderRadius = "6px";
+  btn.style.cursor = "pointer";
+  btn.style.boxShadow = "0 1px 4px rgba(0,0,0,0.3)";
+
+  if (!("geolocation" in navigator)) {
+    btn.disabled = true;
+    btn.style.background = "#888";
+    btn.style.cursor = "default";
+    btn.title = "Location is not supported on this device";
+  }
+
+  btn.addEventListener("click", () => {
+    if (!("geolocation" in navigator) || !mapLeafletInstance) return;
+    const mapStatusEl = document.getElementById("mapStatus");
+    if (mapStatusEl) mapStatusEl.textContent = "Getting your location...";
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        if (userLocationMarker) {
+          userLocationMarker.setLatLng([lat, lon]);
+        } else {
+          userLocationMarker = leaflet.circleMarker([lat, lon], {
+            radius: 8,
+            fillColor: "#1a73e8",
+            fillOpacity: 0.9,
+            color: "#fff",
+            weight: 3,
+            opacity: 1
+          }).addTo(mapLeafletInstance);
+          userLocationMarker.bindPopup("<strong>Your location</strong>");
+        }
+        mapLeafletInstance.setView([lat, lon], 13);
+        if (mapStatusEl) mapStatusEl.textContent = "Showing your location - click a crossing for directions";
+      },
+      (err) => {
+        const reasons = {
+          1: "Location permission denied - enable it in your browser settings to see your position.",
+          2: "Location unavailable right now. Try again.",
+          3: "Location request timed out. Try again."
+        };
+        if (mapStatusEl) mapStatusEl.textContent = reasons[err.code] || "Could not get your location.";
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  });
+
+  container.appendChild(btn);
+}
+
 function initMapLeaflet() {
   const container = document.getElementById("mapContainer");
   if (!container || mapLeafletInstance) return;
@@ -2025,6 +2103,7 @@ function openMapModal() {
   requestAnimationFrame(() => {
     initMapLeaflet();
     if (!mapLeafletInstance) return;
+    initShowMyLocation();
     // Wait one frame plus a short delay to ensure modal dimensions settle
     // before invalidating size and fitting marker bounds.
     requestAnimationFrame(() => {
