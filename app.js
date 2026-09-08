@@ -1706,7 +1706,16 @@ async function fetchAllMapCrossingRows(buildQuery, pageSize = MAP_PAGE_SIZE) {
   }
 }
 
+const mapCrossingsCache = new Map();
+
+function getMapCrossingsCacheKey(filter) {
+  return (filter && filter.type) + ":" + (filter && filter.key);
+}
+
 async function loadMapCrossings(filter) {
+  const cached = mapCrossingsCache.get(getMapCrossingsCacheKey(filter));
+  if (cached) return cached;
+
   const mapStatusEl = document.getElementById("mapStatus");
   if (mapStatusEl) mapStatusEl.textContent = "Loading crossings…";
 
@@ -1740,6 +1749,8 @@ async function loadMapCrossings(filter) {
       ? `Error: ${error.message}`
       : `${(data || []).length} crossing(s) shown · zoom to ${MAP_AUTO_INFO_ZOOM}+ for quick info · click a marker for directions`;
   }
+
+  if (!error) mapCrossingsCache.set(getMapCrossingsCacheKey(filter), data || []);
 
   return error ? [] : (data || []);
 }
@@ -2047,6 +2058,34 @@ function haversineMiles(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+const NEAREST_SEARCH_RADII_DEG = [0.5, 1.5, 4];
+
+function buildNearestQuery(myLat, myLon, radiusDeg) {
+  return supabaseClient
+    .schema("public")
+    .from("railroads")
+    .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .gte("latitude", myLat - radiusDeg)
+    .lte("latitude", myLat + radiusDeg)
+    .gte("longitude", myLon - radiusDeg)
+    .lte("longitude", myLon + radiusDeg)
+    .order("dot_number", { ascending: true })
+    .order("railroad", { ascending: true })
+    .order("subdivision", { ascending: true })
+    .order("mile_post_num", { ascending: true });
+}
+
+async function loadNearestCrossingsNear(myLat, myLon) {
+  for (const radiusDeg of NEAREST_SEARCH_RADII_DEG) {
+    const { data, error } = await fetchAllMapCrossingRows(() => buildNearestQuery(myLat, myLon, radiusDeg));
+    if (error) throw error;
+    if ((data || []).length >= 25) return data;
+  }
+  return loadAllCrossingsForNearest();
+}
+
 async function loadAllCrossingsForNearest() {
   if (nearestCrossingsCache) return nearestCrossingsCache;
   const buildQuery = () => supabaseClient
@@ -2096,9 +2135,9 @@ function renderNearestCrossings() {
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const myLat = pos.coords.latitude;
     const myLon = pos.coords.longitude;
-    statusEl.textContent = "Loading crossings...";
+    statusEl.textContent = "Searching crossings near you...";
     try {
-      const rows = await loadAllCrossingsForNearest();
+      const rows = await loadNearestCrossingsNear(myLat, myLon);
       const nearest = rows
         .filter((r) => hasLatLon(r.latitude, r.longitude))
         .map((r) => {
