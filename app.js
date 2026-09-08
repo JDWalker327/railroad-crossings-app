@@ -1830,7 +1830,7 @@ function renderMapMarkers(rows, filter) {
         .filter((l) => typeof l.getLatLng === "function")
         .map((l) => l.getLatLng());
       if (latlngs.length > 0) {
-        mapLeafletInstance.fitBounds(leaflet.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 10 });
+        if (mapAutoFitAllowed) mapLeafletInstance.fitBounds(leaflet.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 10 });
       }
     } catch (e) {
       // fitBounds errors are non-fatal
@@ -2029,6 +2029,7 @@ function initShowMyLocation() {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         rememberMyLocation(lat, lon);
+        mapAutoFitAllowed = false;
         if (userLocationMarker) {
           userLocationMarker.setLatLng([lat, lon]);
         } else {
@@ -2261,6 +2262,7 @@ const MAP_HOME_ZOOM = 11;
 let lastKnownLocation = null;
 let activeMapLoadedBounds = null;
 let mapRefillTimer = null;
+let mapAutoFitAllowed = true;
 
 function rememberMyLocation(lat, lon) {
   lastKnownLocation = { lat: lat, lon: lon };
@@ -2408,12 +2410,14 @@ function openMapModal() {
         if (!mapLeafletInstance) return;
         mapLeafletInstance.invalidateSize();
         const openNearMyLocation = async () => {
+          mapAutoFitAllowed = true;
           if (!lastKnownLocation) loadStoredLocation();
           const mapStatusEl = document.getElementById("mapStatus");
           if (!lastKnownLocation && mapStatusEl) mapStatusEl.textContent = "Finding your location...";
           const loc = lastKnownLocation || (await requestMyLocation());
           if (mapLeafletInstance && loc) {
             mapLeafletInstance.setView([loc.lat, loc.lon], MAP_HOME_ZOOM);
+            mapAutoFitAllowed = false;
             showUserLocationMarker(loc.lat, loc.lon);
             await applyMapCrossingsForFilter(initialFilter, locationBox(loc, MAP_HOME_RADIUS_DEG));
           } else {
