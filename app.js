@@ -2115,11 +2115,12 @@ function haversineMiles(lat1, lon1, lat2, lon2) {
 }
 
 const NEAREST_SEARCH_RADII_DEG = [0.5, 1.5, 4];
+const NEAREST_TABLES = ["railroads", ...CLASS_I_TABLES];
 
-function buildNearestQuery(myLat, myLon, radiusDeg) {
+function buildNearestQuery(tableName, myLat, myLon, radiusDeg) {
   return supabaseClient
     .schema("public")
-    .from("railroads")
+    .from(tableName)
     .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
     .not("latitude", "is", null)
     .not("longitude", "is", null)
@@ -2127,36 +2128,39 @@ function buildNearestQuery(myLat, myLon, radiusDeg) {
     .lte("latitude", myLat + radiusDeg)
     .gte("longitude", myLon - radiusDeg)
     .lte("longitude", myLon + radiusDeg)
-    .order("dot_number", { ascending: true })
-    .order("railroad", { ascending: true })
-    .order("subdivision", { ascending: true })
     .order("mile_post_num", { ascending: true });
+}
+
+async function fetchNearestFromAllTables(buildPerTableQuery) {
+  const results = await Promise.all(NEAREST_TABLES.map(async (tableName) => {
+    const { data, error } = await fetchAllMapCrossingRows(() => buildPerTableQuery(tableName));
+    if (error) throw error;
+    return data || [];
+  }));
+  return results.flat();
 }
 
 async function loadNearestCrossingsNear(myLat, myLon) {
   for (const radiusDeg of NEAREST_SEARCH_RADII_DEG) {
-    const { data, error } = await fetchAllMapCrossingRows(() => buildNearestQuery(myLat, myLon, radiusDeg));
-    if (error) throw error;
-    if ((data || []).length >= 25) return data;
+    const rows = await fetchNearestFromAllTables((t) => buildNearestQuery(t, myLat, myLon, radiusDeg));
+    if (rows.length >= 25) return rows;
   }
   return loadAllCrossingsForNearest();
 }
 
 async function loadAllCrossingsForNearest() {
   if (nearestCrossingsCache) return nearestCrossingsCache;
-  const buildQuery = () => supabaseClient
+  const rows = await fetchNearestFromAllTables((tableName) => supabaseClient
     .schema("public")
-    .from("railroads")
+    .from(tableName)
     .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
     .not("latitude", "is", null)
     .not("longitude", "is", null)
     .order("dot_number", { ascending: true })
     .order("railroad", { ascending: true })
     .order("subdivision", { ascending: true })
-    .order("mile_post_num", { ascending: true });
-  const { data, error } = await fetchAllMapCrossingRows(buildQuery);
-  if (error) throw error;
-  nearestCrossingsCache = data || [];
+    .order("mile_post_num", { ascending: true }));
+  nearestCrossingsCache = rows;
   return nearestCrossingsCache;
 }
 
