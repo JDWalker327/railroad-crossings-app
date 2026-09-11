@@ -1,4 +1,4 @@
-const CACHE_NAME = "railroad-crossings-app-v2";
+const CACHE_NAME = "railroad-crossings-app-v3";
 const APP_SHELL_URLS = [
   "./",
   "./index.html",
