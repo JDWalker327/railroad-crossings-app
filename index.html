@@ -9,6 +9,42 @@
   <meta name="apple-mobile-web-app-title" content="Railroad Crossings">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Railroad Crossings App</title>
+  <meta name="description" content="Find any US railroad crossing by DOT number or subdivision. All Class 1 railroads and every short line, with one-tap Google Maps directions and a nearest-crossing finder. Built for railroaders, inspectors, and contractors.">
+  <meta property="og:title" content="Railroad Crossings — Find Any Crossing by DOT # or Subdivision">
+  <meta property="og:description" content="All Class 1 + every short line. Instant Google Maps directions. Nearest crossing from your location.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://railroad-crossings-app.vercel.app/">
+  <meta property="og:image" content="https://media.base44.com/images/public/6aa06d716a8a0d0ddf7283cd/a6121f554_generated_image.png">
+  <!-- Meta Pixel: replace REPLACE_WITH_PIXEL_ID with your Pixel ID from Meta Events Manager -->
+  <script>
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', 'REPLACE_WITH_PIXEL_ID');
+  fbq('track', 'PageView');
+  </script>
+  <style>
+  .rc-hero{background:linear-gradient(180deg,#0b2545 0%,#123a6b 100%);color:#fff;padding:26px 16px;text-align:center;border-radius:12px;margin:16px auto;max-width:760px}
+  .rc-hero-video{width:100%;max-width:640px;border-radius:12px;background:#000;display:block;margin:0 auto 18px}
+  .rc-hero-title{font-size:clamp(22px,5vw,32px);margin:0 0 8px;color:#fff;line-height:1.2;font-weight:800}
+  .rc-hero-sub{font-size:clamp(14px,3.5vw,17px);margin:0 auto 16px;max-width:560px;color:#dbe7f7;line-height:1.5}
+  .rc-hero-bullets{list-style:none;padding:0;margin:0 auto 20px;max-width:520px;text-align:left}
+  .rc-hero-bullets li{padding:6px 0 6px 26px;position:relative;font-size:14px;color:#eaf2fc}
+  .rc-hero-bullets li::before{content:"\2713";position:absolute;left:4px;color:#7ee081;font-weight:700}
+  .rc-hero-buttons{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:22px}
+  .rc-btn{display:inline-block;padding:14px 22px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;color:#fff}
+  .rc-btn-play{background:#1a73e8}
+  .rc-btn-play:hover{background:#1557b0}
+  .rc-btn-ios{background:transparent;border:2px solid #fff}
+  .rc-waitlist{max-width:460px;margin:0 auto;text-align:left}
+  .rc-waitlist label{display:block;font-size:13px;margin-bottom:6px;color:#dbe7f7}
+  .rc-waitlist-row{display:flex;gap:8px;flex-wrap:wrap}
+  .rc-waitlist-row input{flex:1;min-width:200px;padding:12px;border-radius:8px;border:1px solid #4a7ab5;font-size:15px;background:#fff}
+  .rc-waitlist-row button{padding:12px 18px;border-radius:8px;border:none;background:#fff;color:#123a6b;font-weight:700;font-size:15px;cursor:pointer}
+  .rc-waitlist-status{min-height:18px;font-size:13px;margin:8px 0 0;color:#ffd54d}
+  </style>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -18,7 +54,69 @@
 </head>
 
 <body>
-  <h1>Railroad Crossings App</h1>
+
+  <!-- ===== Marketing hero (ad landing content) ===== -->
+  <section id="hero" class="rc-hero">
+    <video class="rc-hero-video" controls muted playsinline preload="metadata"
+           poster="https://media.base44.com/images/public/6aa06d716a8a0d0ddf7283cd/a6121f554_generated_image.png">
+      <source src="demo.mp4" type="video/mp4">
+    </video>
+    <h1 class="rc-hero-title">Find Any Railroad Crossing by DOT # or Subdivision</h1>
+    <p class="rc-hero-sub">All Class 1 + Every Short Line. Get instant Google Maps directions. Nearest crossing from your location.</p>
+    <ul class="rc-hero-bullets">
+      <li>Search by DOT Number</li>
+      <li>Filter map by Subdivision</li>
+      <li>Map of all crossings — Class 1 and Short Lines</li>
+      <li>One-tap directions + Nearest crossing finder</li>
+      <li>Built for railroaders, inspectors, and contractors</li>
+    </ul>
+    <div class="rc-hero-buttons">
+      <!-- TODO: replace with the real Play Store listing URL -->
+      <a class="rc-btn rc-btn-play" href="https://play.google.com/store/apps/details?id=REPLACE_PACKAGE_ID" target="_blank" rel="noopener">\u25B6 Download on Google Play</a>
+      <a class="rc-btn rc-btn-ios" href="#iosWaitlist">Join iOS Waitlist</a>
+    </div>
+    <form id="iosWaitlistForm" class="rc-waitlist" novalidate>
+      <label for="iosWaitlistEmail">Be first to know when the iOS app launches:</label>
+      <div class="rc-waitlist-row">
+        <input id="iosWaitlistEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" required>
+        <button id="iosWaitlistBtn" type="submit">Join iOS Waitlist</button>
+      </div>
+      <p id="iosWaitlistStatus" class="rc-waitlist-status" aria-live="polite"></p>
+    </form>
+  </section>
+  <script>
+  (function () {
+    var form = document.getElementById("iosWaitlistForm");
+    if (!form) return;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = document.getElementById("iosWaitlistEmail").value.trim();
+      var status = document.getElementById("iosWaitlistStatus");
+      var btn = document.getElementById("iosWaitlistBtn");
+      if (!email || email.indexOf("@") < 1) { status.textContent = "Please enter a valid email address."; return; }
+      btn.disabled = true; btn.textContent = "Joining\u2026";
+      fetch("https://hbesqtcjkcjmzowhgowe.supabase.co/rest/v1/ios_waitlist", {
+        method: "POST",
+        headers: {
+          "apikey": "sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y",
+          "Authorization": "Bearer sb_publishable_Q0n-culzSKm8afh8tArpXw_WwQZIY0Y",
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({ email: email })
+      }).then(function (res) {
+        if (!res.ok) throw new Error("failed");
+        status.textContent = "You're on the list! We'll email you when the iOS app launches.";
+        document.getElementById("iosWaitlistEmail").value = "";
+        if (typeof fbq === "function") fbq("track", "Lead");
+      }).catch(function () {
+        status.textContent = "Something went wrong \u2014 please try again in a moment.";
+      }).finally(function () {
+        btn.disabled = false; btn.textContent = "Join iOS Waitlist";
+      });
+    });
+  })();
+  </script>  <h1>Railroad Crossings App</h1>
   <div id="rail1-tagline">A MJ Construction Application</div>
 
   <section id="installSection" class="install-section" hidden aria-labelledby="installHeading">
