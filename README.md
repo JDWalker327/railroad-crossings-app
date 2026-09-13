@@ -88,9 +88,9 @@ Before promoting, confirm:
    There is no automated test gate — merging is immediate.
 
 4. **Wait for Vercel to redeploy** (~1–2 minutes)  
-   You can watch the deploy status at:  
-   `https://github.com/JDWalker327/railroad-crossings-app/deployments`  
-   The status changes from *In progress* → *Active* when it's live.
+   Watch the deployment in your Vercel project dashboard (**Deployments** tab for `railroad-crossings-app`).  
+   If your repo has Vercel GitHub Deployments enabled, the same status is also visible at:  
+   `https://github.com/JDWalker327/railroad-crossings-app/deployments`
 
 5. **Verify the live site**  
    Open `https://railroad-crossings-app.vercel.app/` and do a hard-refresh (**Ctrl + Shift + R** / **Cmd + Shift + R**) to bypass any browser cache.
