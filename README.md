@@ -127,10 +127,8 @@ The Android wrapper project is not checked into this repo. Build it from a local
 2. Create (or reuse) a local wrapper workspace, then initialize it once:  
    `mkdir -p /tmp/railroad-crossings-twa && cd /tmp/railroad-crossings-twa`  
    `bubblewrap init --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
-3. Copy this repo's `twa-manifest.json` into that workspace and run update there:  
-   `cp /path/to/railroad-crossings-app/twa-manifest.json ./twa-manifest.json`  
-   `bubblewrap update --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
-4. Configure signing in the wrapper workspace before building (set keystore path, alias, and passwords in `twa-manifest.json`, or provide them when Bubblewrap prompts).
+3. In that workspace's `twa-manifest.json`, align these tracked values from this repo's `twa-manifest.json`: `host`, `startUrl`, `packageId`, `appVersionCode`, `appVersionName`, `name`, `launcherName`.
+4. Configure signing in the wrapper workspace before building (set keystore path, alias, and passwords in that workspace's `twa-manifest.json`, or provide them when Bubblewrap prompts).
 5. Build release bundle from the wrapper workspace:  
    `bubblewrap build`
 6. Bubblewrap outputs the `.aab` path at completion (typically under `app-release-bundle/`).
@@ -138,14 +136,9 @@ The Android wrapper project is not checked into this repo. Build it from a local
 ### Signing + app links prerequisites
 
 - Keep your Play upload keystore available locally before step 3.
-- Publish a real `/.well-known/assetlinks.json` file before rollout:
-  1. During deployment, copy `.well-known/assetlinks.json.example` to `.well-known/assetlinks.json`.
-  2. Replace the placeholder fingerprint with your Play app signing SHA-256.
-  3. Deploy with Vercel CLI from the same working directory (so the generated file is included): `npx vercel deploy --prod`
-  4. Keep only the `.example` file in source control (`.well-known/assetlinks.json` is gitignored).
-  5. Verify `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` returns the real JSON.
-- Ensure `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` contains your real **Play app signing certificate** SHA-256 fingerprint (Play Console → App Integrity).
-- A template is included at `.well-known/assetlinks.json.example`.
+- Set `PLAY_APP_SIGNING_SHA256` in Vercel Project Environment Variables to your real **Play app signing certificate** SHA-256 fingerprint (Play Console → App Integrity).
+- `vercel.json` rewrites `/.well-known/assetlinks.json` to `api/assetlinks`, which serves the production Digital Asset Links JSON from `PLAY_APP_SIGNING_SHA256`.
+- Verify `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` returns the expected package + fingerprint before rollout.
 
 ### Play Console upload + rollout checklist
 
@@ -178,7 +171,8 @@ sw.js        – Service worker for app-shell caching
 manifest.webmanifest – PWA install metadata
 twa-manifest.json – Trusted Web Activity config used for Play wrapper sync
 .well-known/assetlinks.json.example – Digital Asset Links template for app links
-api/         – Node/Vercel serverless functions for Stripe billing (see below)
+vercel.json  – Vercel rewrites (including app-links endpoint path)
+api/         – Node/Vercel serverless functions for Stripe billing + app links (see below)
 ```
 
 ## Stripe billing setup
@@ -201,6 +195,7 @@ Set these on your serverless host (e.g. Vercel → Project → Settings → Envi
 | `STRIPE_PRICE_MONTHLY` | server only | Price ID (`price_...`) for the $2.99/month plan. If the price already has a default trial configured in Stripe, that trial is used as-is; otherwise the checkout session applies a 14-day trial automatically. |
 | `STRIPE_WEBHOOK_SECRET` | server only | Signing secret (`whsec_...`) for verifying `api/stripe-webhook`. |
 | `APP_URL` | server only | Base URL of the deployed app (e.g. `https://yourdomain.com`, or `http://localhost:3000` for local dev), used to build Stripe Checkout/Billing Portal success/cancel/return URLs. |
+| `PLAY_APP_SIGNING_SHA256` | server only | SHA-256 fingerprint of the **Play app signing certificate** used by `api/assetlinks` for `/.well-known/assetlinks.json`. |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | reserved | Stripe publishable key, safe to expose client-side. Not required today since checkout/portal are fully redirect-based (no Stripe.js on the client), but reserved for future use — do not put the secret key here. |
 
 ### API endpoints
