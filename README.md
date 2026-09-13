@@ -25,17 +25,23 @@ The app now ships with a web app manifest, app icons, and a service worker so it
 
 ## Viewing the App
 
-### Option 1 – Live (GitHub Pages)
+### Option 1 – Live (Vercel production)
 
-The app is deployed automatically from the `main` branch via GitHub Pages:
+The production origin used by the Android Play wrapper is:
+
+```
+https://railroad-crossings-app.vercel.app/
+```
+
+Use this URL for production verification (and as `APP_URL` for Stripe serverless environment variables).
+
+### Option 2 – Live fallback (GitHub Pages)
 
 ```
 https://jdwalker327.github.io/railroad-crossings-app/
 ```
 
-After a pull request is merged into `main`, GitHub Pages re-deploys within a minute or two. Refresh the page (or do a hard-refresh with **Ctrl + Shift + R** / **Cmd + Shift + R**) to pick up the latest changes.
-
-### Option 2 – Local preview
+### Option 3 – Local preview
 
 Because the app is plain HTML + CSS + JavaScript (no build step), you can run it locally with any static file server.
 
@@ -58,7 +64,7 @@ npx serve .
 
 ## Deploying to Production
 
-"Production" for this app is the GitHub Pages site served from the `main` branch. There is no separate staging environment — merging a pull request into `main` **is** the production deploy.
+"Production" for app-store parity is the Vercel origin (`https://railroad-crossings-app.vercel.app/`), since the Android app wrapper points there.
 
 ### Pre-merge checklist
 
@@ -81,21 +87,61 @@ Before promoting, confirm:
    Click **"Merge pull request"** → **"Confirm merge"**.  
    There is no automated test gate — merging is immediate.
 
-4. **Wait for GitHub Pages to redeploy** (~1–2 minutes)  
+4. **Wait for Vercel to redeploy** (~1–2 minutes)  
    You can watch the deploy status at:  
    `https://github.com/JDWalker327/railroad-crossings-app/deployments`  
    The status changes from *In progress* → *Active* when it's live.
 
 5. **Verify the live site**  
-   Open `https://jdwalker327.github.io/railroad-crossings-app/` and do a hard-refresh (**Ctrl + Shift + R** / **Cmd + Shift + R**) to bypass any browser cache.
+   Open `https://railroad-crossings-app.vercel.app/` and do a hard-refresh (**Ctrl + Shift + R** / **Cmd + Shift + R**) to bypass any browser cache.
 
 ### Rolling back
 
-GitHub Pages always serves the latest commit on `main`. To roll back:
+Vercel serves the latest deployed commit. To roll back:
 
 1. Revert the merge commit on GitHub (`https://github.com/JDWalker327/railroad-crossings-app/commits/main` → find the merge commit → **"Revert"**)
 2. Merge the auto-generated revert PR
-3. GitHub Pages redeploys automatically within ~1–2 minutes
+3. Vercel redeploys automatically within ~1–2 minutes
+
+## Android / Google Play release sync (TWA)
+
+The Play app (`com.rail1.crossings`) should track the same production origin as web:
+
+- Origin/host: `https://railroad-crossings-app.vercel.app`
+- Start path: `/`
+- TWA config source in this repo: `twa-manifest.json`
+
+Current release metadata in `twa-manifest.json`:
+
+- `appVersionCode`: `2`
+- `appVersionName`: `1.0.1`
+
+For each Play upload, increment both values (`appVersionCode` must always increase).
+
+### Build signed Android App Bundle (AAB)
+
+1. Install Bubblewrap CLI (one-time, or use `npx`):  
+   `npm i -g @bubblewrap/cli`
+2. From repo root, update Android wrapper project from this repo config + live manifest:  
+   `bubblewrap update --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
+3. Build release bundle:  
+   `bubblewrap build`
+4. Bubblewrap outputs the `.aab` path at completion (typically under `app-release-bundle/`).
+
+### Signing + app links prerequisites
+
+- Keep your Play upload keystore available locally before step 3.
+- Ensure `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` contains your real upload certificate SHA-256 fingerprint.
+- A template is included at `.well-known/assetlinks.json.example`.
+
+### Play Console upload + rollout checklist
+
+1. Upload the generated `.aab` to **Internal testing** first.
+2. Verify install/update path from existing Play users.
+3. Verify in-app navigation: launch, back button, modal open/close, external links (Google Maps/Facebook/Play).
+4. Verify deep links/app links open in-app after Digital Asset Links validation.
+5. Verify loading/offline behavior (initial load, retry after reconnect, cached shell update).
+6. Promote to production rollout once internal testing passes.
 
 ---
 
@@ -117,12 +163,14 @@ style.css    – All styles, including responsive breakpoints
 app.js       – Supabase queries and DOM rendering
 sw.js        – Service worker for app-shell caching
 manifest.webmanifest – PWA install metadata
+twa-manifest.json – Trusted Web Activity config used for Play wrapper sync
+.well-known/assetlinks.json.example – Digital Asset Links template for app links
 api/         – Node/Vercel serverless functions for Stripe billing (see below)
 ```
 
 ## Stripe billing setup
 
-The app itself (`index.html`/`app.js`) is static and hosted on GitHub Pages, which cannot run server code. The **Subscribe** and **Manage Subscription** buttons call a small serverless API under `api/` that must be deployed to a Node-capable host such as [Vercel](https://vercel.com) (Vercel auto-detects any `api/*.js` file as a serverless function and can also serve the static files, so you can point your domain at Vercel instead of/alongside GitHub Pages).
+The app itself (`index.html`/`app.js`) is static and can be hosted on GitHub Pages, but GitHub Pages cannot run server code. The **Subscribe** and **Manage Subscription** buttons call a small serverless API under `api/` that must be deployed to a Node-capable host such as [Vercel](https://vercel.com) (Vercel auto-detects any `api/*.js` file as a serverless function and can also serve the static files, so you can point your production domain at Vercel).
 
 ### How it fits with RevenueCat
 

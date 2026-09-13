@@ -1,8 +1,8 @@
 {
   "name": "Railroad Crossings App",
   "short_name": "Crossings",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#1a73e8",
