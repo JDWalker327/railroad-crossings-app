@@ -170,9 +170,9 @@ app.js       – Supabase queries and DOM rendering
 sw.js        – Service worker for app-shell caching
 manifest.webmanifest – PWA install metadata
 twa-manifest.json – Trusted Web Activity config used for Play wrapper sync
-.well-known/assetlinks.json.example – Digital Asset Links template for app links
-vercel.json  – Vercel rewrites (including app-links endpoint path)
-api/         – Node/Vercel serverless functions for Stripe billing + app links (see below)
+.well-known/assetlinks.json.example – Template only (not the deployed app-links endpoint)
+vercel.json  – Vercel rewrites (routes `/.well-known/assetlinks.json` to `api/assetlinks`)
+api/         – Node/Vercel serverless functions for Stripe billing + generated app links (see below)
 ```
 
 ## Stripe billing setup
