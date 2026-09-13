@@ -142,7 +142,7 @@ The Android wrapper project is not checked into this repo. Build it from a local
   1. During deployment, copy `.well-known/assetlinks.json.example` to `.well-known/assetlinks.json`.
   2. Replace the placeholder fingerprint with your Play app signing SHA-256.
   3. Deploy with Vercel CLI from the same working directory (so the generated file is included): `npx vercel deploy --prod`
-  4. Keep only the `.example` file in source control.
+  4. Keep only the `.example` file in source control (`.well-known/assetlinks.json` is gitignored).
   5. Verify `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` returns the real JSON.
 - Ensure `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` contains your real **Play app signing certificate** SHA-256 fingerprint (Play Console → App Integrity).
 - A template is included at `.well-known/assetlinks.json.example`.
