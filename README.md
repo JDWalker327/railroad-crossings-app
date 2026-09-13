@@ -120,13 +120,19 @@ For each Play upload, increment both values (`appVersionCode` must always increa
 
 ### Build signed Android App Bundle (AAB)
 
+The Android wrapper project is not checked into this repo. Build it from a local Bubblewrap workspace.
+
 1. Install Bubblewrap CLI (one-time, or use `npx`):  
    `npm i -g @bubblewrap/cli`
-2. From repo root, update Android wrapper project from this repo config + live manifest:  
+2. Create (or reuse) a local wrapper workspace, then initialize it once:  
+   `mkdir -p /tmp/railroad-crossings-twa && cd /tmp/railroad-crossings-twa`  
+   `bubblewrap init --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
+3. Copy this repo's `twa-manifest.json` into that workspace and run update there:  
+   `cp /path/to/railroad-crossings-app/twa-manifest.json ./twa-manifest.json`  
    `bubblewrap update --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
-3. Build release bundle:  
+4. Build release bundle from the wrapper workspace:  
    `bubblewrap build`
-4. Bubblewrap outputs the `.aab` path at completion (typically under `app-release-bundle/`).
+5. Bubblewrap outputs the `.aab` path at completion (typically under `app-release-bundle/`).
 
 ### Signing + app links prerequisites
 
