@@ -15,6 +15,7 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ error: "PLAY_APP_SIGNING_SHA256 is not configured." });
   }
 
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=300");
   return res.status(200).json([
     {

@@ -1,6 +1,7 @@
 {
   "packageId": "com.rail1.crossings",
   "host": "railroad-crossings-app.vercel.app",
+  "webManifestUrl": "https://railroad-crossings-app.vercel.app/manifest.webmanifest",
   "name": "Railroad Crossings App",
   "launcherName": "Railroad Crossings",
   "display": "standalone",

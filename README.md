@@ -127,7 +127,7 @@ The Android wrapper project is not checked into this repo. Build it from a local
 2. Create (or reuse) a local wrapper workspace, then initialize it once:  
    `mkdir -p /tmp/railroad-crossings-twa && cd /tmp/railroad-crossings-twa`  
    `bubblewrap init --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
-3. In that workspace's `twa-manifest.json`, align these tracked values from this repo's `twa-manifest.json`: `host`, `startUrl`, `packageId`, `appVersionCode`, `appVersionName`, `name`, `launcherName`.
+3. In that workspace's `twa-manifest.json`, align these tracked values from this repo's `twa-manifest.json`: `host`, `webManifestUrl`, `startUrl`, `packageId`, `appVersionCode`, `appVersionName`, `name`, `launcherName`.
 4. Configure signing in the wrapper workspace before building (set keystore path, alias, and passwords in that workspace's `twa-manifest.json`, or provide them when Bubblewrap prompts).
 5. Build release bundle from the wrapper workspace:  
    `bubblewrap build`
