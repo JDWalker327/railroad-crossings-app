@@ -131,7 +131,7 @@ For each Play upload, increment both values (`appVersionCode` must always increa
 ### Signing + app links prerequisites
 
 - Keep your Play upload keystore available locally before step 3.
-- Ensure `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` contains your real upload certificate SHA-256 fingerprint.
+- Ensure `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` contains your real **Play app signing certificate** SHA-256 fingerprint (Play Console → App Integrity).
 - A template is included at `.well-known/assetlinks.json.example`.
 
 ### Play Console upload + rollout checklist

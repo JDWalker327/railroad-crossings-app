@@ -7,7 +7,7 @@
       "namespace": "android_app",
       "package_name": "com.rail1.crossings",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_PLAY_UPLOAD_CERT_SHA256"
+        "REPLACE_WITH_PLAY_APP_SIGNING_CERT_SHA256"
       ]
     }
   }
