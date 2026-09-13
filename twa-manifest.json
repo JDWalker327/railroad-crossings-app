@@ -1,0 +1,17 @@
+{
+  "packageId": "com.rail1.crossings",
+  "host": "railroad-crossings-app.vercel.app",
+  "webManifestUrl": "https://railroad-crossings-app.vercel.app/manifest.webmanifest",
+  "name": "Railroad Crossings App",
+  "launcherName": "Railroad Crossings",
+  "display": "standalone",
+  "themeColor": "#1a73e8",
+  "navigationColor": "#1a73e8",
+  "backgroundColor": "#f5f5f5",
+  "startUrl": "/",
+  "appVersionName": "1.0.1",
+  "appVersionCode": 2,
+  "enableNotifications": false,
+  "fallbackType": "customtabs",
+  "generatorApp": "bubblewrap-cli"
+}
