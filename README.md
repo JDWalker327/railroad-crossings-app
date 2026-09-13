@@ -139,10 +139,10 @@ The Android wrapper project is not checked into this repo. Build it from a local
 
 - Keep your Play upload keystore available locally before step 3.
 - Publish a real `/.well-known/assetlinks.json` file before rollout:
-  1. `cp .well-known/assetlinks.json.example .well-known/assetlinks.json`
+  1. During deployment, copy `.well-known/assetlinks.json.example` to `.well-known/assetlinks.json`.
   2. Replace the placeholder fingerprint with your Play app signing SHA-256.
-  3. Track it in git so it deploys with the site: `git add .well-known/assetlinks.json`
-  4. Commit + deploy, then verify `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` returns that JSON.
+  3. Deploy that generated file so `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` returns the real JSON.
+  4. Keep only the `.example` file in source control.
 - Ensure `https://railroad-crossings-app.vercel.app/.well-known/assetlinks.json` contains your real **Play app signing certificate** SHA-256 fingerprint (Play Console → App Integrity).
 - A template is included at `.well-known/assetlinks.json.example`.
 
