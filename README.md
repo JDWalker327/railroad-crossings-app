@@ -130,9 +130,10 @@ The Android wrapper project is not checked into this repo. Build it from a local
 3. Copy this repo's `twa-manifest.json` into that workspace and run update there:  
    `cp /path/to/railroad-crossings-app/twa-manifest.json ./twa-manifest.json`  
    `bubblewrap update --manifest=https://railroad-crossings-app.vercel.app/manifest.webmanifest`
-4. Build release bundle from the wrapper workspace:  
+4. Configure signing in the wrapper workspace before building (set keystore path, alias, and passwords in `twa-manifest.json`, or provide them when Bubblewrap prompts).
+5. Build release bundle from the wrapper workspace:  
    `bubblewrap build`
-5. Bubblewrap outputs the `.aab` path at completion (typically under `app-release-bundle/`).
+6. Bubblewrap outputs the `.aab` path at completion (typically under `app-release-bundle/`).
 
 ### Signing + app links prerequisites
 
