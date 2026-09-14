@@ -2259,6 +2259,19 @@ function renderNearestMap(nearest, myLat, myLon) {
   return true;
 }
 
+function refreshStaleLocationInBackground(statusEl, renderCrossings) {
+  if (!("geolocation" in navigator)) return;
+  if (Date.now() - (lastKnownLocationAt || 0) < 10 * 60 * 1000) return;
+  navigator.geolocation.getCurrentPosition((pos) => {
+    if (!lastKnownLocation || !statusEl.isConnected) return;
+    const newLat = pos.coords.latitude;
+    const newLon = pos.coords.longitude;
+    if (haversineMiles(lastKnownLocation.lat, lastKnownLocation.lon, newLat, newLon) < 1) return;
+    rememberMyLocation(newLat, newLon);
+    renderCrossings(newLat, newLon);
+  }, () => {}, { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 });
+}
+
 function renderNearestCrossings() {
   const statusEl = document.getElementById("nearestStatus");
   if (!statusEl) return;
@@ -2297,6 +2310,7 @@ function renderNearestCrossings() {
   if (!lastKnownLocation) loadStoredLocation();
   if (lastKnownLocation) {
     renderCrossings(lastKnownLocation.lat, lastKnownLocation.lon);
+    refreshStaleLocationInBackground(statusEl, renderCrossings);
     return;
   }
 
@@ -2386,15 +2400,18 @@ function initMapLeaflet() {
 const MAP_HOME_RADIUS_DEG = 0.75;
 const MAP_HOME_ZOOM = 11;
 let lastKnownLocation = null;
+let lastKnownLocationAt = 0;
 let activeMapLoadedBounds = null;
 let mapRefillTimer = null;
 let mapAutoFitAllowed = true;
 
 function rememberMyLocation(lat, lon) {
   lastKnownLocation = { lat: lat, lon: lon };
+  lastKnownLocationAt = Date.now();
   try {
     localStorage.setItem("lastKnownLat", String(lat));
     localStorage.setItem("lastKnownLon", String(lon));
+    localStorage.setItem("lastKnownLocationAt", String(lastKnownLocationAt));
   } catch (e) {}
 }
 
@@ -2402,8 +2419,10 @@ function loadStoredLocation() {
   try {
     const lat = parseFloat(localStorage.getItem("lastKnownLat"));
     const lon = parseFloat(localStorage.getItem("lastKnownLon"));
-    if (!isNaN(lat) && !isNaN(lon)) {
+    const at = parseFloat(localStorage.getItem("lastKnownLocationAt")) || 0;
+    if (!isNaN(lat) && !isNaN(lon) && at && Date.now() - at < 24 * 60 * 60 * 1000) {
       lastKnownLocation = { lat: lat, lon: lon };
+      lastKnownLocationAt = at;
     }
   } catch (e) {}
 }
