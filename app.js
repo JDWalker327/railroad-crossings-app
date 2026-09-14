@@ -1856,13 +1856,14 @@ function renderMapMarkers(rows, filter) {
     const popupMilepost = escHtml(firstDefinedPropertyValue(row, MAP_MILEPOST_KEYS));
     const popupSubdivision = escHtml(firstDefinedPropertyValue(row, MAP_SUBDIVISION_KEYS));
 
-    const marker = leaflet.circleMarker([lat, lon], {
-      radius: 6,
-      fillColor: color,
-      color: "#fff",
-      weight: 1,
-      opacity: 1,
-      fillOpacity: 0.85,
+    const marker = leaflet.marker([lat, lon], {
+      keyboard: false,
+      icon: leaflet.divIcon({
+        className: "crossing-tap-marker",
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        html: '<span class="crossing-dot" style="background:' + color + '"></span>'
+      })
     });
 
     marker.bindPopup(
@@ -2236,13 +2237,14 @@ function renderNearestMap(nearest, myLat, myLon) {
       milepost ? "Milepost: " + milepost : "",
       dot ? "DOT: " + dot : ""
     ].filter(Boolean).join("<br>");
-    const marker = leaflet.circleMarker([item.lat, item.lon], {
-      radius: 7,
-      fillColor: "#e67e22",
-      color: "#fff",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9
+    const marker = leaflet.marker([item.lat, item.lon], {
+      keyboard: false,
+      icon: leaflet.divIcon({
+        className: "crossing-tap-marker",
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
+        html: '<span class="crossing-dot" style="background:#e67e22"></span>'
+      })
     });
     marker.bindPopup("<strong>" + escHtml(String(item.row.railroad || "Unknown railroad")) + "</strong><br>Distance: " + dist + (subLine ? "<br>" + subLine : ""));
     marker.on("click", () => openMapDirections(item.lat, item.lon));
