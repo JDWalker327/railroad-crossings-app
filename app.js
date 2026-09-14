@@ -417,9 +417,13 @@ function getInstallContext(env = {}) {
   const isIOS =
     /iphone|ipad|ipod/.test(userAgent.toLowerCase()) ||
     (userAgent.includes("Macintosh") && maxTouchPoints > 1);
+  const isNativeContainer =
+    /;\s*wv\)/.test(userAgent) ||
+    (typeof window !== "undefined" && !!window.Capacitor);
   const isStandalone =
     !!nav?.standalone ||
-    !!(win && typeof win.matchMedia === "function" && win.matchMedia("(display-mode: standalone)").matches);
+    !!(win && typeof win.matchMedia === "function" && win.matchMedia("(display-mode: standalone)").matches) ||
+    isNativeContainer;
 
   return { isIOS, isStandalone };
 }
