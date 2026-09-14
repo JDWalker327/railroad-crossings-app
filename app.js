@@ -1960,7 +1960,6 @@ function renderMapSubdivisionAutocomplete(names) {
   const resultsEl = document.getElementById("mapSubdivisionResults");
   const searchEl = document.getElementById("mapSubdivisionSearch");
   if (!resultsEl || !searchEl) return;
-  resultsEl.innerHTML = "";
   if (!names.length) {
     if (searchEl.value.trim()) {
       const msg = document.createElement("div");
@@ -2197,12 +2196,72 @@ function closeNearestModal() {
   if (!modal) return;
   modal.style.display = "none";
   document.body.classList.remove("map-modal-open");
+  if (nearestMapInstance) {
+    nearestMapInstance.remove();
+    nearestMapInstance = null;
+  }
+}
+
+let nearestMapInstance = null;
+
+function renderNearestMap(nearest, myLat, myLon) {
+  const container = document.getElementById("nearestMap");
+  const leaflet = getLeafletGlobal();
+  if (!container || !leaflet) return false;
+  if (nearestMapInstance) {
+    nearestMapInstance.remove();
+    nearestMapInstance = null;
+  }
+  nearestMapInstance = leaflet.map(container).setView([myLat, myLon], 12);
+  leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(nearestMapInstance);
+  const markers = leaflet.layerGroup().addTo(nearestMapInstance);
+  leaflet.circleMarker([myLat, myLon], {
+    radius: 8,
+    fillColor: "#1a73e8",
+    fillOpacity: 0.9,
+    color: "#fff",
+    weight: 3,
+    opacity: 1
+  }).bindPopup("<strong>Your location</strong>").addTo(markers);
+  nearest.forEach((item) => {
+    const milepost = escHtml(firstDefinedPropertyValue(item.row, MAP_MILEPOST_KEYS) || "");
+    const subdivision = escHtml(firstDefinedPropertyValue(item.row, MAP_SUBDIVISION_KEYS) || "");
+    const dot = escHtml(String(item.row.dot_number || ""));
+    const dist = item.miles < 0.1 ? "&lt; 0.1 mi" : item.miles.toFixed(1) + " mi";
+    const subLine = [
+      subdivision ? "Subdivision: " + subdivision : "",
+      milepost ? "Milepost: " + milepost : "",
+      dot ? "DOT: " + dot : ""
+    ].filter(Boolean).join("<br>");
+    const marker = leaflet.circleMarker([item.lat, item.lon], {
+      radius: 7,
+      fillColor: "#e67e22",
+      color: "#fff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.9
+    });
+    marker.bindPopup("<strong>" + escHtml(String(item.row.railroad || "Unknown railroad")) + "</strong><br>Distance: " + dist + (subLine ? "<br>" + subLine : ""));
+    marker.on("click", () => openMapDirections(item.lat, item.lon));
+    markers.addLayer(marker);
+  });
+  requestAnimationFrame(() => {
+    if (!nearestMapInstance) return;
+    nearestMapInstance.invalidateSize();
+    nearestMapInstance.fitBounds(
+      leaflet.latLngBounds([[myLat, myLon]].concat(nearest.map((n) => [n.lat, n.lon]))),
+      { padding: [24, 24], maxZoom: 14 }
+    );
+  });
+  return true;
 }
 
 function renderNearestCrossings() {
   const statusEl = document.getElementById("nearestStatus");
-  const resultsEl = document.getElementById("nearestResults");
-  if (!statusEl || !resultsEl) return;
+  if (!statusEl) return;
 
   if (!("geolocation" in navigator)) {
     statusEl.textContent = "Location is not supported on this device.";
@@ -2234,34 +2293,12 @@ function renderNearestCrossings() {
         return;
       }
 
-      const listHtml = nearest.map((item, idx) => {
-        const railroad = escHtml(String(item.row.railroad || "Unknown railroad"));
-        const subdivision = escHtml(firstDefinedPropertyValue(item.row, MAP_SUBDIVISION_KEYS) || "");
-        const milepost = escHtml(firstDefinedPropertyValue(item.row, MAP_MILEPOST_KEYS) || "");
-        const dot = escHtml(String(item.row.dot_number || ""));
-        const dist = item.miles < 0.1 ? "&lt; 0.1 mi" : item.miles.toFixed(1) + " mi";
-        const subLine = [
-          subdivision ? "Subdivision: " + subdivision : "",
-          milepost ? "Milepost: " + milepost : "",
-          dot ? "DOT: " + dot : ""
-        ].filter(Boolean).join(" &middot; ");
-        return "<li class=\"nearest-item\">" +
-          "<div class=\"nearest-item-main\"><span class=\"nearest-rank\">" + (idx + 1) + "</span>" +
-          "<div><div class=\"nearest-railroad\">" + railroad + "</div>" +
-          (subLine ? "<div class=\"nearest-meta\">" + subLine + "</div>" : "") +
-          "</div></div>" +
-          "<div class=\"nearest-item-side\"><span class=\"nearest-distance\">" + dist + "</span>" +
-          "<button type=\"button\" class=\"nearest-dir-btn\" data-lat=\"" + item.lat + "\" data-lon=\"" + item.lon + "\">Directions</button></div>" +
-          "</li>";
-      }).join("");
-      resultsEl.innerHTML = "<ul class=\"nearest-list\">" + listHtml + "</ul>";
-      statusEl.textContent = nearest.length + " closest crossings to you - any railroad, Class I or II - tap Directions for Google Maps";
-
-      resultsEl.querySelectorAll(".nearest-dir-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          openMapDirections(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lon));
-        });
-      });
+            const renderedMap = renderNearestMap(nearest, myLat, myLon);
+      if (!renderedMap) {
+        statusEl.textContent = "Map could not load - check your connection and try again.";
+        return;
+      }
+      statusEl.textContent = nearest.length + " closest crossings to you - any railroad, Class I or II - tap a marker for directions";
     } catch (err) {
       statusEl.textContent = "Could not load crossings: " + (err && err.message ? err.message : "unknown error");
     }
