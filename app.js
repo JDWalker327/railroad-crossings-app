@@ -1051,7 +1051,7 @@ function renderActiveResults() {
   renderLookupTable(lookupCrossingsCache);
 }
 
-async const RAILROAD_BG_IMAGES = {
+const RAILROAD_BG_IMAGES = {
   bnsf: "images/rr-bnsf.png",
   cn: "images/rr-cn.png",
   cpkc: "images/rr-cpkc.png",
@@ -1081,7 +1081,7 @@ function updateRailroadBackground(filter) {
   preload.src = src;
 }
 
-function setRailroadFilter(nextFilter) {
+async function setRailroadFilter(nextFilter) {
   activeMode = "railroads";
   activeRailroadFilter = nextFilter;
   updateRailroadBackground(nextFilter);
