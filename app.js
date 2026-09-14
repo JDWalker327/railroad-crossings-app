@@ -2264,6 +2264,7 @@ function refreshStaleLocationInBackground(statusEl, renderCrossings) {
   if (Date.now() - (lastKnownLocationAt || 0) < 10 * 60 * 1000) return;
   navigator.geolocation.getCurrentPosition((pos) => {
     if (!lastKnownLocation || !statusEl.isConnected) return;
+    if ((pos.coords.accuracy || 0) > 10000) return;
     const newLat = pos.coords.latitude;
     const newLon = pos.coords.longitude;
     if (haversineMiles(lastKnownLocation.lat, lastKnownLocation.lon, newLat, newLon) < 1) return;
@@ -2334,8 +2335,12 @@ function renderNearestCrossings() {
     clearTimeout(watchdog);
     const myLat = pos.coords.latitude;
     const myLon = pos.coords.longitude;
-    rememberMyLocation(myLat, myLon);
+    const accurate = (pos.coords.accuracy || 0) <= 10000;
+    if (accurate) rememberMyLocation(myLat, myLon);
     await renderCrossings(myLat, myLon);
+    if (!accurate && statusEl.isConnected) {
+      statusEl.textContent = "Approximate location - this device could not pinpoint you, so it may be guessing from your internet connection. " + statusEl.textContent;
+    }
   }, (err) => {
     if (locationHandled) return;
     locationHandled = true;
@@ -2436,7 +2441,7 @@ function requestMyLocation() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-        rememberMyLocation(loc.lat, loc.lon);
+        if ((pos.coords.accuracy || 0) <= 10000) rememberMyLocation(loc.lat, loc.lon);
         resolve(loc);
       },
       () => resolve(null),
