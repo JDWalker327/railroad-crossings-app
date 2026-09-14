@@ -1060,31 +1060,20 @@ const RAILROAD_BG_IMAGES = {
   up: "images/rr-up.png"
 };
 
-function updateRailroadBackground(filter) {
-  let bgEl = document.getElementById("railroad-bg");
-  if (!bgEl) {
-    bgEl = document.createElement("div");
-    bgEl.id = "railroad-bg";
-    document.body.prepend(bgEl);
-  }
-  const img = filter && RAILROAD_BG_IMAGES[filter.key];
-  if (!img) {
-    bgEl.style.opacity = "0";
-    return;
-  }
-  const src = new URL(img, window.location.href).href;
+function updateRailroadBanner(filter) {
+  const bannerImg = document.getElementById("railroadBannerImg");
+  if (!bannerImg) return;
+  const img = (filter && RAILROAD_BG_IMAGES[filter.key]) || RAILROAD_BG_IMAGES.up;
+  if (bannerImg.getAttribute("src") === img) return;
   const preload = new Image();
-  preload.onload = () => {
-    bgEl.style.backgroundImage = 'url("' + src + '")';
-    bgEl.style.opacity = "1";
-  };
-  preload.src = src;
+  preload.onload = () => { bannerImg.src = img; };
+  preload.src = img;
 }
 
 async function setRailroadFilter(nextFilter) {
   activeMode = "railroads";
   activeRailroadFilter = nextFilter;
-  updateRailroadBackground(nextFilter);
+  updateRailroadBanner(nextFilter);
   updateActiveRailroadLabel(nextFilter);
   updateRailroadBrowserPanel(nextFilter);
   if (nextFilter.type !== "other") {
