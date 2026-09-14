@@ -1,4 +1,4 @@
-const CACHE_NAME = "railroad-crossings-app-v7";
+const CACHE_NAME = "railroad-crossings-app-v8";
 const APP_SHELL_URLS = [
   "./",
   "./index.html",
@@ -11,6 +11,12 @@ const APP_SHELL_URLS = [
   "./icons/maskable-192.png",
   "./icons/maskable-512.png",
   "./icons/apple-touch-icon.png",
+  "./images/rr-up.png",
+  "./images/rr-bnsf.png",
+  "./images/rr-cn.png",
+  "./images/rr-cpkc.png",
+  "./images/rr-csx.png",
+  "./images/rr-ns.png",
 ];
 
 self.addEventListener("install", (event) => {
