@@ -992,6 +992,17 @@ body.map-modal-open {
   object-position: center;
 }
 
+/* Mobile: keep the locomotive banner short so it never dominates the screen */
+@media (max-width: 600px) {
+  .rr-banner {
+    margin: 10px auto 12px;
+    border-radius: 8px;
+  }
+  .rr-banner img {
+    max-height: 140px;
+  }
+}
+
 
 /* Crossing markers: full-size tap target (44px) around a small visual dot */
 .leaflet-div-icon.crossing-tap-marker {
