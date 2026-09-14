@@ -2263,18 +2263,7 @@ function renderNearestCrossings() {
   const statusEl = document.getElementById("nearestStatus");
   if (!statusEl) return;
 
-  if (!("geolocation" in navigator)) {
-    statusEl.textContent = "Location is not supported on this device.";
-    return;
-  }
-
-  statusEl.textContent = "Getting your location...";
-  resultsEl.innerHTML = "";
-
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    const myLat = pos.coords.latitude;
-    const myLon = pos.coords.longitude;
-    rememberMyLocation(myLat, myLon);
+  const renderCrossings = async (myLat, myLon) => {
     statusEl.textContent = "Searching crossings near you...";
     try {
       const rows = await loadNearestCrossingsNear(myLat, myLon);
@@ -2293,7 +2282,7 @@ function renderNearestCrossings() {
         return;
       }
 
-            const renderedMap = renderNearestMap(nearest, myLat, myLon);
+      const renderedMap = renderNearestMap(nearest, myLat, myLon);
       if (!renderedMap) {
         statusEl.textContent = "Map could not load - check your connection and try again.";
         return;
@@ -2302,7 +2291,41 @@ function renderNearestCrossings() {
     } catch (err) {
       statusEl.textContent = "Could not load crossings: " + (err && err.message ? err.message : "unknown error");
     }
+  };
+
+  // Use the last known location straight away so the map is never stuck waiting on GPS.
+  if (!lastKnownLocation) loadStoredLocation();
+  if (lastKnownLocation) {
+    renderCrossings(lastKnownLocation.lat, lastKnownLocation.lon);
+    return;
+  }
+
+  if (!("geolocation" in navigator)) {
+    statusEl.textContent = "Location is not supported on this device.";
+    return;
+  }
+
+  statusEl.textContent = "Getting your location...";
+
+  let locationHandled = false;
+  const watchdog = setTimeout(() => {
+    if (locationHandled) return;
+    locationHandled = true;
+    statusEl.textContent = "Location is taking too long - make sure location permission is allowed for this site, then close and reopen Nearest Crossings.";
+  }, 12000);
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    if (locationHandled) return;
+    locationHandled = true;
+    clearTimeout(watchdog);
+    const myLat = pos.coords.latitude;
+    const myLon = pos.coords.longitude;
+    rememberMyLocation(myLat, myLon);
+    await renderCrossings(myLat, myLon);
   }, (err) => {
+    if (locationHandled) return;
+    locationHandled = true;
+    clearTimeout(watchdog);
     const reasons = {
       1: "Location permission denied - enable it in your browser settings to find nearby crossings.",
       2: "Location unavailable right now. Try again.",
