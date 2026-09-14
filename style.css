@@ -1026,7 +1026,8 @@ body.map-modal-open {
 .rr-banner img {
   display: block;
   width: 100%;
-  height: clamp(160px, 30vw, 240px);
+  height: auto;
+  max-height: 360px;
   object-fit: cover;
   object-position: center;
 }
