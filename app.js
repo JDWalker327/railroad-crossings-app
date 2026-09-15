@@ -1064,10 +1064,27 @@ const RAILROAD_BG_IMAGES = {
   up: "images/rr-up.png"
 };
 
+/* Shortline / regional railroads: banner images keyed by normalized name */
+const SHORTLINE_BANNER_IMAGES = {
+  "ALASKA RAILROAD": "images/rr-akrr.png",
+  "AMTRAK": "images/rr-amtrak.png",
+  "GRAND CANYON RAILWAY": "images/rr-gc.png",
+  "DURANGO AND SILVERTON NARROW GAUGE RAILROAD": "images/rr-dsng.png",
+  "FLORIDA EAST COAST RAILWAY": "images/rr-fec.png",
+  "IOWA INTERSTATE RAILROAD": "images/rr-iais.png",
+  "MONTANA RAIL LINK": "images/rr-mrl.png",
+  "PADUCAH AND LOUISVILLE RAILWAY": "images/rr-pal.png",
+  "LONG ISLAND RAIL ROAD": "images/rr-lirr.png",
+  "GREAT SMOKY MOUNTAINS RAILROAD": "images/rr-gsm.png"
+};
+
 function updateRailroadBanner(filter) {
   const bannerImg = document.getElementById("railroadBannerImg");
   if (!bannerImg) return;
-  const img = (filter && RAILROAD_BG_IMAGES[filter.key]) || RAILROAD_BG_IMAGES.up;
+  let img = (filter && RAILROAD_BG_IMAGES[filter.key]) || RAILROAD_BG_IMAGES.up;
+  if (filter && filter.type === "other") {
+    img = SHORTLINE_BANNER_IMAGES[normalizeRailroadName(filter.key)] || RAILROAD_BG_IMAGES.up;
+  }
   if (bannerImg.getAttribute("src") === img) return;
   const preload = new Image();
   preload.onload = () => { bannerImg.src = img; };
