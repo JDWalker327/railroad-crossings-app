@@ -1,0 +1,47 @@
+name: iOS TestFlight Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "App version (e.g. 1.0.0)"
+        required: false
+        default: "1.0.0"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Assemble www/ from the web app
+        run: node scripts/ios/build-www.js
+
+      - name: Install Capacitor and image tools
+        run: npm install --no-save @capacitor/core @capacitor/cli @capacitor/ios sharp
+
+      - name: Add iOS platform
+        run: npx cap add ios
+
+      - name: Patch iOS project (version, permissions, app icon)
+        env:
+          APP_VERSION: ${{ inputs.version_name }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: node scripts/ios/patch-ios.js
+
+      - name: Sync web assets into the iOS project
+        run: npx cap sync ios
+
+      - name: Build and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_B64: ${{ secrets.ASC_KEY_P8_B64 }}
+          BUNDLE_ID: com.rail1.crossings
+          APP_NAME: "Railroad Crossings App"
+        run: fastlane ios beta
