@@ -17,16 +17,21 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Assemble www/ from the web app
         run: node scripts/ios/build-www.js
 
       - name: Install Capacitor and image tools
-        run: npm install --no-save @capacitor/core @capacitor/cli @capacitor/ios sharp
+        run: npm install --no-save @capacitor/core@7 @capacitor/cli@7 @capacitor/ios@7 sharp
 
       - name: Add iOS platform
         run: npx cap add ios
+
+      - name: Raise iOS deployment target
+        run: |
+          sed -i '' -e "s/platform :ios, '13.0'/platform :ios, '15.0'/" -e "s/platform :ios, '14.0'/platform :ios, '15.0'/" ios/App/Podfile
+          sed -i '' -e 's/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' -e 's/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' ios/App/App.xcodeproj/project.pbxproj
 
       - name: Patch iOS project (version, permissions, app icon)
         env:
