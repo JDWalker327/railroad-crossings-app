@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 
 const BASE_URL = process.env.BASE_URL || "https://railroad-crossings-app.vercel.app/";
-const OUT = process.env.OUT_DIR || path.join(__dirname, "..", "..", "store-assets");
+const OUT = process.env.OUT_DIR || path.join(__dirname, "..", "store-assets");
 const PHONE = { width: 430, height: 932 };
 const GEO = { latitude: 41.8781, longitude: -87.6298 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
