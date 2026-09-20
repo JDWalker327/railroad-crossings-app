@@ -65,7 +65,7 @@ platform :ios do
 
     # Private keys from previous CI runs were lost with their runners - revoke
     # the now-unusable distribution certificates to free the account slots.
-    %w(APPLE_DISTRIBUTION IOS_DISTRIBUTION).each do |type|
+    %w(DISTRIBUTION IOS_DISTRIBUTION).each do |type|
       certs = Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: type })
       UI.message("Revoking #{certs.length} #{type} certificate(s)")
       certs.each(&:delete!)
