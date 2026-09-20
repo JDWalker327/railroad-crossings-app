@@ -10,12 +10,20 @@ platform :ios do
       is_key_content_base64: true
     )
 
-    produce(
-      app_identifier: ENV["BUNDLE_ID"],
-      app_name: ENV["APP_NAME"],
-      language: "en-US",
-      sku: "railroad-crossings"
-    )
+    # 'produce' cannot authenticate with App Store Connect API keys
+    # (fastlane/fastlane#29435) — ensure the app record via the Connect API
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+    unless Spaceship::ConnectAPI::App.find(ENV["BUNDLE_ID"])
+      UI.message("App #{ENV['BUNDLE_ID']} not found on App Store Connect — creating it")
+      Spaceship::ConnectAPI::App.create(
+        name: ENV["APP_NAME"],
+        version_string: "1.0",
+        sku: "railroad-crossings",
+        primary_locale: "en-US",
+        bundle_id: ENV["BUNDLE_ID"],
+        platforms: ["IOS"]
+      )
+    end
 
     cert(api_key: api_key, type: "appstore")
     sigh(api_key: api_key, app_identifier: ENV["BUNDLE_ID"], type: "appstore")
