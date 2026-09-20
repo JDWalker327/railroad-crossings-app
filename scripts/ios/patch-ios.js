@@ -26,6 +26,19 @@ function setPlistString(plist, key, value) {
   return plist.slice(0, start) + value + plist.slice(end);
 }
 
+function setPlistBool(plist, key, value) {
+  const tag = `<key>${key}</key>`;
+  const i = plist.indexOf(tag);
+  if (i === -1) {
+    const end = plist.lastIndexOf("</dict>");
+    return plist.slice(0, end) + `\t${tag}\n\t<${value}/>
+` + plist.slice(end);
+  }
+  const nextTag = plist.indexOf("<", i + tag.length);
+  const nextEnd = plist.indexOf(">", nextTag) + 1;
+  return plist.slice(0, nextTag) + `<${value}/>` + plist.slice(nextEnd);
+}
+
 async function main() {
   const plistPath = path.join(APP_DIR, "Info.plist");
   let plist = fs.readFileSync(plistPath, "utf8");
@@ -33,6 +46,7 @@ async function main() {
   plist = setPlistString(plist, "CFBundleShortVersionString", APP_VERSION);
   plist = setPlistString(plist, "CFBundleVersion", BUILD_NUMBER);
   plist = setPlistString(plist, "NSLocationWhenInUseUsageDescription", LOCATION_TEXT);
+  plist = setPlistBool(plist, "ITSAppUsesNonExemptEncryption", false);
   fs.writeFileSync(plistPath, plist);
 
   const appiconDir = path.join(APP_DIR, "Assets.xcassets", "AppIcon.appiconset");
