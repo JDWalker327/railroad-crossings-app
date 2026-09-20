@@ -39,6 +39,12 @@ platform :ios do
     cert(api_key: api_key)
     sigh(api_key: api_key, app_identifier: ENV["BUNDLE_ID"])
 
+    # Capacitor projects ship without a team - derive it from the imported
+    # distribution identity so xcodebuild can resolve automatic signing.
+    team_id = `security find-certificate -c "Apple Distribution" -p | openssl x509 -noout -subject`[/OU=([A-Z0-9]+)/, 1]
+    UI.user_error!("Could not determine the development team from the signing identity") unless team_id
+    UI.message("Signing with development team #{team_id}")
+
     # Pods targets must keep automatic signing - let Xcode resolve the app
     # target signing with the App Store Connect API key in the environment.
     gym(
@@ -47,7 +53,7 @@ platform :ios do
       configuration: "Release",
       clean: true,
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates"
+      xcargs: "DEVELOPMENT_TEAM=#{team_id} -allowProvisioningUpdates"
     )
 
     pilot(api_key: api_key, skip_waiting_for_build_processing: true)
