@@ -15,14 +15,20 @@ platform :ios do
     Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: api_key)
     unless Spaceship::ConnectAPI::App.find(ENV["BUNDLE_ID"])
       UI.message("App #{ENV['BUNDLE_ID']} not found on App Store Connect — creating it")
-      Spaceship::ConnectAPI::App.create(
-        name: ENV["APP_NAME"],
-        version_string: "1.0",
-        sku: "railroad-crossings",
-        primary_locale: "en-US",
-        bundle_id: ENV["BUNDLE_ID"],
-        platforms: ["IOS"]
-      )
+      begin
+        Spaceship::ConnectAPI::App.create(
+          name: ENV["APP_NAME"],
+          version_string: "1.0",
+          sku: "railroad-crossings",
+          primary_locale: "en-US",
+          bundle_id: ENV["BUNDLE_ID"],
+          platforms: ["IOS"]
+        )
+      rescue => e
+        UI.user_error!("Could not create the app on App Store Connect (#{e.message}). " \
+          "Create it manually in App Store Connect > My Apps > New App " \
+          "(name: #{ENV['APP_NAME']}, bundle ID: #{ENV['BUNDLE_ID']}, SKU: railroad-crossings, language: English), then re-run.")
+      end
     end
 
     cert(api_key: api_key, type: "appstore")
