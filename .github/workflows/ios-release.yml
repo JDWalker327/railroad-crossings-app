@@ -47,7 +47,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8_B64: ${{ secrets.ASC_KEY_P8_B64 }}
-          BUNDLE_ID: com.rail1.crossings
+          BUNDLE_ID: com.johnwalker.railroadcrossings
           APP_NAME: "Railroad Crossings App"
         run: |
           echo "$ASC_KEY_P8_B64" | base64 --decode > /tmp/ASC_AuthKey.p8
