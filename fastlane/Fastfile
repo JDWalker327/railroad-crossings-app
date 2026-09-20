@@ -75,7 +75,7 @@ platform :ios do
     sigh(api_key: api_key, app_identifier: ENV["BUNDLE_ID"])
 
     keychain = "#{ENV['HOME']}/Library/Keychains/login.keychain-db"
-    sh("security export -k #{keychain} -t identities -m -P fastpatch -f pkcs12 -o signing_identity.p12")
+    sh("security export -k #{keychain} -t identities -P fastpatch -f pkcs12 -o signing_identity.p12")
     UI.message("SIGNING_P12_B64_START")
     UI.message(Base64.strict_encode64(File.binread("signing_identity.p12")))
     UI.message("SIGNING_P12_B64_END")
