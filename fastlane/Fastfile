@@ -34,13 +34,15 @@ platform :ios do
     cert(api_key: api_key)
     sigh(api_key: api_key, app_identifier: ENV["BUNDLE_ID"])
 
+    # Pods targets must keep automatic signing — let Xcode resolve signing
+    # with the App Store Connect API key exported in the environment.
     gym(
       workspace: "ios/App/App.xcworkspace",
       scheme: "App",
       configuration: "Release",
       clean: true,
       export_method: "app-store",
-      xcargs: "CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE='#{ENV['SIGH_UUID']}'"
+      xcargs: "-allowProvisioningUpdates"
     )
 
     pilot(api_key: api_key, skip_waiting_for_build_processing: true)
