@@ -22,7 +22,7 @@ for (const d of DIRS) {
 
 fs.writeFileSync(
   path.join(ROOT, "capacitor.config.json"),
-  JSON.stringify({ appId: "com.rail1.crossings", appName: "Railroad Crossings", webDir: "www" }, null, 2) + "\n"
+  JSON.stringify({ appId: "com.johnwalker.railroadcrossings", appName: "Railroad Crossings", webDir: "www" }, null, 2) + "\n"
 );
 
 console.log("www/ assembled:", fs.readdirSync(WWW).join(", "));
