@@ -26,7 +26,7 @@ platform :ios do
         )
       rescue => e
         UI.user_error!("Could not create the app on App Store Connect (#{e.message}). " \
-          "Create it manually in App Store Connect > My Apps > New App "
+          "Create it manually in App Store Connect > My Apps > New App " \
           "(name: #{ENV['APP_NAME']}, bundle ID: #{ENV['BUNDLE_ID']}, SKU: railroad-crossings, language: English), then re-run.")
       end
     end
