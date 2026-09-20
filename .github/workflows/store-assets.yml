@@ -29,6 +29,9 @@ jobs:
           BASE_URL: ${{ inputs.base_url }}
         run: node scripts/store-assets.js
 
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Upscale previews to App Store resolution
         run: |
           mkdir -p store-assets/previews
