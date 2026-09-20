@@ -29,19 +29,34 @@ platform :ios do
       end
     end
 
-    # Reuse the persisted signing identity (created once via the bootstrap
-    # lane) so each CI run does not burn a new certificate slot.
-    unless ENV["ASC_CERT_P12_B64"].to_s.empty?
-      File.binwrite("/tmp/identity.p12", Base64.decode64(ENV["ASC_CERT_P12_B64"]))
-      sh("security import /tmp/identity.p12 -k #{ENV['HOME']}/Library/Keychains/login.keychain-db -P #{ENV['ASC_CERT_P12_PASSWORD']} -T /usr/bin/codesign -T /usr/bin/security || true")
-    end
+    # Import the persisted signing identity (created once via the bootstrap
+    # lane) into a dedicated, unlocked keychain with an explicit partition
+    # list. Without this, codesign silently blocks on a GUI keychain prompt
+    # that never appears on a headless runner (90-min job timeout hang).
+    keychain_name = "fastlane-signing.keychain"
+    keychain_password = "temp123456"
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
+    File.delete(keychain_path) if File.exist?(keychain_path)
+    sh("security create-keychain -p #{keychain_password} #{keychain_path}")
+    sh("security unlock-keychain -p #{keychain_password} #{keychain_path}")
+    sh("security set-keychain-settings -t 3600 -u #{keychain_path}")
+    sh("security list-keychains -d user -s #{keychain_path}")
+    sh("security default-keychain -s #{keychain_path}")
 
-    cert(api_key: api_key)
+    if ENV["ASC_CERT_P12_B64"].to_s.empty?
+      UI.message("No persisted identity secret - creating a new one via cert")
+      cert(api_key: api_key, keychain_path: keychain_path, keychain_password: keychain_password)
+    else
+      File.binwrite("/tmp/identity.p12", Base64.decode64(ENV["ASC_CERT_P12_B64"]))
+      sh("security import /tmp/identity.p12 -k #{keychain_path} -P #{ENV['ASC_CERT_P12_PASSWORD']} -T /usr/bin/codesign")
+    end
+    sh("security set-key-partition-list -S apple-tool:,apple: -s -k #{keychain_password} #{keychain_path}")
+
     sigh(api_key: api_key, app_identifier: ENV["BUNDLE_ID"])
 
     # Capacitor projects ship without a team - derive it from the imported
-    # distribution identity so xcodebuild can resolve automatic signing.
-    team_id = `security find-certificate -c "Apple Distribution" -p | openssl x509 -noout -subject`[/OU=([A-Z0-9]+)/, 1]
+    # distribution identity so xcodebuild can resolve signing.
+    team_id = \`security find-certificate -c "Apple Distribution" -p | openssl x509 -noout -subject\`[/OU=([A-Z0-9]+)/, 1]
     UI.user_error!("Could not determine the development team from the signing identity") unless team_id
     UI.message("Signing with development team #{team_id}")
 
