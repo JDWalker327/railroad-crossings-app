@@ -48,7 +48,7 @@ platform :ios do
     # Switch only the App target to manual signing against the profile sigh
     # downloaded (Pods targets must keep automatic signing without a team).
     require "xcodeproj"
-    project = Xcodeproj::Project.open("ios/App/App.xcodeproj")
+    project = Xcodeproj::Project.open(File.expand_path("../ios/App/App.xcodeproj", __dir__))
     UI.message("Xcode targets: #{project.targets.map(&:name).join(', ')}")
     app_target = project.targets.find { |t| t.name == "App" } || project.targets.find { |t| t.symbol_type == :application }
     UI.user_error!("No application target found in the Xcode project") unless app_target
