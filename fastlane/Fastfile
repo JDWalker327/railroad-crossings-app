@@ -56,7 +56,7 @@ platform :ios do
 
     # Capacitor projects ship without a team - derive it from the imported
     # distribution identity so xcodebuild can resolve signing.
-    team_id = \`security find-certificate -c "Apple Distribution" -p | openssl x509 -noout -subject\`[/OU=([A-Z0-9]+)/, 1]
+    team_id = `security find-certificate -c "Apple Distribution" -p | openssl x509 -noout -subject`[/OU=([A-Z0-9]+)/, 1]
     UI.user_error!("Could not determine the development team from the signing identity") unless team_id
     UI.message("Signing with development team #{team_id}")
 
