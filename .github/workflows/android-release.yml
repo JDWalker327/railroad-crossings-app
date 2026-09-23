@@ -40,6 +40,8 @@ jobs:
     if: ${{ !inputs.bootstrap }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
 
@@ -52,16 +54,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
       - name: Install Bubblewrap CLI
         run: npm install --no-save @bubblewrap/cli@latest
 
-      - name: Seed Bubblewrap config and accept Android SDK licenses
+      - name: Accept Android SDK licenses and seed Bubblewrap config
         run: |
+          SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -name sdkmanager -type f | head -1)"
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null || true
           mkdir -p "$HOME/.bubblewrap"
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_SDK_ROOT" > "$HOME/.bubblewrap/config.json"
-          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null || true
 
       - name: Restore signing keystore
         env:
