@@ -9,9 +9,17 @@
   "navigationColor": "#1a73e8",
   "backgroundColor": "#f5f5f5",
   "startUrl": "/",
-  "appVersionName": "1.0.1",
-  "appVersionCode": 2,
+  "appVersionName": "1.0.2",
+  "appVersionCode": 3,
   "enableNotifications": false,
   "fallbackType": "customtabs",
-  "generatorApp": "bubblewrap-cli"
+  "generatorApp": "bubblewrap-cli",
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": true
+  }
 }
