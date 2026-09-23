@@ -63,6 +63,10 @@ jobs:
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null || true
           mkdir -p "$HOME/.bubblewrap"
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_SDK_ROOT" > "$HOME/.bubblewrap/config.json"
+          # Bubblewrap expects the legacy SDK layout: a bin/ folder (with sdkmanager) at the SDK root.
+          mkdir -p "$ANDROID_SDK_ROOT/bin"
+          printf '#!/bin/bash\nexec "%s" --sdk_root="%s" "$@"\n' "$SDKMANAGER" "$ANDROID_SDK_ROOT" > "$ANDROID_SDK_ROOT/bin/sdkmanager"
+          chmod +x "$ANDROID_SDK_ROOT/bin/sdkmanager"
 
       - name: Restore signing keystore
         env:
