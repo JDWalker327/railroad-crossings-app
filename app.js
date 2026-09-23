@@ -221,6 +221,105 @@ function isTrialActive() {
   return start !== null && Date.now() - start < TRIAL_LENGTH_MS;
 }
 
+// ── Google Play Billing (Android TWA) ─────────────────────────────────────────────
+// Inside the Bubblewrap Trusted Web Activity (once it is built with the
+// playBilling feature enabled) the Digital Goods API is available, and
+// Google requires digital subscriptions to go through Play Billing instead
+// of the web/Stripe checkout. Play handles the account and the 14-day free
+// trial offer defined in the Play Console.
+const PLAY_PRODUCT_ID = "railroad_premium_monthly";
+const PLAY_PACKAGE_NAME = "com.rail1.crossings";
+let playBillingService = null;
+
+async function initPlayBilling() {
+  if (typeof window === "undefined" || !("getDigitalGoodsService" in window)) {
+    return null;
+  }
+  try {
+    playBillingService = await window.getDigitalGoodsService(
+      "https://play.google.com/billing"
+    );
+  } catch (e) {
+    console.warn("Google Play Billing unavailable:", e);
+    playBillingService = null;
+  }
+  return playBillingService;
+}
+
+async function getActivePlayPurchase() {
+  if (!playBillingService) return null;
+  try {
+    const purchases = await playBillingService.listPurchases();
+    const list = Array.isArray(purchases) ? purchases : [];
+    return (
+      list.find(
+        (p) =>
+          p &&
+          p.productId === PLAY_PRODUCT_ID &&
+          (!p.state || p.state === "purchased")
+      ) || null
+    );
+  } catch (e) {
+    console.warn("Play purchase lookup failed:", e);
+    return null;
+  }
+}
+
+async function purchasePlaySubscription() {
+  if (typeof PaymentRequest === "undefined") {
+    throw new Error("This device does not support in-app purchases.");
+  }
+
+  let item = null;
+  try {
+    const details = await playBillingService.getDetails([PLAY_PRODUCT_ID]);
+    item = (details || [])[0];
+  } catch (e) {
+    console.warn("Play getDetails failed:", e);
+  }
+  if (!item) {
+    throw new Error("The subscription is not available in the Play Store yet.");
+  }
+
+  const request = new PaymentRequest(
+    [
+      {
+        supportedMethods: "https://play.googleapis.com/billing",
+        data: { productId: PLAY_PRODUCT_ID, action: "payment" },
+      },
+    ],
+    {
+      total: {
+        label: item.title || "Railroad Crossings Pro",
+        amount: {
+          currency: (item.price && item.price.currency) || "USD",
+          value: (item.price && item.price.value) || "2.99",
+        },
+      },
+    }
+  );
+
+  const response = await request.show();
+  const purchaseToken =
+    (response && response.details && response.details.purchaseToken) || null;
+
+  if (!purchaseToken) {
+    try {
+      await response.complete("fail");
+    } catch (e) {}
+    throw new Error("Purchase was not completed.");
+  }
+
+  try {
+    await playBillingService.acknowledge(purchaseToken, false);
+  } catch (e) {
+    console.warn("Play acknowledge failed:", e);
+  }
+  try {
+    await response.complete("success");
+  } catch (e) {}
+}
+
 // ── Email identity (Stripe customer ↔ RevenueCat App User ID mapping) ─────
 //
 // Stripe checkout/billing-portal and RevenueCat both need a stable
@@ -288,6 +387,9 @@ async function initRevenueCat() {
   // Stamp the 14-day trial start on first launch (no-op afterwards).
   stampTrialStart();
 
+  // Connect to Google Play Billing when running inside the Android TWA.
+  await initPlayBilling();
+
   // Always check entitlements (even if configure failed/was skipped above)
   // so isPro reflects the conservative locked/free default, then refresh
   // the UI and billing capability gating.
@@ -299,24 +401,32 @@ async function initRevenueCat() {
 }
 
 async function checkEntitlements() {
+  let pro = false;
+
   if (!RC) {
     // Safe default: no SDK means no confirmed entitlement. Never throw —
     // the app must stay usable (in its locked/free state) without it.
     console.warn(
       "RevenueCat entitlement check skipped: RevenueCat Web Billing SDK (window.Purchases) is not loaded."
     );
-    isPro = false;
-    return;
+  } else {
+    try {
+      const customerInfo = await RC.getSharedInstance().getCustomerInfo();
+      pro = hasActiveEntitlement(customerInfo);
+    } catch (e) {
+      console.error("RevenueCat error checking entitlements:", e);
+    }
   }
 
+  // Google Play Billing (Android TWA): an active Play subscription also
+  // grants Pro. Never accidentally unlock — stay false when unknown.
   try {
-    const customerInfo = await RC.getSharedInstance().getCustomerInfo();
-    isPro = hasActiveEntitlement(customerInfo);
+    if (await getActivePlayPurchase()) pro = true;
   } catch (e) {
-    console.error("RevenueCat error checking entitlements:", e);
-    // Preserve locked/free state on error — never accidentally unlock.
-    isPro = false;
+    console.warn("Play entitlement check skipped:", e);
   }
+
+  isPro = pro;
 }
 
 // ── Stripe checkout / billing portal ───────────────────────────────────────
@@ -616,14 +726,20 @@ const PURCHASES_UNAVAILABLE_MESSAGE =
 // since it only talks to our own server (see requestStripeBillingPortalUrl)
 // and already fails gracefully on its own.
 function refreshBillingCapabilityUi() {
-  if (!isPurchasesSdkAvailable) {
+  if (!isPurchasesSdkAvailable && !playBillingService) {
     if (paywallRestoreBtn) paywallRestoreBtn.disabled = true;
   }
 }
 
 function openPaywall() {
   paywallModal.style.display = "flex";
-  paywallStatus.textContent = isPurchasesSdkAvailable ? "" : PURCHASES_UNAVAILABLE_MESSAGE;
+  // Google Play handles the account, so the email field is web/Stripe only.
+  const isPlayBilling = !!playBillingService;
+  if (paywallEmailInput) paywallEmailInput.hidden = isPlayBilling;
+  const emailLabel = document.querySelector('label[for="paywallEmailInput"]');
+  if (emailLabel) emailLabel.hidden = isPlayBilling;
+  paywallStatus.textContent =
+    isPlayBilling || isPurchasesSdkAvailable ? "" : PURCHASES_UNAVAILABLE_MESSAGE;
   if (paywallEmailInput && !paywallEmailInput.value) {
     paywallEmailInput.value = getStoredUserEmail();
   }
@@ -640,7 +756,25 @@ paywallModal.addEventListener("click", (e) => {
   if (e.target === paywallModal) closePaywall();
 });
 
-paywallSubscribeBtn.addEventListener("click", () => {
+paywallSubscribeBtn.addEventListener("click", async () => {
+  // Google Play Billing (Android TWA): purchase through the Play Store.
+  if (playBillingService) {
+    paywallSubscribeBtn.disabled = true;
+    paywallStatus.textContent = "Opening Google Play…";
+    try {
+      await purchasePlaySubscription();
+      await checkEntitlements();
+      paywallStatus.textContent = "Subscription active — thank you!";
+      renderActiveResults();
+    } catch (e) {
+      paywallStatus.textContent =
+        e?.message || "Purchase could not be completed. Please try again.";
+    } finally {
+      paywallSubscribeBtn.disabled = false;
+    }
+    return;
+  }
+
   const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
   if (!isValidEmail(email)) {
     paywallStatus.textContent = "Please enter a valid email address to subscribe.";
@@ -653,6 +787,15 @@ paywallSubscribeBtn.addEventListener("click", () => {
 
 if (paywallManageBtn) {
   paywallManageBtn.addEventListener("click", async () => {
+    // Google Play Billing (Android TWA): manage through the Play Store.
+    if (playBillingService) {
+      window.open(
+        `https://play.google.com/store/account/subscriptions?sku=${PLAY_PRODUCT_ID}&package=${PLAY_PACKAGE_NAME}`,
+        "_blank"
+      );
+      return;
+    }
+
     const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
     if (!isValidEmail(email)) {
       paywallStatus.textContent = "Please enter the email you subscribed with to manage your subscription.";
@@ -677,18 +820,30 @@ if (paywallManageBtn) {
 }
 
 paywallRestoreBtn.addEventListener("click", async () => {
-  if (!isPurchasesSdkAvailable) {
-    console.error(
-      "RevenueCat restore blocked: Web Billing SDK (window.Purchases) is not loaded."
-    );
-    paywallStatus.textContent = PURCHASES_UNAVAILABLE_MESSAGE;
-    paywallRestoreBtn.disabled = true;
-    return;
-  }
-
   paywallStatus.textContent = "Restoring…";
   paywallRestoreBtn.disabled = true;
   try {
+    // Google Play Billing (Android TWA): restore from the Play Store.
+    if (playBillingService) {
+      const playPurchase = await getActivePlayPurchase();
+      if (playPurchase) {
+        isPro = true;
+        closePaywall();
+        renderActiveResults();
+      } else {
+        paywallStatus.textContent = "No active subscription found.";
+      }
+      return;
+    }
+
+    if (!isPurchasesSdkAvailable) {
+      console.error(
+        "RevenueCat restore blocked: Web Billing SDK (window.Purchases) is not loaded."
+      );
+      paywallStatus.textContent = PURCHASES_UNAVAILABLE_MESSAGE;
+      return;
+    }
+
     const customerInfo = await RC.getSharedInstance().restorePurchases();
     isPro = hasActiveEntitlement(customerInfo);
     if (isPro) {
@@ -698,7 +853,7 @@ paywallRestoreBtn.addEventListener("click", async () => {
       paywallStatus.textContent = "No active subscription found.";
     }
   } catch (e) {
-    console.error("RevenueCat restore error:", e);
+    console.error("Restore error:", e);
     paywallStatus.textContent = "Restore failed. Please try again.";
   } finally {
     paywallRestoreBtn.disabled = false;
