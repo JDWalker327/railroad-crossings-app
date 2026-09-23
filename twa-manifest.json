@@ -24,5 +24,6 @@
   },
   "iconUrl": "https://railroad-crossings-app.vercel.app/icons/icon-512.png",
   "maskableIconUrl": "https://railroad-crossings-app.vercel.app/icons/maskable-512.png",
-  "splashScreenFadeOutDuration": 300
+  "splashScreenFadeOutDuration": 300,
+  "minSdkVersion": 23
 }
