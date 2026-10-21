@@ -320,6 +320,24 @@ async function purchasePlaySubscription() {
   } catch (e) {}
 }
 
+// ── iOS native wrapper (App Store build) ────────────────────────────────────
+// The iOS app is a native wrapper around this site. App Store guidelines
+// (3.1.1) forbid routing digital subscriptions to an external checkout inside
+// the app, so in that environment the Stripe subscribe/manage actions are
+// hidden. Web subscribers can still unlock with Restore (their email is the
+// RevenueCat identity), and Mobile Safari keeps the normal Stripe flow.
+function isAppleWrapperEnv(nav = (typeof navigator !== "undefined" ? navigator : null)) {
+  if (!nav) return false;
+  const ua = nav.userAgent || "";
+  const isIOSDevice =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (ua.includes("Macintosh") && (nav.maxTouchPoints || 0) > 1);
+  // Mobile Safari always includes the "Safari/" token; the native wrapper
+  // (WKWebView) and home-screen web apps omit it.
+  return isIOSDevice && !/Safari\//.test(ua);
+}
+const isAppleWrapper = isAppleWrapperEnv();
+
 // ── Email identity (Stripe customer ↔ RevenueCat App User ID mapping) ─────
 //
 // Stripe checkout/billing-portal and RevenueCat both need a stable
@@ -740,6 +758,15 @@ function openPaywall() {
   if (emailLabel) emailLabel.hidden = isPlayBilling;
   paywallStatus.textContent =
     isPlayBilling || isPurchasesSdkAvailable ? "" : PURCHASES_UNAVAILABLE_MESSAGE;
+  // iOS native wrapper: App Store rules (3.1.1) prohibit routing digital
+  // subscriptions to external checkout, so hide the purchase actions there.
+  // Restore (below) lets existing web subscribers unlock with their email.
+  if (isAppleWrapper) {
+    if (paywallSubscribeBtn) paywallSubscribeBtn.hidden = true;
+    if (paywallManageBtn) paywallManageBtn.hidden = true;
+    paywallStatus.textContent =
+      "Already subscribed on the website? Enter your email and tap Restore.";
+  }
   if (paywallEmailInput && !paywallEmailInput.value) {
     paywallEmailInput.value = getStoredUserEmail();
   }
@@ -757,6 +784,10 @@ paywallModal.addEventListener("click", (e) => {
 });
 
 paywallSubscribeBtn.addEventListener("click", async () => {
+  // iOS native wrapper: external checkout is disabled inside the App Store
+  // build (the subscribe button is hidden there).
+  if (isAppleWrapper) return;
+
   // Google Play Billing (Android TWA): purchase through the Play Store.
   if (playBillingService) {
     paywallSubscribeBtn.disabled = true;
@@ -787,6 +818,10 @@ paywallSubscribeBtn.addEventListener("click", async () => {
 
 if (paywallManageBtn) {
   paywallManageBtn.addEventListener("click", async () => {
+    // iOS native wrapper: no external billing portal inside the App Store
+    // build (the manage button is hidden there).
+    if (isAppleWrapper) return;
+
     // Google Play Billing (Android TWA): manage through the Play Store.
     if (playBillingService) {
       window.open(
