@@ -284,8 +284,8 @@ async function purchasePlaySubscription() {
   const request = new PaymentRequest(
     [
       {
-        supportedMethods: "https://play.googleapis.com/billing",
-        data: { productId: PLAY_PRODUCT_ID, action: "payment" },
+        supportedMethods: "https://play.google.com/billing",
+        data: { sku: PLAY_PRODUCT_ID },
       },
     ],
     {
