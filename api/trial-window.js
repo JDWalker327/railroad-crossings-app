@@ -108,6 +108,7 @@ async function lookupEmailLedger(email, debug) {
   if (!res.ok) throw new Error(`RevenueCat subscriber lookup failed (${res.status})`);
   const payload = await res.json();
   const attributes = (payload && payload.subscriber && payload.subscriber.attributes) || {};
+  if (debug) debug.attributes = attributes;
   const raw = attributes[RC_ATTRIBUTE] && attributes[RC_ATTRIBUTE].value;
   const time = raw ? Date.parse(raw) : NaN;
   return Number.isFinite(time) ? time : null;
