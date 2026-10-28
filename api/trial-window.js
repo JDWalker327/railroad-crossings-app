@@ -100,9 +100,11 @@ function rcRequest(path, init) {
 
 // Returns the earliest recorded trial start for this email from the
 // RevenueCat subscriber attributes, or null when nothing is recorded.
-async function lookupEmailLedger(email) {
+async function lookupEmailLedger(email, debug) {
   const res = await rcRequest(`subscribers/${encodeURIComponent(email)}`, { method: "GET" });
-  if (!res || res.status === 404) return null; // never seen / no key
+  if (!res) { if (debug) debug.lookup = "no-key"; return null; } // no key configured
+  if (debug) debug.lookup = res.status;
+  if (res.status === 404) return null; // never seen
   if (!res.ok) throw new Error(`RevenueCat subscriber lookup failed (${res.status})`);
   const payload = await res.json();
   const attributes = (payload && payload.subscriber && payload.subscriber.attributes) || {};
@@ -111,11 +113,12 @@ async function lookupEmailLedger(email) {
   return Number.isFinite(time) ? time : null;
 }
 
-async function recordEmailLedger(email, startTimeMs) {
+async function recordEmailLedger(email, startTimeMs, debug) {
   const res = await rcRequest(`subscribers/${encodeURIComponent(email)}/attributes`, {
     method: "POST",
     body: JSON.stringify({ attributes: { [RC_ATTRIBUTE]: { value: new Date(startTimeMs).toISOString() } } }),
   });
+  if (debug) debug.write = res ? res.status : "no-key";
   if (!res || !res.ok) throw new Error(`RevenueCat attribute write failed (${res && res.status})`);
 }
 
@@ -140,6 +143,7 @@ module.exports = async function handler(req, res) {
   const email = isValidEmail(body.email) ? body.email.trim().toLowerCase() : "";
   const now = Date.now();
 
+  const debug = body.debug === true ? {} : null;
   try {
     // Device leg.
     const cookieStart = verifyTrialCookie(req.headers.cookie, secret);
@@ -148,7 +152,7 @@ module.exports = async function handler(req, res) {
     let ledgerStart = null;
     if (email && process.env.REVENUECAT_SECRET_API_KEY) {
       try {
-        ledgerStart = await lookupEmailLedger(email);
+        ledgerStart = await lookupEmailLedger(email, debug);
       } catch (error) {
         // Degrade to the cookie leg rather than failing the request.
         console.warn("Trial ledger lookup failed:", error.message);
@@ -168,7 +172,7 @@ module.exports = async function handler(req, res) {
     // Keep the email ledger at the earliest known start.
     if (email && (ledgerStart === null || finalStart < ledgerStart)) {
       try {
-        await recordEmailLedger(email, finalStart);
+        await recordEmailLedger(email, finalStart, debug);
       } catch (error) {
         console.warn("Trial ledger write failed:", error.message);
       }
@@ -178,6 +182,7 @@ module.exports = async function handler(req, res) {
       trial_start: new Date(finalStart).toISOString(),
       trial_expires: new Date(finalStart + TRIAL_LENGTH_MS).toISOString(),
       active: finalStart + TRIAL_LENGTH_MS > now,
+      ...(debug ? { debug } : {}),
     });
   } catch (error) {
     console.error("Trial window error:", error.message);
