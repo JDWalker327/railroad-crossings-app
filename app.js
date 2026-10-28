@@ -521,6 +521,7 @@ async function requestStripeBillingPortalUrl(email, fetchImpl) {
 const paywallModal = document.getElementById("paywallModal");
 const paywallCloseBtn = document.getElementById("paywallCloseBtn");
 const paywallSubscribeBtn = document.getElementById("paywallSubscribeBtn");
+const paywallWebBtn = document.getElementById("paywallWebBtn");
 const paywallManageBtn = document.getElementById("paywallManageBtn");
 const paywallEmailInput = document.getElementById("paywallEmailInput");
 const paywallRestoreBtn = document.getElementById("paywallRestoreBtn");
@@ -763,6 +764,19 @@ function registerServiceWorker() {
 const PURCHASES_UNAVAILABLE_MESSAGE =
   "Subscription service is unavailable right now. Please refresh the page and try again.";
 
+// The website handles subscriptions for iOS App Store users: Apple requires
+// its own in-app purchase system for digital subscriptions, which this
+// native wrapper can't offer, so the paywall links out to the web instead.
+const WEB_APP_URL = "https://railroad-crossings-app.vercel.app";
+
+function isIOSNativeApp() {
+  return (
+    typeof window !== "undefined" &&
+    !!window.Capacitor &&
+    getInstallContext().isIOS
+  );
+}
+
 // Disable/annotate the purchase-dependent paywall actions (Subscribe,
 // Restore) when the SDK capability isn't available, so the buttons never
 // trigger an unsafe SDK call. The Manage Subscription button stays enabled
@@ -786,6 +800,19 @@ function openPaywall() {
   if (paywallEmailInput && !paywallEmailInput.value) {
     paywallEmailInput.value = getStoredUserEmail();
   }
+
+  // iOS App Store build: in-app purchases aren't available, so the in-app
+  // purchase buttons are swapped for a link out to the website.
+  const iosNative = isIOSNativeApp();
+  if (paywallWebBtn) paywallWebBtn.hidden = !iosNative;
+  if (paywallSubscribeBtn) paywallSubscribeBtn.hidden = iosNative;
+  if (paywallManageBtn) paywallManageBtn.hidden = iosNative;
+  if (paywallRestoreBtn) paywallRestoreBtn.hidden = iosNative;
+  if (iosNative) {
+    paywallStatus.textContent =
+      "Enter your email, then tap Subscribe on the Web — it opens our website in Safari. Once you've subscribed there, your Pro access unlocks here automatically with the same email.";
+  }
+
   refreshBillingCapabilityUi();
 }
 
@@ -826,6 +853,43 @@ paywallSubscribeBtn.addEventListener("click", async () => {
   persistUserEmail(email);
   const uid = encodeURIComponent(email.toLowerCase());
   window.location.href = `https://pay.rev.cat/ovpvigulhionjfpq/${uid}`;
+});
+
+if (paywallWebBtn) {
+  paywallWebBtn.addEventListener("click", () => {
+    const email = (paywallEmailInput?.value || getStoredUserEmail() || "").trim();
+    if (!isValidEmail(email)) {
+      paywallStatus.textContent = "Please enter a valid email address first — your Pro access will be tied to it.";
+      return;
+    }
+    persistUserEmail(email);
+    // Link the RevenueCat identity to this email before leaving so the
+    // subscription made on the website is visible when the user returns.
+    try {
+      if (isRevenueCatConfigured && isChangeUserCapable) {
+        RC.getSharedInstance().changeUser(email.trim().toLowerCase());
+      }
+    } catch (e) {
+      console.warn("RevenueCat changeUser failed:", e);
+    }
+    // Opens Safari (not the in-app webview) so the purchase happens on the
+    // website, outside the app.
+    window.open(WEB_APP_URL, "_blank", "noopener");
+    paywallStatus.textContent =
+      "Our website is open in Safari. Subscribe there, then come back — Pro unlocks here automatically.";
+  });
+}
+
+// Re-check entitlements when the app returns to the foreground (e.g. after
+// subscribing on the website in Safari), so Pro unlocks without a restart.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  checkEntitlements().then(() => {
+    refreshBillingCapabilityUi();
+    if (typeof renderActiveResults === "function") {
+      renderActiveResults();
+    }
+  });
 });
 
 if (paywallManageBtn) {
