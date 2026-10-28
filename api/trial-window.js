@@ -14,7 +14,7 @@
 //      all site data no longer grants a new window once the same email is
 //      entered again.
 //
-// Both legs degrade gracefully: without TRIALPE_SIGNING_SECRET nothing is
+// Both legs degrade gracefully: without TRIAL_SIGNING_SECRET nothing is
 // enforced (the client keeps its local stamp, exactly the old behavior);
 // without the RevenueCat key only the cookie leg applies.
 //
