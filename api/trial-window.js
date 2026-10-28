@@ -92,7 +92,6 @@ function rcRequest(path, init) {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "X-Platform": "web",
       ...(init.headers || {}),
     },
   });
@@ -107,8 +106,8 @@ async function lookupEmailLedger(email, debug) {
   if (res.status === 404) return null; // never seen
   if (!res.ok) throw new Error(`RevenueCat subscriber lookup failed (${res.status})`);
   const payload = await res.json();
-  const attributes = (payload && payload.subscriber && payload.subscriber.attributes) || {};
-  if (debug) debug.attributes = attributes;
+  // Only present when the request is authorized with a secret API key.
+  const attributes = (payload && payload.subscriber && payload.subscriber.subscriber_attributes) || {};
   const raw = attributes[RC_ATTRIBUTE] && attributes[RC_ATTRIBUTE].value;
   const time = raw ? Date.parse(raw) : NaN;
   return Number.isFinite(time) ? time : null;
@@ -117,7 +116,9 @@ async function lookupEmailLedger(email, debug) {
 async function recordEmailLedger(email, startTimeMs, debug) {
   const res = await rcRequest(`subscribers/${encodeURIComponent(email)}/attributes`, {
     method: "POST",
-    body: JSON.stringify({ attributes: { [RC_ATTRIBUTE]: { value: new Date(startTimeMs).toISOString() } } }),
+    body: JSON.stringify({
+      attributes: { [RC_ATTRIBUTE]: { value: new Date(startTimeMs).toISOString(), updated_at_ms: Date.now() } },
+    }),
   });
   if (debug) debug.write = res ? res.status : "no-key";
   if (!res || !res.ok) throw new Error(`RevenueCat attribute write failed (${res && res.status})`);
