@@ -62,6 +62,23 @@ npx serve .
 
 ---
 
+## Trial window (server-side)
+
+\`/api/trial-window\` keeps the 14-day free-trial start date server-side
+(signed HttpOnly cookie per device + a RevenueCat subscriber attribute per
+email), so cleared or evicted browser storage no longer restarts the window.
+
+Environment variables (Vercel project settings):
+
+- \`TRIAL_SIGNING_SECRET\` — required. Any random string of 16+ characters
+  used to sign the trial cookie. Until it is set, the endpoint returns 503
+  and the app falls back to the old local-storage behavior.
+- \`REVENUECAT_SECRET_API_KEY\` — optional. The project secret key from the
+  RevenueCat dashboard (Project settings → Secret API key). Enables the
+  per-email trial ledger so a user who clears site data and re-enters the
+  same email does not get a new window.
+
+
 ## Deploying to Production
 
 "Production" for app-store parity is the Vercel origin (`https://railroad-crossings-app.vercel.app/`), since the Android app wrapper points there.
