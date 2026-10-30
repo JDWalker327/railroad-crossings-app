@@ -1,4 +1,4 @@
-const CACHE_NAME = "railroad-crossings-app-v19";
+const CACHE_NAME = "railroad-crossings-app-v20";
 const APP_SHELL_URLS = [
   "./",
   "./index.html",
@@ -84,22 +84,17 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const cachedResponse = await cache.match(request);
-    // Stale-while-revalidate: return the cached shell asset immediately while a
-    // background fetch refreshes the cache for the next visit.
-    const networkResponsePromise = fetch(request)
-      .then(async (response) => {
-        if (response.ok) {
-          await cache.put(request, response.clone());
-        }
-        return response;
-      })
-      .catch(() => null);
-    if (cachedResponse) {
-      return cachedResponse;
+    // Network-first for the app shell: a deploy is picked up on the next load
+    // instead of one load later.
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch (error) {
+      const cachedResponse = await cache.match(request);
+      return cachedResponse || Response.error();
     }
-
-    const networkResponse = await networkResponsePromise;
-    return networkResponse || Response.error();
   })());
 });
