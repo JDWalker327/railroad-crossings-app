@@ -1646,32 +1646,16 @@ dotSearchBtn.addEventListener("click", async () => {
   const dot = dotSearch.value.trim();
   if (!dot) return;
 
-  // Use dedicated table for selected Class I railroad; otherwise use railroads
-  const lookupTable =
-    activeRailroadFilter.type === "classI" &&
-    ["bnsf", "cn", "cpkc", "csx", "ns", "up"].includes(activeRailroadFilter.key)
-      ? activeRailroadFilter.key
-      : "railroads";
+  // DOT numbers are unique nationally, so a DOT lookup always searches the
+  // full crossings table. Scoping it to the selected railroad made crossings
+  // filed under a different railroad come back empty.
+  const normalizedDot = dot.replace(/\s+/g, "");
 
-  let query = supabaseClient
+  const { data, error } = await supabaseClient
     .schema("public")
-    .from(lookupTable)
+    .from("railroads")
     .select("*")
-    .ilike("dot_number", dot);
-
-  if (activeRailroadFilter.type === "classI") {
-    // Only apply abbreviation filter when querying shared railroads table
-    if (lookupTable === "railroads") {
-      const railroad = CLASS_I_RAILROADS.find((r) => r.key === activeRailroadFilter.key);
-      if (railroad && railroad.aliases.length > 0) {
-        query = query.in("railroad_abreviation", railroad.aliases);
-      }
-    }
-  } else if (activeRailroadFilter.type === "other") {
-    query = query.ilike("railroad", activeRailroadFilter.key);
-  }
-
-  const { data, error } = await query;
+    .ilike("dot_number", normalizedDot);
 
   if (error) {
     console.error(error);
@@ -1680,6 +1664,14 @@ dotSearchBtn.addEventListener("click", async () => {
 
   lookupCrossingsCache = data || [];
   renderActiveResults();
+});
+
+// Pressing Enter in the DOT field runs the same lookup as the button.
+dotSearch.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    dotSearchBtn.click();
+  }
 });
 
 function renderLookupTable(rows, options = {}) {
