@@ -1663,6 +1663,9 @@ dotSearchBtn.addEventListener("click", async () => {
   }
 
   lookupCrossingsCache = data || [];
+  lookupResults.innerHTML = lookupCrossingsCache.length
+    ? `<div style="opacity:0.8;">DOT <strong>${escHtml(normalizedDot)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`
+    : `<div style="opacity:0.8;">No crossing found for DOT <strong>${escHtml(normalizedDot)}</strong>. Check the number and try again.</div>`;
   renderActiveResults();
 });
 
