@@ -1641,6 +1641,58 @@ async function loadLookupCrossingsForSubdivision() {
   renderActiveResults();
 }
 
+// Some crossings in the national inventory are not in the app table yet (most
+// Class I railroad crossings). Fall back to the federal crossing data before
+// reporting a DOT number as unknown.
+const FRA_CROSSING_API =
+  "https://services.arcgis.com/xOi1kZaI0eWDREZv/ArcGIS/rest/services/NTAD_Railroad_Grade_Crossings/FeatureServer/0/query";
+const FRA_RAILROAD_NAMES = {
+  UP: "Union Pacific",
+  BNSF: "BNSF Railway",
+  CSX: "CSX Transportation",
+  NS: "Norfolk Southern",
+  CN: "Canadian National",
+  CPKC: "CPKC",
+  KCS: "Kansas City Southern",
+  FXE: "Ferromex",
+  FEC: "Florida East Coast"
+};
+
+async function lookupFraCrossing(dot) {
+  try {
+    const params = new URLSearchParams({
+      where: "CrossingID='" + String(dot).replace(/[^A-Za-z0-9]/g, "") + "'",
+      outFields:
+        "CrossingID,RailroadCode,RailroadSubdivision,HighwayName,CITYNAME,STATENAME,RailroadMilepostNumber,CrossingType,LATITUDE,Longitude",
+      returnGeometry: "false",
+      f: "json"
+    });
+    const res = await fetch(FRA_CROSSING_API + "?" + params.toString());
+    if (!res.ok) return null;
+    const json = await res.json();
+    const a = json && json.features && json.features[0] ? json.features[0].attributes : null;
+    if (!a) return null;
+    const code = (a.RailroadCode || "").trim();
+    return {
+      dot_number: a.CrossingID || dot,
+      railroad: FRA_RAILROAD_NAMES[code] || code,
+      railroad_abreviation: code,
+      subdivision: a.RailroadSubdivision || "",
+      road_name: a.HighwayName || "",
+      city: a.CITYNAME || "",
+      state: a.STATENAME || "",
+      mile_post_num: a.RailroadMilepostNumber || "",
+      type: a.CrossingType || "",
+      latitude: a.LATITUDE == null ? null : a.LATITUDE,
+      longitude: a.Longitude == null ? null : a.Longitude,
+      fra_exists: true,
+      fra_live: true
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 dotSearchBtn.addEventListener("click", async () => {
   activeMode = "lookup";
   const dot = dotSearch.value.trim();
@@ -1649,7 +1701,7 @@ dotSearchBtn.addEventListener("click", async () => {
   // DOT numbers are unique nationally, so a DOT lookup always searches the
   // full crossings table. Scoping it to the selected railroad made crossings
   // filed under a different railroad come back empty.
-  const normalizedDot = dot.replace(/\s+/g, "");
+  const normalizedDot = dot.replace(/\s+/g, "").toUpperCase();
 
   const { data, error } = await supabaseClient
     .schema("public")
@@ -1663,8 +1715,20 @@ dotSearchBtn.addEventListener("click", async () => {
   }
 
   lookupCrossingsCache = data || [];
+  let liveFraMatch = false;
+
+  // The table does not hold every crossing in the national inventory yet, so
+  // check the federal record before telling the user a DOT number is unknown.
+  if (!lookupCrossingsCache.length) {
+    const fraRow = await lookupFraCrossing(normalizedDot);
+    if (fraRow) {
+      lookupCrossingsCache = [fraRow];
+      liveFraMatch = true;
+    }
+  }
+
   lookupResults.innerHTML = lookupCrossingsCache.length
-    ? `<div style="opacity:0.8;">DOT <strong>${escHtml(normalizedDot)}</strong> — ${lookupCrossingsCache.length} crossing(s) found</div>`
+    ? `<div style="opacity:0.8;">DOT <strong>${escHtml(normalizedDot)}</strong> — ${lookupCrossingsCache.length} crossing(s) found${liveFraMatch ? " (live federal record)" : ""}</div>`
     : `<div style="opacity:0.8;">No crossing found for DOT <strong>${escHtml(normalizedDot)}</strong>. Check the number and try again.</div>`;
   renderActiveResults();
 });
