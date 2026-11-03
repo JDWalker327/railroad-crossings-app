@@ -1947,6 +1947,11 @@ const MAP_MODAL_RENDER_DELAY_MS = 40;
 const MAP_PAGE_SIZE = 1000;
 const MAP_AUTO_INFO_ZOOM = 14;
 const MAP_AUTO_INFO_MAX_MARKERS = 40;
+// Above this many crossings in view the map loads a spatially even subset
+// instead of every row, so zooming out to several states stays responsive.
+const MAP_ROW_TARGET = 9000;
+const MAP_MAX_MARKERS = 2500;
+let mapRenderedZoom = 0;
 
 let mapLeafletInstance = null;
 let mapMarkersLayer = null;
@@ -2111,6 +2116,56 @@ async function fetchAllMapCrossingRows(buildQuery, pageSize = MAP_PAGE_SIZE) {
   }
 }
 
+function mapSampleLettersFor(rowCount) {
+  // DOT check letters are spread evenly across the country and across railroads,
+  // so keeping only some of them thins a wide view without leaving gaps.
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const fractionNeeded = Math.min(1, MAP_ROW_TARGET / Math.max(rowCount, 1));
+  const needed = Math.max(1, Math.floor(fractionNeeded * 22));
+  return letters.slice(0, Math.min(needed, letters.length));
+}
+
+async function fetchMapCrossingRowsSampled(buildQuery, buildCountQuery) {
+  const { count, error: countError } = await buildCountQuery();
+  if (countError) return { data: null, error: countError };
+
+  const total = count || 0;
+  if (total <= MAP_ROW_TARGET) return fetchAllMapCrossingRows(() => buildQuery(""));
+
+  const sampleFilter = mapSampleLettersFor(total)
+    .map((letter) => `dot_number.ilike.%${letter}`)
+    .join(",");
+  const { data, error } = await fetchAllMapCrossingRows(() => buildQuery(sampleFilter));
+
+  // Fall back to a direct read if the sample matched nothing.
+  if (!error && (!data || data.length === 0)) return fetchAllMapCrossingRows(() => buildQuery(""));
+  return { data, error };
+}
+
+function downsampleMapRowsForView(rows) {
+  if (!rows || rows.length <= MAP_MAX_MARKERS) return rows || [];
+
+  const bounds = currentMapViewBounds();
+  const cells = Math.ceil(Math.sqrt(MAP_MAX_MARKERS));
+  const spanLat = bounds ? Math.max(0.02, bounds.north - bounds.south) : 25;
+  const spanLon = bounds ? Math.max(0.02, bounds.east - bounds.west) : 60;
+  const cellLat = spanLat / cells;
+  const cellLon = spanLon / cells;
+  const seen = new Set();
+  const kept = [];
+
+  rows.forEach((row) => {
+    const lat = parseFloat(row.latitude);
+    const lon = parseFloat(row.longitude);
+    const key = Math.floor(lat / cellLat) + ":" + Math.floor(lon / cellLon);
+    if (seen.has(key)) return;
+    seen.add(key);
+    kept.push(row);
+  });
+
+  return kept;
+}
+
 const mapCrossingsCache = new Map();
 
 function getMapCrossingsCacheKey(filter) {
@@ -2118,8 +2173,10 @@ function getMapCrossingsCacheKey(filter) {
 }
 
 async function loadMapCrossings(filter, bounds) {
+  const zoom = mapLeafletInstance ? mapLeafletInstance.getZoom() : 0;
   const cacheKey =
     getMapCrossingsCacheKey(filter) +
+    "|z" + zoom +
     (bounds
       ? "|" + bounds.south.toFixed(1) + "," + bounds.north.toFixed(1) + "," + bounds.west.toFixed(1) + "," + bounds.east.toFixed(1)
       : "");
@@ -2131,32 +2188,42 @@ async function loadMapCrossings(filter, bounds) {
 
   const { tableName, aliasFilter, nameFilter } = getMapTableConfig(filter);
 
-  const buildQuery = () => {
+  const buildFilteredQuery = (selectClause, options, sampleFilter) => {
     let query = supabaseClient
       .schema("public")
       .from(tableName)
-      .select("dot_number, railroad, subdivision, latitude, longitude, mile_post_num")
+      .select(selectClause, options)
       .not("latitude", "is", null)
       .not("longitude", "is", null)
       .gte("latitude", bounds.south)
       .lte("latitude", bounds.north)
       .gte("longitude", bounds.west)
-      .lte("longitude", bounds.east)
-      // Use a deterministic multi-column ordering for stable pagination.
-      .order("dot_number", { ascending: true })
-      .order("railroad", { ascending: true })
-      .order("subdivision", { ascending: true })
-      .order("mile_post_num", { ascending: true });
+      .lte("longitude", bounds.east);
 
     if (aliasFilter && aliasFilter.length > 0) {
       query = query.in("railroad_abreviation", aliasFilter);
     } else if (nameFilter) {
       query = query.ilike("railroad", nameFilter);
     }
+    if (sampleFilter) query = query.or(sampleFilter);
     return query;
   };
 
-  const { data, error } = await fetchAllMapCrossingRows(buildQuery);
+  const buildQuery = (sampleFilter) =>
+    buildFilteredQuery(
+      "dot_number, railroad, subdivision, latitude, longitude, mile_post_num",
+      undefined,
+      sampleFilter
+    )
+      // Use a deterministic multi-column ordering for stable pagination.
+      .order("dot_number", { ascending: true })
+      .order("railroad", { ascending: true })
+      .order("subdivision", { ascending: true })
+      .order("mile_post_num", { ascending: true });
+
+  const buildCountQuery = () => buildFilteredQuery("dot_number", { count: "exact", head: true });
+
+  const { data, error } = await fetchMapCrossingRowsSampled(buildQuery, buildCountQuery);
 
   if (mapStatusEl) {
     mapStatusEl.textContent = error
@@ -2190,7 +2257,10 @@ function renderMapMarkers(rows, filter) {
   }
 
   const color = getMapFilterColor(filter);
-  const validRows = (rows || []).filter((r) => hasLatLon(r.latitude, r.longitude));
+  const validRows = downsampleMapRowsForView(
+    (rows || []).filter((r) => hasLatLon(r.latitude, r.longitude))
+  );
+  mapRenderedZoom = mapLeafletInstance.getZoom();
 
   validRows.forEach((row) => {
     const lat = parseFloat(row.latitude);
@@ -2295,6 +2365,7 @@ async function applyMapFilter(filter, keepSubdivision = false) {
   const rawBounds = currentMapViewBounds();
   const filterBounds = rawBounds ? paddedBounds(rawBounds, 0.25) : null;
   activeMapLoadedBounds = filterBounds;
+  activeMapLoadedZoom = mapLeafletInstance ? mapLeafletInstance.getZoom() : 0;
   allMapRows = await loadMapCrossings(filter, filterBounds);
   allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
   renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), filter);
@@ -2743,6 +2814,7 @@ function initMapLeaflet() {
     }
     tileLayer.addTo(mapLeafletInstance);
     mapLeafletInstance.on("zoomend moveend", () => {
+      refreshMapMarkersForZoom();
       refreshMapMarkerPresentation();
       scheduleMapBoundsRefill();
     });
@@ -2760,6 +2832,7 @@ const MAP_HOME_ZOOM = 11;
 let lastKnownLocation = null;
 let lastKnownLocationAt = 0;
 let activeMapLoadedBounds = null;
+let activeMapLoadedZoom = 0;
 let mapRefillTimer = null;
 let mapAutoFitAllowed = true;
 
@@ -2844,6 +2917,7 @@ function mapBoundsCover(loaded, view) {
 
 async function applyMapCrossingsForFilter(filter, bounds) {
   activeMapLoadedBounds = bounds;
+  activeMapLoadedZoom = mapLeafletInstance ? mapLeafletInstance.getZoom() : 0;
   const rows = await loadMapCrossings(filter, bounds);
   allMapRows = rows;
   allMapSubdivisionNames = Array.from(collectSubdivisionNames(allMapRows));
@@ -2857,10 +2931,20 @@ async function refreshMapCrossingsForBounds() {
   await applyMapCrossingsForFilter(activeMapFilter, paddedBounds(rawBounds, 0.25));
 }
 
+function refreshMapMarkersForZoom() {
+  if (!mapLeafletInstance || mapRenderedZoom === mapLeafletInstance.getZoom()) return;
+  // Re-draw the loaded rows at the new zoom so the sampling grid refines.
+  const autoFit = mapAutoFitAllowed;
+  mapAutoFitAllowed = false;
+  renderMapMarkers(getFilteredRowsForMap(allMapRows, activeMapSubdivision), activeMapFilter);
+  mapAutoFitAllowed = autoFit;
+}
+
 function scheduleMapBoundsRefill() {
   const view = currentMapViewBounds();
   if (!view) return;
-  if (mapBoundsCover(activeMapLoadedBounds, view)) return;
+  const zoomedIn = !!mapLeafletInstance && mapLeafletInstance.getZoom() > (activeMapLoadedZoom || 0);
+  if (!zoomedIn && mapBoundsCover(activeMapLoadedBounds, view)) return;
   clearTimeout(mapRefillTimer);
   mapRefillTimer = setTimeout(refreshMapCrossingsForBounds, 700);
 }
