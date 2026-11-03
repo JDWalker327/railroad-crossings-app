@@ -2500,7 +2500,15 @@ async function fetchNearestFromAllTables(buildPerTableQuery) {
     if (error) throw error;
     return data || [];
   }));
-  return results.flat();
+  // UP and BNSF crossings now also live in the combined "railroads" table,
+  // so keep only the first copy of each crossing.
+  const seen = new Set();
+  return results.flat().filter((row) => {
+    const key = row.dot_number || row.latitude + "," + row.longitude;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 async function loadNearestCrossingsNear(myLat, myLon) {
