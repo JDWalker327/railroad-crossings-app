@@ -1669,7 +1669,7 @@ function renderLookupTable(rows, options = {}) {
 
   const sortedRows = sortRowsByMilepost(rows || []);
 
-  if (isRailroadMode || isPro || PAYWALL_DISABLED) {
+  if (isPro || PAYWALL_DISABLED) {
     crossingsTableHead.innerHTML = `
       <tr>
         <th>Map</th>
