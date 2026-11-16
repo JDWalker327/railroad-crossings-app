@@ -184,78 +184,11 @@ function getIsPro() {
   return isPro;
 }
 
-// ── 14-day free trial (stamped on first launch on this device) ──────────────
-// While the trial is active the lookup table shows full details, exactly
-// like a subscribed Pro user. After it expires the paywall gate re-engages
-// until the user enters their email and subscribes. The local stamp is the
-// offline fallback; syncTrialWindow() reconciles it with the server-side
-// window (/api/trial-window) on every startup.
-const TRIAL_START_KEY = "trial_start_date";
-const TRIAL_LENGTH_MS = 14 * 24 * 60 * 60 * 1000;
-
-function getTrialStartTime(store = (typeof localStorage !== "undefined" ? localStorage : null)) {
-  if (!store || typeof store.getItem !== "function") return null;
-  try {
-    const raw = store.getItem(TRIAL_START_KEY);
-    if (!raw) return null;
-    const time = new Date(raw).getTime();
-    return isNaN(time) ? null : time;
-  } catch (error) {
-    console.warn("Trial start read failed:", error);
-    return null;
-  }
-}
-
-function stampTrialStart(store = (typeof localStorage !== "undefined" ? localStorage : null)) {
-  if (!store || typeof store.getItem !== "function" || typeof store.setItem !== "function") return;
-  try {
-    if (!store.getItem(TRIAL_START_KEY)) {
-      store.setItem(TRIAL_START_KEY, new Date().toISOString());
-    }
-  } catch (error) {
-    console.warn("Trial start write failed:", error);
-  }
-}
-
-function isTrialActive() {
-  const start = getTrialStartTime();
-  return start !== null && Date.now() - start < TRIAL_LENGTH_MS;
-}
-
-// ── Server-side trial window sync ──────────────────────────────
-// The server (/api/trial-window) is the source of truth for the start
-// date: a signed HttpOnly cookie carries the device's first-seen date
-// (so evicted or cleared localStorage no longer restarts the window),
-// and once an email is on file the server also anchors the window to
-// that email via the Stripe customer metadata ledger. The response is
-// mirrored into localStorage so isTrialActive() and offline use keep
-// working unchanged. Any failure (offline, no fetch) is fail-open: the
-// local stamp keeps governing.
-async function syncTrialWindow(fetchImpl = (typeof fetch === "function" ? fetch : null)) {
-  if (!fetchImpl) return;
-  try {
-    const storedEmail = getStoredUserEmail();
-    const body = isValidEmail(storedEmail)
-      ? { email: storedEmail.trim().toLowerCase() }
-      : {};
-    const res = await fetchImpl("/api/trial-window", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res || !res.ok) return;
-    const data = await res.json();
-    if (!data || !data.trial_start) return;
-    try {
-      localStorage.setItem(TRIAL_START_KEY, data.trial_start);
-    } catch (error) {
-      console.warn("Trial sync write failed:", error);
-    }
-  } catch (error) {
-    console.warn("Trial window sync skipped:", error);
-  }
-}
-
+// ── Access gate ─────────────────────────────────────────────────
+// Full crossing details unlock for subscribed users only. The free trial is
+// provided entirely by the billing provider (the Google Play base plan offer
+// or the RevenueCat web paywall), so RevenueCat reports every trial and
+// subscription; the app keeps no device-side trial clock of its own.
 // ── Google Play Billing (Android TWA) ─────────────────────────────────────────────
 // Inside the Bubblewrap Trusted Web Activity (once it is built with the
 // playBilling feature enabled) the Digital Goods API is available, and
@@ -418,17 +351,6 @@ async function initRevenueCat() {
       console.error("RevenueCat init error:", e);
     }
   }
-
-  // Stamp the 14-day trial start on first launch (no-op afterwards).
-  stampTrialStart();
-
-  // Reconcile the local stamp with the server-side window before the first
-  // gated render. Capped so a slow/hung network (e.g. poor cell signal in
-  // the field) cannot stall startup; on timeout the local stamp applies.
-  await Promise.race([
-    syncTrialWindow(),
-    new Promise((resolve) => setTimeout(resolve, 3000)),
-  ]);
 
   // Connect to Google Play Billing when running inside the Android TWA.
   await initPlayBilling();
@@ -1503,7 +1425,6 @@ if (typeof module !== "undefined") {
     isValidEmail,
     getStoredUserEmail,
     persistUserEmail,
-    syncTrialWindow,
     requestStripeCheckoutUrl,
     requestStripeBillingPortalUrl,
     refreshBillingCapabilityUi,
@@ -1748,7 +1669,7 @@ function renderLookupTable(rows, options = {}) {
 
   const sortedRows = sortRowsByMilepost(rows || []);
 
-  if (isRailroadMode || isPro || PAYWALL_DISABLED || isTrialActive()) {
+  if (isRailroadMode || isPro || PAYWALL_DISABLED) {
     crossingsTableHead.innerHTML = `
       <tr>
         <th>Map</th>
